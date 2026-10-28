@@ -51,6 +51,7 @@ class MappedMachineCore(
     require(!p.registeredTranslatedResponses || bufferTranslatedResponses)
     require(!p.directMemoryResponse || stagedMemoryFabric)
     val io = IO(new Bundle {
+        val fetchSpeculationCancel = if (p.contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
         val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val timerInterrupt  = Input(Bool())
@@ -242,6 +243,7 @@ class MappedMachineCore(
     io.fetchPc              := core.io.fetchPc
     io.commit               := core.io.commit
     io.trap                 := core.io.trap
+    io.fetchSpeculationCancel.foreach(_ := core.io.fetchSpeculationCancel.get)
     io.redirect             := core.io.redirect
     io.invalidateFetch      := core.io.invalidateFetch
     io.recovering           := core.io.recovering

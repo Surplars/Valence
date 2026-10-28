@@ -22,14 +22,16 @@ class CertifiedLoadIngressSpec extends AnyFunSuite {
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile))
             assert(profile.config.coreParams.certifiedLoadIngress == Set[CommonA1RebuildProfile](candidate,
                 CommonA1RebuildProfile.FullR1M3IdentityFetchHorizon,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile))
         }
         val p = candidate.config.coreParams
         assert(p.robEntries == 16 && p.physicalRegs == 48 && p.tagBits == 64)

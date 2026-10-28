@@ -7,22 +7,29 @@ import chisel3.util._
   * in one translation page; the two-word path retains precise handling of a packet crossing a page boundary.
   */
 class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp: Boolean = false,
-    val transactionSlots: Int = 1, val withRequestContext: Boolean = false) extends Module {
+    val transactionSlots: Int = 1, val withRequestContext: Boolean = false,
+    val contextOwnedInstructionPrefetch: Boolean = false) extends Module {
     require(p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
     require(Set(1, 2).contains(transactionSlots))
+    require(!contextOwnedInstructionPrefetch || (withRequestContext && transactionSlots == 2),
+        "context-owned instruction prefetch requires the two-slot owner-context translation boundary")
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
     val io = IO(new Bundle {
         val virtual = Flipped(new InstructionPort(packetWords))
-        val physical = new InstructionPort(packetWords, withRequestContext)
+        val physical = new InstructionPort(packetWords, withRequestContext, contextOwnedInstructionPrefetch)
         val translation = new SvTranslationPort
         val vmState = Input(new VmCsrState)
         val privilege = Input(UInt(2.W))
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
+        val speculationKill = if (contextOwnedInstructionPrefetch) Some(Input(Bool())) else None
+        val speculationDrained = if (contextOwnedInstructionPrefetch) Some(Input(Bool())) else None
+        val speculationMinimumSequence = if (contextOwnedInstructionPrefetch) Some(Output(UInt(64.W))) else None
+        val speculationAgeUsable = if (contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
     })
     if (transactionSlots == 2) {
         val pipeline = Module(new PipelinedAlignedInstructionTranslation(p, sharedTwoWordFetchPmp,
-            withRequestContext))
+            withRequestContext, contextOwnedInstructionPrefetch))
         pipeline.io.virtual <> io.virtual
         pipeline.io.vmState := io.vmState
         pipeline.io.privilege := io.privilege
@@ -30,6 +37,12 @@ class InstructionTranslationAdapter(val p: OooParams, val sharedTwoWordFetchPmp:
         io.physical <> pipeline.io.physical
         io.translation <> pipeline.io.translation
         io.idle := pipeline.io.idle
+        if (contextOwnedInstructionPrefetch) {
+            pipeline.io.speculationKill.get := io.speculationKill.get
+            pipeline.io.speculationDrained.get := io.speculationDrained.get
+            io.speculationMinimumSequence.get := pipeline.io.speculationMinimumSequence.get
+            io.speculationAgeUsable.get := pipeline.io.speculationAgeUsable.get
+        }
     } else if (p.registeredTranslationHeads) {
         if (p.alignedFetchSinglePage) {
             // Preserve the original public-offer assertion, even while a

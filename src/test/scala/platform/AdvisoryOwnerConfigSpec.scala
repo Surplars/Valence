@@ -24,7 +24,8 @@ class AdvisoryOwnerConfigSpec extends AnyFunSuite {
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile))
             assert(profile.config.registeredAdvisoryExclusion == Set[CommonA1RebuildProfile](combined,
                 CommonA1RebuildProfile.FullR1M3CertifiedIngress,
                 CommonA1RebuildProfile.FullR1M3IdentityFetchHorizon,
@@ -32,7 +33,8 @@ class AdvisoryOwnerConfigSpec extends AnyFunSuite {
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile))
         }
         for (profile <- Seq(owner, combined)) {
             assert(CommonA1RebuildProfile.named(profile.name) == profile)

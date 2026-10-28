@@ -78,37 +78,39 @@ class FetchCompletionLedger extends Module {
     assert(count <= 2.U && PopCount(live) === count, "fetch global result credit mismatch")
 }
 
-class FetchPermissionCommand extends Bundle {
+class FetchPermissionCommand(val contextOwnedInstructionPrefetch: Boolean = false) extends Bundle {
     val slot = UInt(1.W)
     val token = UInt(64.W)
     val address = UInt(64.W)
     val mask = UInt(2.W)
     val privilege = UInt(2.W)
+    val identityTranslation = if (contextOwnedInstructionPrefetch) Some(Bool()) else None
 }
 
-class FetchPhysicalCommand extends Bundle {
+class FetchPhysicalCommand(val contextOwnedInstructionPrefetch: Boolean = false) extends Bundle {
     val slot = UInt(1.W)
     val token = UInt(64.W)
     val address = UInt(64.W)
     val mask = UInt(2.W)
     val accessFaults = UInt(2.W)
-    val context = new PhysicalFetchRequestContext
+    val context = new PhysicalFetchRequestContext(contextOwnedInstructionPrefetch)
 }
 
 /** Existing first-offer PMP edge, now independent of the physical return owner.
   * Input latency one; send/local-fault acceptance releases this stage only.
   * An output stalled at its first offer freezes permission with its PA/token.
   */
-class AlignedFetchPermissionStage(pmpEntries: Int, sharedTwoWord: Boolean = false) extends Module {
+class AlignedFetchPermissionStage(pmpEntries: Int, sharedTwoWord: Boolean = false,
+    contextOwnedInstructionPrefetch: Boolean = false) extends Module {
     val io = IO(new Bundle {
-        val input = Flipped(Decoupled(new FetchPermissionCommand))
-        val physical = Decoupled(new FetchPhysicalCommand)
+        val input = Flipped(Decoupled(new FetchPermissionCommand(contextOwnedInstructionPrefetch)))
+        val physical = Decoupled(new FetchPhysicalCommand(contextOwnedInstructionPrefetch))
         val fault = Decoupled(new FetchOwnedCompletion)
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
     })
     val valid = RegInit(false.B)
-    val owner = Reg(new FetchPermissionCommand)
+    val owner = Reg(new FetchPermissionCommand(contextOwnedInstructionPrefetch))
     val captured = RegInit(false.B)
     val savedMask = Reg(UInt(2.W))
     val savedErrors = Reg(UInt(2.W))
@@ -139,6 +141,8 @@ class AlignedFetchPermissionStage(pmpEntries: Int, sharedTwoWord: Boolean = fals
     io.physical.bits.mask := mask
     io.physical.bits.accessFaults := errors
     io.physical.bits.context.privilege := owner.privilege
+    io.physical.bits.context.sourceSequence.foreach(_ := owner.token)
+    io.physical.bits.context.identityTranslation.foreach(_ := owner.identityTranslation.get)
     io.fault.valid := valid && !mask.orR
     io.fault.bits.slot := owner.slot
     io.fault.bits.token := owner.token
@@ -167,14 +171,19 @@ class AlignedFetchPermissionStage(pmpEntries: Int, sharedTwoWord: Boolean = fals
   * is a required lower-level contract, independently checked at TL source level.
   * A FIFO alone cannot diagnose a duplicate masquerading as another live reply.
   */
-class OrderedFetchPhysicalReturns(withRequestContext: Boolean = false) extends Module {
+class OrderedFetchPhysicalReturns(withRequestContext: Boolean = false,
+    contextOwnedInstructionPrefetch: Boolean = false) extends Module {
+    require(!contextOwnedInstructionPrefetch || withRequestContext,
+        "context-owned physical returns require physical owner context")
     val io = IO(new Bundle {
-        val command = Flipped(Decoupled(new FetchPhysicalCommand))
-        val physical = new InstructionPort(withRequestContext = withRequestContext)
+        val command = Flipped(Decoupled(new FetchPhysicalCommand(contextOwnedInstructionPrefetch)))
+        val physical = new InstructionPort(withRequestContext = withRequestContext,
+            withSpeculationContext = contextOwnedInstructionPrefetch)
         val completion = Decoupled(new FetchOwnedCompletion)
         val idle = Output(Bool())
     })
-    val routes = Module(new Queue(new FetchPhysicalCommand, 2, pipe = true, flow = false))
+    val routes = Module(new Queue(new FetchPhysicalCommand(contextOwnedInstructionPrefetch),
+        2, pipe = true, flow = false))
     io.physical.request.valid := io.command.valid && routes.io.enq.ready
     io.physical.request.bits := io.command.bits.address
     io.physical.requestMask := io.command.bits.mask
@@ -207,7 +216,9 @@ class OrderedFetchPhysicalReturns(withRequestContext: Boolean = false) extends M
   * Bare acceptance reaches PMP at the old edge; no extra admission bubble.
   */
 class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false,
-    withRequestContext: Boolean = false) extends Module {
+    withRequestContext: Boolean = false, contextOwnedInstructionPrefetch: Boolean = false) extends Module {
+    require(!contextOwnedInstructionPrefetch || withRequestContext,
+        "context-owned prefetch metadata requires a physical request context")
     require(p.renameWidth == 2 && p.compressedInstructions && p.registeredTranslationHeads &&
         p.alignedFetchSinglePage && p.alignedFetchPmp && p.fetchReplyTurnover && p.fetchIdentityTranslation &&
         p.virtualMemoryLevels > 0 && p.pmpEntries > 0 && !p.fetchAddressBeforePmp &&
@@ -216,14 +227,16 @@ class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false,
     val io = IO(new Bundle {
         val command = Flipped(Decoupled(new FetchTransactionCommand))
         val result = Decoupled(new FetchTransactionResult)
-        val physical = new InstructionPort(withRequestContext = withRequestContext)
+        val physical = new InstructionPort(withRequestContext = withRequestContext,
+            withSpeculationContext = contextOwnedInstructionPrefetch)
         val translation = new SvTranslationPort
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
     })
     val ledger = Module(new FetchCompletionLedger)
-    val permission = Module(new AlignedFetchPermissionStage(p.pmpEntries, sharedTwoWord))
-    val returns = Module(new OrderedFetchPhysicalReturns(withRequestContext))
+    val permission = Module(new AlignedFetchPermissionStage(p.pmpEntries, sharedTwoWord,
+        contextOwnedInstructionPrefetch))
+    val returns = Module(new OrderedFetchPhysicalReturns(withRequestContext, contextOwnedInstructionPrefetch))
     val completions = Module(new Arbiter(new FetchOwnedCompletion, 3))
     permission.io.pmpState := io.pmpState
     returns.io.command <> permission.io.physical
@@ -275,6 +288,9 @@ class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false,
         io.translation.response.bits.physicalAddress, io.command.bits.virtualAddress)
     permission.io.input.bits.mask := Mux(translating, translationCommand.requestMask, io.command.bits.requestMask)
     permission.io.input.bits.privilege := Mux(translating, translationCommand.privilege, io.command.bits.privilege)
+    // Certificate belongs to this original command, not a later live CSR or PA == VA guess.
+    // A real translated-success owner is never eligible, even if its numeric addresses match.
+    permission.io.input.bits.identityTranslation.foreach(_ := !translating && identity)
     when(io.translation.request.fire) { issued := true.B }
     when(io.translation.response.fire) {
         translating := false.B
@@ -299,25 +315,87 @@ class PipelinedAlignedFetchEngine(p: OooParams, sharedTwoWord: Boolean = false,
     assert(io.command.fire === ledger.io.allocate.fire, "fetch command lacks atomic result reservation")
 }
 
+/** Speculation-only age fence: one cutoff and one wrap-ambiguity bit, II one.
+  * Kill suppresses speculation combinationally and records its cutoff at the
+  * edge. No request/result payload, handshake or demand credit belongs here.
+  * A public offer with sequence N already owns its frozen context even before
+  * acceptance; a kill therefore excludes N as well as all accepted sequences.
+  * Caller supplies full fetch drain (including standalone speculative traffic)
+  * before a post-wrap rebase. The caller's sequence counter is never modified.
+  */
+class FetchSpeculationAgeFence extends Module {
+    val io = IO(new Bundle {
+        val nextSequence = Input(UInt(64.W))
+        val publicOffer = Input(Bool())
+        val kill = Input(Bool())
+        val drained = Input(Bool())
+        val minimumSequence = Output(UInt(64.W))
+        val ageUsable = Output(Bool())
+    })
+    val minimumSequence = RegInit(0.U(64.W))
+    val ageAmbiguous = RegInit(false.B)
+    val cutWide = Cat(0.U(1.W), io.nextSequence) + io.publicOffer.asUInt
+    val nearWrap = io.nextSequence.andR
+    val wrapHazard = nearWrap || cutWide(64)
+    val rebase = ageAmbiguous && io.drained && !io.publicOffer && !io.kill && !nearWrap
+    io.minimumSequence := minimumSequence
+    io.ageUsable := !reset.asBool && !io.kill && !ageAmbiguous && !wrapHazard
+    when(io.kill && !cutWide(64)) { minimumSequence := cutWide(63, 0) }
+    when(wrapHazard) { ageAmbiguous := true.B }
+    when(rebase) {
+        minimumSequence := io.nextSequence
+        ageAmbiguous := false.B
+    }
+    when(io.kill && !ageAmbiguous && !wrapHazard) {
+        assert(cutWide(63, 0) >= minimumSequence,
+            "fetch speculation cutoff moved backwards without a full-drain rebase")
+    }
+    when(io.drained) {
+        assert(!io.publicOffer, "fetch speculation full drain cannot contain a public held offer")
+    }
+}
+
 /** Public ordered-port compatibility with explicit command/result generations.
   * A result must name the next accepted sequence, including fault-only owners.
   * Context is captured on public fire, or frozen on its first stalled offer
   * so automatic trap privilege changes cannot reinterpret an older request.
   */
 class PipelinedAlignedInstructionTranslation(p: OooParams, sharedTwoWord: Boolean = false,
-    withRequestContext: Boolean = false) extends Module {
+    withRequestContext: Boolean = false, contextOwnedInstructionPrefetch: Boolean = false) extends Module {
+    require(!contextOwnedInstructionPrefetch || withRequestContext,
+        "context-owned prefetch requires immutable physical request metadata")
     val io = IO(new Bundle {
         val virtual = Flipped(new InstructionPort)
-        val physical = new InstructionPort(withRequestContext = withRequestContext)
+        val physical = new InstructionPort(withRequestContext = withRequestContext,
+            withSpeculationContext = contextOwnedInstructionPrefetch)
         val translation = new SvTranslationPort
         val vmState = Input(new VmCsrState)
         val privilege = Input(UInt(2.W))
         val pmpState = Input(new PmpState)
         val idle = Output(Bool())
+        val speculationKill = if (contextOwnedInstructionPrefetch) Some(Input(Bool())) else None
+        val speculationDrained = if (contextOwnedInstructionPrefetch) Some(Input(Bool())) else None
+        val speculationMinimumSequence = if (contextOwnedInstructionPrefetch) Some(Output(UInt(64.W))) else None
+        val speculationAgeUsable = if (contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
     })
-    val engine = Module(new PipelinedAlignedFetchEngine(p, sharedTwoWord, withRequestContext))
+    val engine = Module(new PipelinedAlignedFetchEngine(p, sharedTwoWord, withRequestContext,
+        contextOwnedInstructionPrefetch))
     val nextToken = RegInit(0.U(64.W))
     val nextResult = RegInit(0.U(64.W))
+    if (contextOwnedInstructionPrefetch) {
+        // A separate control observer, never another demand stage or credit.
+        val speculation = Module(new FetchSpeculationAgeFence)
+        speculation.io.nextSequence := nextToken
+        speculation.io.publicOffer := io.virtual.request.valid
+        speculation.io.kill := io.speculationKill.get
+        speculation.io.drained := io.speculationDrained.get
+        io.speculationMinimumSequence.get := speculation.io.minimumSequence
+        io.speculationAgeUsable.get := speculation.io.ageUsable
+        when(io.speculationDrained.get) {
+            assert(io.idle && !io.virtual.request.valid,
+                "speculation rebase requires drained demand owners and no public offer")
+        }
+    }
     val liveCommand = Wire(new FetchTransactionCommand)
     liveCommand.token := nextToken
     liveCommand.virtualAddress := io.virtual.request.bits
@@ -343,6 +421,10 @@ class PipelinedAlignedInstructionTranslation(p: OooParams, sharedTwoWord: Boolea
         assert(io.virtual.request.valid && io.virtual.request.bits === heldCommand.virtualAddress &&
             io.virtual.requestMask === heldCommand.requestMask,
             "held public fetch offer must retain its address and mask")
+        if (contextOwnedInstructionPrefetch) {
+            assert(engine.io.command.bits.token === heldCommand.token,
+                "held public fetch offer must retain its original full sequence")
+        }
     }
     io.virtual.request.ready := engine.io.command.ready
     val matches = engine.io.result.bits.token === nextResult

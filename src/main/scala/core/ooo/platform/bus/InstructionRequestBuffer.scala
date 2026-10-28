@@ -10,16 +10,18 @@ import chisel3.util._
   * No response ownership is invented or released by accepting a queued request.
   */
 class InstructionRequestBuffer(packetWords: Int = 2, flowThrough: Boolean = false,
-    independentCapture: Boolean = false, withRequestContext: Boolean = false) extends Module {
+    independentCapture: Boolean = false, withRequestContext: Boolean = false,
+    contextOwnedInstructionPrefetch: Boolean = false) extends Module {
     require(Set(2, 4).contains(packetWords))
     val io = IO(new Bundle {
-        val upstream = Flipped(new InstructionPort(packetWords, withRequestContext))
-        val downstream = new InstructionPort(packetWords, withRequestContext)
+        val upstream = Flipped(new InstructionPort(packetWords, withRequestContext, contextOwnedInstructionPrefetch))
+        val downstream = new InstructionPort(packetWords, withRequestContext, contextOwnedInstructionPrefetch)
     })
     class Request extends Bundle {
         val address = UInt(64.W)
         val mask = UInt(packetWords.W)
-        val context = if (withRequestContext) Some(new PhysicalFetchRequestContext) else None
+        val context = if (withRequestContext)
+            Some(new PhysicalFetchRequestContext(contextOwnedInstructionPrefetch)) else None
     }
     require(!independentCapture || flowThrough, "independent capture requires the empty bypass")
     if (independentCapture) {

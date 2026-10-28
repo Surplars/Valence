@@ -1,0 +1,408 @@
+{
+  "schema": "context-fetch-prefetch-cache-cases-v1",
+  "scope": "31 positive contracts per variant; 62 executions for fresh full affected-cache qualification. Not a runtime authorization gate.",
+  "top": "ContextOwnedInstructionPrefetchGsim",
+  "main": "ooo.ContextOwnedInstructionPrefetchGsimMain",
+  "host": "context_cache.cpp",
+  "oracle": "contract_oracle.h",
+  "variants": [
+    {
+      "id": "cache-flat",
+      "args": [],
+      "defines": {}
+    },
+    {
+      "id": "cache-banked",
+      "args": [
+        "--banked-instruction-data"
+      ],
+      "defines": {}
+    }
+  ],
+  "cases": [
+    {
+      "id": "basic",
+      "args": [
+        "basic"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=basic"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "identity-off",
+      "args": [
+        "identity-off"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=identity-off"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "old-sequence",
+      "args": [
+        "old-sequence"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=old-sequence"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "age-off",
+      "args": [
+        "age-off"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=age-off"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "page-end",
+      "args": [
+        "page-end"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=page-end"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "ram-end",
+      "args": [
+        "ram-end"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=ram-end"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "locked-next-deny",
+      "args": [
+        "locked-next-deny"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=locked-next-deny"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "held-a-kill-stale",
+      "args": [
+        "held-a-kill-stale"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=held-a-kill-stale"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "b1-fill-lock-kill",
+      "args": [
+        "b1-fill-lock-kill"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=b1-fill-lock-kill"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "joined-late-error",
+      "args": [
+        "joined-late-error"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=joined-late-error"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "b1-fallback-lock",
+      "args": [
+        "b1-fallback-lock"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=b1-fallback-lock"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "response-hold",
+      "args": [
+        "response-hold"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=response-hold"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "install-hit-collision",
+      "args": [
+        "install-hit-collision"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=install-hit-collision"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "s-full-allow",
+      "args": [
+        "s-full-allow"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=s-full-allow"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "u-full-allow",
+      "args": [
+        "u-full-allow"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=u-full-allow"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "m-locked-napot-allow",
+      "args": [
+        "m-locked-napot-allow"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=m-locked-napot-allow"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "s-tor-next-partial-deny",
+      "args": [
+        "s-tor-next-partial-deny"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=s-tor-next-partial-deny"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "u-tor-next-partial-deny",
+      "args": [
+        "u-tor-next-partial-deny"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=u-tor-next-partial-deny"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "m-unlocked-napot-deny-bypass",
+      "args": [
+        "m-unlocked-napot-deny-bypass"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=m-unlocked-napot-deny-bypass"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "m-locked-napot-next-deny",
+      "args": [
+        "m-locked-napot-next-deny"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=m-locked-napot-next-deny"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "engine-owned-before-a-kill",
+      "args": [
+        "engine-owned-before-a-kill"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=engine-owned-before-a-kill"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "old-sequence-high64",
+      "args": [
+        "old-sequence-high64"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=old-sequence-high64"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "fresh-sequence-high64",
+      "args": [
+        "fresh-sequence-high64"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=fresh-sequence-high64"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "new-seed-after-unused-install",
+      "args": [
+        "new-seed-after-unused-install"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=new-seed-after-unused-install"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "invalidate-idle-installed",
+      "args": [
+        "invalidate-idle-installed"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=invalidate-idle-installed"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "standalone-spec-late-error",
+      "args": [
+        "standalone-spec-late-error"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=standalone-spec-late-error"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "joined-success-after-k",
+      "args": [
+        "joined-success-after-k"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=joined-success-after-k"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "last-stale-hit-retry-suppressed",
+      "args": [
+        "last-stale-hit-retry-suppressed"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=last-stale-hit-retry-suppressed"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "last-stale-cold-miss-bypass",
+      "args": [
+        "last-stale-cold-miss-bypass"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=last-stale-cold-miss-bypass"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "last-stale-new-target-allowed",
+      "args": [
+        "last-stale-new-target-allowed"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=last-stale-new-target-allowed"
+      ],
+      "stderr_exact": []
+    },
+    {
+      "id": "last-stale-reset-first-seed",
+      "args": [
+        "last-stale-reset-first-seed"
+      ],
+      "exit": 0,
+      "kind": "positive",
+      "required": [
+        "CONTEXT_CACHE_PASS case=last-stale-reset-first-seed"
+      ],
+      "stderr_exact": []
+    }
+  ],
+  "origin_plan_sha256": "478bc19c80f0c35bb8aae16deac3f0373a728b4c8d62ffacf94212d1e1f1ddb9",
+  "origin_host_sha256": "f4e1fbac3cc9ab1ab7db96f75c25725bca9168a211df3a3bdc49d797a8d020a8",
+  "tool_epoch": {
+    "gsim_revision": "93b8cd23edd3228807c4f2a08c19c3936a463cb2",
+    "required_fix": "simulator/gsim/tool_fixes/init-byte-span.patch",
+    "fix_sha256": "f17fe768c9b4665b310dc632e64333ae3d4e336521f60981f1ec7faaebc31c11",
+    "initialization": "qualified deterministic only; randomized initialization not qualified",
+    "mill": "1.1.7",
+    "scala": "2.13.17",
+    "chisel": "7.3.0",
+    "native": "clang 19.1.7; ASan+UBSan"
+  }
+}

@@ -74,7 +74,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     parallelValidation: Boolean = false, hintEntries: Int = 8, splitCursor: Boolean = false,
     bankedHints: Boolean = false, val alignedPermissionStage: Boolean = false,
     val eagerPrefixSelect: Boolean = false, val acceptedPrefixValidation: Boolean = false,
-    val circularPayload: Boolean = false) extends Module {
+    val circularPayload: Boolean = false, val contextOwnedInstructionPrefetch: Boolean = false) extends Module {
     require(width >= 1 && width <= 4)
     require(!alignedPermissionStage || (width == 2 && compressed && splitCursor),
         "aligned permission phase requires two compressed lanes and split cursor")
@@ -95,6 +95,7 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
         val phaseStatus = if (alignedPermissionStage) Some(Output(new FetchPhaseStatus(width))) else None
         val requestFrontier = if (alignedPermissionStage) Some(Output(UInt(64.W))) else None
         val suppressRequest = if (alignedPermissionStage) Some(Output(Bool())) else None
+        val speculationCancel = if (contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val pause = Input(Bool())
         val consume = Input(Vec(width, Bool()))
         val flush = Input(Valid(UInt(64.W)))
@@ -392,6 +393,8 @@ class RegisteredFetchPacket(width: Int, compressed: Boolean, resetPc: BigInt,
     }
     val rawCorrection = alignedPermissionStage.B &&
         (0 until width).map(lane => capturePrefix(lane + 1) && rawTaken(lane)).reduce(_ || _)
+    // Observer only: the existing cancellation/correction controls retain their original fan-in.
+    io.speculationCancel.foreach(_ := cancel || rawCorrection)
     if (alignedPermissionStage) {
         // Eager sequential scanning has its own recurrence. It uses completed
         // PC+{0,2,4,6,8} alternatives and registered-only token/reservoir credit.

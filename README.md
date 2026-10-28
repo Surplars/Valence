@@ -7,6 +7,11 @@ RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 
 ## A1 云端候选（2026-10-27）
 
+[Context-owned instruction prefetch + last-stale 抑制](docs/a1-context-owned-instruction-prefetch.md)：默认 OFF，不提升为基线。
+55 项纯检查、62 个 cache 正例及新 candidate 18 项（12 正例 + 6 observer 负控）独审通过；12 个历史 control 仅复用、未重跑。
+独立 load ROI 保持 90→65 拍，依赖链不变；CoreMark ROI 仅省约 0.05%，I 流量仍多约 48–52%，smoke 相对旧预取回退 6 拍。
+本轮仅保留为可复现实验，无新面积、功耗或 Fmax 结论；完整三方指标和覆盖限制见报告。
+
 [第五批 A1 load payload nomination](docs/a1-efficiency-refactor-5.md)：默认 OFF，宽 payload 选择与完整授权分离。
 50 项纯检查、11 个组件和 30 个 CPU 执行通过；与第四批实测周期相同，新增性能/带宽收益为 0。
 同流映射 LUT 增加 0.79017%、MUXF 减少 5.38407%，其余主要资源不变；非优化胜出，后续性能基线仍为第四批，物理 Fmax 未测。

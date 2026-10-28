@@ -24,13 +24,15 @@ class IdentityFetchHorizonSpec extends AnyFunSuite {
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile))
             assert(profile.config.coreParams.fetchThirdPacketLookahead == Set[CommonA1RebuildProfile](candidate,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile))
         }
         val p = candidate.config.coreParams
         assert(candidate.config.fetchTransactionSlots == 2 && p.renameWidth == 2 && p.commitWidth == 2)

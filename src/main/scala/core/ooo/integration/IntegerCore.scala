@@ -20,6 +20,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
     val io = IO(new Bundle {
+        val fetchSpeculationCancel = if (p.contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
         val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val imsic                       = if (p.machineSystem) Some(new MachineCsrPort) else None
@@ -151,7 +152,9 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             p.parallelFetchValidation, p.fetchHintEntries, p.splitFetchCursor, p.bankedFetchHints,
             p.alignedFetchPermissionStage, p.eagerFetchPrefixSelect,
             acceptedPrefixValidation = p.fetchAcceptedPrefixValidation,
-            circularPayload = p.circularFetchPayload))
+            circularPayload = p.circularFetchPayload,
+            contextOwnedInstructionPrefetch = p.contextOwnedInstructionPrefetch))
+        io.fetchSpeculationCancel.foreach(_ := packet.io.speculationCancel.get)
         val permission = if (p.capturedFetchPermission && p.pmpEntries > 0) {
             val checks = Module(new FetchPacketPermission(p.pmpEntries, p.renameWidth,
                 p.wordSpanPacketPmp, p.balancedPacketPmp, p.sharedFetchPmpRelations))

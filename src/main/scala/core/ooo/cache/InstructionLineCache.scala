@@ -20,7 +20,9 @@ class InstructionLineCache(
     parallelFallbackAddresses: Boolean = false,
     tagConfig: CacheTagConfig = CacheTagConfig.FullWidth,
     bankedData: Boolean = false,
-    withRequestContext: Boolean = false
+    withRequestContext: Boolean = false,
+    contextOwnedInstructionPrefetch: Boolean = false,
+    sideEffectFreeFetchRanges: Seq[SideEffectFreeFetchRange] = Seq.empty
 ) extends Module {
     require(lines >= 4 && lines <= 512 && isPow2(lines))
     require(ramBase >= 0 && ramBase % 64 == 0 && ramBytes >= 64 && ramBytes % 64 == 0)
@@ -29,18 +31,28 @@ class InstructionLineCache(
     require(Set(2, 4).contains(packetWords))
     require(!withRequestContext || !prefetchEnabled,
         "owner-context instruction cache requires context-owned prefetch before enabling prefetch")
+    require(!contextOwnedInstructionPrefetch || (withRequestContext && packetWords == 2 && !prefetchEnabled),
+        "context-owned prefetch requires its two-word certified owner port, never legacy prefetch")
+    require(!contextOwnedInstructionPrefetch || sideEffectFreeFetchRanges.nonEmpty,
+        "context-owned prefetch requires explicit side-effect-free physical RAM")
+    require(!contextOwnedInstructionPrefetch || sideEffectFreeFetchRanges.forall(range =>
+        range.base >= ramBase && range.endExclusive <= ramBase + ramBytes),
+        "speculative fetch ranges must remain wholly inside the connected RAM aperture")
     private val sets = lines / 2
-    private val prefetchSlots = 2
+    private val prefetchSlots = if (contextOwnedInstructionPrefetch) 1 else 2
     private val indexBits = log2Ceil(sets)
     private val tagGeometry = tagConfig.geometry(ramBase, ramBytes, 6 + indexBits)
     private val tagBits = tagGeometry.tagBits
     val io = IO(new Bundle {
-        val fetch = Flipped(new InstructionPort(packetWords, withRequestContext))
+        val fetch = Flipped(new InstructionPort(packetWords, withRequestContext, contextOwnedInstructionPrefetch))
         val tl = new TLBundle(params)
         val pmpState = Input(new PmpState)
         val privilege = Input(UInt(2.W))
         val invalidate = Input(Bool())
         val idle = Output(Bool())
+        val speculationKill = if (contextOwnedInstructionPrefetch) Some(Input(Bool())) else None
+        val speculationMinimumSequence = if (contextOwnedInstructionPrefetch) Some(Input(UInt(64.W))) else None
+        val speculationAgeUsable = if (contextOwnedInstructionPrefetch) Some(Input(Bool())) else None
     })
 
     private val fallback = Module(new InstructionTileLinkBridge(params, immutableBytes = romBytes,
@@ -76,6 +88,20 @@ class InstructionLineCache(
     private val prefetchLine = Reg(Vec(prefetchSlots, UInt(64.W)))
     private val prefetchStale = RegInit(VecInit(Seq.fill(prefetchSlots)(false.B)))
     private val lastDemandLine = Reg(UInt(64.W))
+    // One certificate lives from candidate reservation through engine terminal acceptance.
+    // It is never overwritten while the sole speculative source is outstanding.
+    private val contextPrefetchSequence = if (contextOwnedInstructionPrefetch) Some(Reg(UInt(64.W))) else None
+    private val contextPrefetchPrivilege = if (contextOwnedInstructionPrefetch) Some(Reg(UInt(2.W))) else None
+    private val contextPrefetchIdentity = if (contextOwnedInstructionPrefetch) Some(Reg(Bool())) else None
+    private val contextSpecEligible = if (contextOwnedInstructionPrefetch) {
+        !io.speculationKill.get && io.speculationAgeUsable.get && !io.invalidate &&
+            contextPrefetchIdentity.get && contextPrefetchSequence.get >= io.speculationMinimumSequence.get
+    } else true.B
+    private val contextRequestEligible = if (contextOwnedInstructionPrefetch) {
+        !io.speculationKill.get && io.speculationAgeUsable.get && !io.invalidate &&
+            io.fetch.requestContext.get.identityTranslation.get &&
+            io.fetch.requestContext.get.sourceSequence.get >= io.speculationMinimumSequence.get
+    } else true.B
 
     private val requestPc = io.fetch.request.bits
     private val requestLine = Cat(requestPc(63, 6), 0.U(6.W))
@@ -112,7 +138,10 @@ class InstructionLineCache(
     private val hitWay = hits(1)
     private val victim = Mux(!valid(requestSet)(0), false.B,
         Mux(!valid(requestSet)(1), true.B, replace(requestSet)))
-    private val prefetchedPending = (0 until prefetchSlots).map(i =>
+    private val prefetchedPending = if (contextOwnedInstructionPrefetch) {
+        prefetchOutstanding(0) && !prefetchStale(0) && prefetchLine(0) === requestLine &&
+            !io.invalidate && contextSpecEligible && contextRequestEligible
+    } else (0 until prefetchSlots).map(i =>
         prefetchOutstanding(i) && !prefetchStale(i) &&
             prefetchLine(i) === requestLine).reduce(_ || _) && !io.invalidate
     private val nextLine = requestLine + 64.U
@@ -129,11 +158,18 @@ class InstructionLineCache(
     prefetchPmp.io.state := io.pmpState
     prefetchPmp.io.address := nextLine
     prefetchPmp.io.size := 6.U
-    prefetchPmp.io.privilege := io.privilege
+    prefetchPmp.io.privilege := (if (contextOwnedInstructionPrefetch)
+        io.fetch.requestContext.get.privilege else io.privilege)
     prefetchPmp.io.access := PmpAccess.execute
     private val nextExecutable = requestLine(11, 6) =/= 63.U &&
         nextLine >= ramBase.U && (nextLine +& 63.U) < (ramBase + ramBytes).U(65.W) &&
         !prefetchPmp.io.denied && !nextCached
+    private val contextNextInRam = if (contextOwnedInstructionPrefetch) {
+        val nextWide = Cat(0.U(1.W), requestLine) + 64.U(65.W)
+        val lastWide = nextWide + 63.U(65.W)
+        !nextWide(64) && !lastWide(64) && sideEffectFreeFetchRanges.map(range =>
+            nextWide >= range.base.U(65.W) && lastWide < range.endExclusive.U(65.W)).reduce(_ || _)
+    } else false.B
     private val followingLine = prefetchCandidateLine + 64.U
     private val followingSet = followingLine(5 + indexBits, 6)
     private val followingTag = tagGeometry.tag(followingLine)
@@ -152,7 +188,8 @@ class InstructionLineCache(
         followingLine >= ramBase.U &&
         (followingLine +& 63.U) < (ramBase + ramBytes).U(65.W) &&
         !followingPmp.io.denied && !followingCached
-    private val responsePrefetchSlot = (fill.io.response.bits.tag - 1.U)(0)
+    private val responsePrefetchSlot = if (contextOwnedInstructionPrefetch) 0.U(1.W)
+        else (fill.io.response.bits.tag - 1.U)(0)
     private val responsePrefetchLine = prefetchLine(responsePrefetchSlot)
     private val prefetchSet = responsePrefetchLine(5 + indexBits, 6)
     private val prefetchTag = tagGeometry.tag(responsePrefetchLine)
@@ -162,7 +199,7 @@ class InstructionLineCache(
     candidatePmp.io.state := io.pmpState
     candidatePmp.io.address := prefetchCandidateLine
     candidatePmp.io.size := 6.U
-    candidatePmp.io.privilege := io.privilege
+    candidatePmp.io.privilege := contextPrefetchPrivilege.getOrElse(io.privilege)
     candidatePmp.io.access := PmpAccess.execute
 
     // The synchronous SRAM delivers the previous hit while its port accepts the next read.
@@ -231,6 +268,14 @@ class InstructionLineCache(
         io.fetch.response.fire && !io.fetch.request.fire) {
         state := idle
     }
+    if (contextOwnedInstructionPrefetch) {
+        // Cancellation changes optional installation/admission only. An engine-accepted
+        // source, including an A not yet offered, must still drain all eight D beats.
+        when(!contextSpecEligible) {
+            prefetchCandidate := false.B
+            when(prefetchOutstanding(0)) { prefetchStale(0) := true.B }
+        }
+    }
     when(io.fetch.request.fire) {
         when(prefetchCandidate && requestLine === prefetchCandidateLine) {
             prefetchCandidate := false.B
@@ -260,6 +305,17 @@ class InstructionLineCache(
                     prefetchCandidateLine := nextLine
                 }
             }
+            if (contextOwnedInstructionPrefetch) {
+                when(contextRequestEligible && nextExecutable && contextNextInRam &&
+                    !nextPending && !prefetchCandidate && !prefetchOutstanding.asUInt.orR &&
+                    (!hit || !prefetchStale(0) || nextLine =/= prefetchLine(0))) {
+                    prefetchCandidate := true.B
+                    prefetchCandidateLine := nextLine
+                    contextPrefetchSequence.get := io.fetch.requestContext.get.sourceSequence.get
+                    contextPrefetchPrivilege.get := io.fetch.requestContext.get.privilege
+                    contextPrefetchIdentity.get := io.fetch.requestContext.get.identityTranslation.get
+                }
+            }
         }.otherwise { state := fallbackActive }
         for (slot <- 0 until prefetchSlots) {
             val ahead = (0 to prefetchDistance).map(distance =>
@@ -269,11 +325,17 @@ class InstructionLineCache(
     }
     val demandFill = state === sendFill
     val freePrefetch = VecInit((0 until prefetchSlots).map(i => !prefetchOutstanding(i)))
-    val prefetchSlot = PriorityEncoder(freePrefetch)
+    val prefetchSlot = if (contextOwnedInstructionPrefetch) 0.U(1.W) else PriorityEncoder(freePrefetch)
     when(prefetchCandidate && candidatePmp.io.denied) { prefetchCandidate := false.B }
-    fill.io.request.valid := demandFill || (prefetchCandidate && !io.invalidate &&
-        freePrefetch.asUInt.orR && !candidatePmp.io.denied &&
-        !(acceptWindow && io.fetch.request.valid && requestLine === prefetchCandidateLine))
+    if (contextOwnedInstructionPrefetch) {
+        fill.io.request.valid := demandFill || (prefetchCandidate && !io.invalidate &&
+            freePrefetch.asUInt.orR && !candidatePmp.io.denied && contextSpecEligible &&
+            !(acceptWindow && io.fetch.request.valid && requestLine === prefetchCandidateLine))
+    } else {
+        fill.io.request.valid := demandFill || (prefetchCandidate && !io.invalidate &&
+            freePrefetch.asUInt.orR && !candidatePmp.io.denied &&
+            !(acceptWindow && io.fetch.request.valid && requestLine === prefetchCandidateLine))
+    }
     fill.io.request.bits.address := Mux(demandFill, savedLine, prefetchCandidateLine)
     fill.io.request.bits.tag := Mux(demandFill, 0.U(2.W),
         Mux(prefetchSlot === 0.U, 1.U(2.W), 2.U(2.W)))
@@ -296,7 +358,11 @@ class InstructionLineCache(
     }
     fill.io.response.ready := Mux(fill.io.response.bits.tag === 0.U,
         state === waitFill, prefetchOutstanding(responsePrefetchSlot))
-    val prefetchWrite = fill.io.response.fire && fill.io.response.bits.tag =/= 0.U &&
+    val prefetchWrite = if (contextOwnedInstructionPrefetch) {
+        fill.io.response.fire && fill.io.response.bits.tag =/= 0.U &&
+            !prefetchStale(responsePrefetchSlot) && !io.invalidate && !fill.io.response.bits.error &&
+            contextSpecEligible
+    } else fill.io.response.fire && fill.io.response.bits.tag =/= 0.U &&
         !prefetchStale(responsePrefetchSlot) && !io.invalidate && !fill.io.response.bits.error
     val demandWrite = fill.io.response.fire && fill.io.response.bits.tag === 0.U &&
         !fill.io.response.bits.error && !staleFill && !io.invalidate
@@ -323,13 +389,16 @@ class InstructionLineCache(
     when(fill.io.response.fire) {
         when(fill.io.response.bits.tag =/= 0.U) {
             prefetchOutstanding(responsePrefetchSlot) := false.B
-            when(!prefetchStale(responsePrefetchSlot) && !io.invalidate &&
-                !fill.io.response.bits.error) {
+            when(if (contextOwnedInstructionPrefetch) prefetchWrite else
+                !prefetchStale(responsePrefetchSlot) && !io.invalidate && !fill.io.response.bits.error) {
                 if (tagConfig.compact) assert(tagGeometry.contains(responsePrefetchLine), "prefetch tag outside aperture")
                 tags.foreach(_(prefetchSet)(prefetchVictim.asUInt) := prefetchTag)
                 valid(prefetchSet)(prefetchVictim.asUInt) := true.B
                 replace(prefetchSet) := !prefetchVictim
             }
+            // A joined demand is a separate, irrevocable ordered response owner.
+            // Kill/cutoff/age rollover may suppress install, NEVER this completion
+            // or the exact original-PC/mask fallback after a late line error.
             when(state === waitPrefetch && savedLine === responsePrefetchLine) {
                 when(fill.io.response.bits.error) { state := retryFallback }
                 .otherwise {
@@ -365,6 +434,53 @@ class InstructionLineCache(
     val perfWaitingPrefetch: Bool = state === waitPrefetch
     val perfFallbackActive: Bool = state === fallbackActive
     val perfRetryFallback: Bool = state === retryFallback
+    // Traffic must be reported separately: these are new optional size-six Gets,
+    // not demand-route allocations. All observations are inert when disabled.
+    val perfContextPrefetchRequest: Bool = if (contextOwnedInstructionPrefetch) {
+        contextOwnedInstructionPrefetch.B && fill.io.request.fire && !demandFill
+    } else false.B
+    val perfContextPrefetchComplete: Bool = if (contextOwnedInstructionPrefetch) {
+        contextOwnedInstructionPrefetch.B &&
+        fill.io.response.fire && fill.io.response.bits.tag =/= 0.U
+    } else false.B
+    val perfContextPrefetchError: Bool = if (contextOwnedInstructionPrefetch) {
+        perfContextPrefetchComplete && fill.io.response.bits.error
+    } else false.B
+    val perfContextPrefetchInstall: Bool = if (contextOwnedInstructionPrefetch) {
+        contextOwnedInstructionPrefetch.B && prefetchWrite
+    } else false.B
+    val perfContextPrefetchStaleDrop: Bool = if (contextOwnedInstructionPrefetch) {
+        perfContextPrefetchComplete &&
+        (prefetchStale(responsePrefetchSlot) || !contextSpecEligible)
+    } else false.B
+    val perfContextPrefetchJoin: Bool = if (contextOwnedInstructionPrefetch) {
+        contextOwnedInstructionPrefetch.B &&
+        io.fetch.request.fire && lineAllowed && !hit && prefetchedPending
+    } else false.B
+    if (contextOwnedInstructionPrefetch) {
+        assert(!(prefetchCandidate && prefetchOutstanding(0)),
+            "context prefetch candidate and engine owner exceeded the single credit")
+        when(fill.io.request.fire && !demandFill) {
+            assert(prefetchCandidate && contextSpecEligible && !candidatePmp.io.denied,
+                "context prefetch issued without its original certificate and full-line PMP")
+            val last = Cat(0.U(1.W), prefetchCandidateLine) + 63.U(65.W)
+            assert(!last(64) && sideEffectFreeFetchRanges.map(range =>
+                prefetchCandidateLine >= range.base.U(64.W) &&
+                    last < range.endExclusive.U(65.W)).reduce(_ || _),
+                "context prefetch escaped explicit side-effect-free RAM")
+        }
+        when(fill.io.response.valid && fill.io.response.bits.tag =/= 0.U) {
+            assert(fill.io.response.bits.tag === 1.U && prefetchOutstanding(0),
+                "context prefetch completion has no sole engine owner")
+        }
+        when(prefetchWrite) {
+            assert(contextSpecEligible && !prefetchStale(0), "stale context prefetch installed")
+        }
+        when(state === waitPrefetch) {
+            assert(prefetchOutstanding(0) && savedLine === prefetchLine(0),
+                "joined demand lost its original speculative transport owner")
+        }
+    }
     def perfState: UInt = state
 
     when(state === retryFallback && fallbackFetch.request.fire) { state := fallbackActive }
@@ -377,7 +493,7 @@ class InstructionLineCache(
     val chooseFallback = Mux(lockedA, lockedFallback, useFallbackA)
     io.tl.a.valid := Mux(chooseFallback, fallback.io.tl.a.valid, fill.io.tl.a.valid)
     io.tl.a.bits := Mux(chooseFallback, fallback.io.tl.a.bits, fill.io.tl.a.bits)
-    if (!prefetchEnabled && packetWords == 2) {
+    if (!prefetchEnabled && !contextOwnedInstructionPrefetch && packetWords == 2) {
         // Without speculative fills, a demand owner cannot offer fallback A
         // until its line transaction has completed (including an error retry).
         // The fill engine's registered send queue therefore selects address
@@ -399,6 +515,22 @@ class InstructionLineCache(
         lockedA := true.B
         lockedFallback := chooseFallback
     }.elsewhen(io.tl.a.fire) { lockedA := false.B }
+    if (contextOwnedInstructionPrefetch) {
+        // Unlike the no-spec address fastpath, both producers may now be valid.
+        // Every payload field must follow the same locked producer selection.
+        val selected = WireDefault(Mux(chooseFallback, fallback.io.tl.a.bits, fill.io.tl.a.bits))
+        when(chooseFallback) { selected.source := fallback.io.tl.a.bits.source | 4.U }
+        when(io.tl.a.valid) {
+            assert(io.tl.a.bits.asUInt === selected.asUInt,
+                "context prefetch/fallback arbiter mixed address and owner metadata")
+        }
+        val wasHeld = RegNext(io.tl.a.valid && !io.tl.a.ready, false.B)
+        val heldPayload = RegEnable(io.tl.a.bits.asUInt, io.tl.a.valid && !io.tl.a.ready)
+        when(wasHeld && !reset.asBool) {
+            assert(io.tl.a.valid && io.tl.a.bits.asUInt === heldPayload,
+                "kill or demand arrival changed an irrevocable instruction A offer")
+        }
+    }
     fallback.io.tl.d.valid := io.tl.d.valid && useFallbackD
     fallback.io.tl.d.bits := io.tl.d.bits
     fallback.io.tl.d.bits.source := io.tl.d.bits.source & 3.U

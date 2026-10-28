@@ -29,7 +29,8 @@ class BufferedThirdRankLoadProofSpec extends AnyFunSuite {
                     CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                     CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile)))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile)))
             assert(profile.config.coreParams.bufferedThirdRankLoadProof == (Set[CommonA1RebuildProfile](candidate, CommonA1RebuildProfile.FullR1M3BufferedReturnFlow,
                 CommonA1RebuildProfile.FullR1M3OrderedOwnerReady,
                     CommonA1RebuildProfile.FullR1M3AdvisoryOwner,
@@ -39,7 +40,8 @@ class BufferedThirdRankLoadProofSpec extends AnyFunSuite {
                     CommonA1RebuildProfile.FullR1M3EfficiencyRefactor2,
                     CommonA1RebuildProfile.FullR1M3EfficiencyRefactor3,
                 CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4,
-                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5).contains(profile)))
+                CommonA1RebuildProfile.FullR1M3EfficiencyRefactor5,
+                CommonA1RebuildProfile.FullR1M3ContextFetchPrefetchExperiment).contains(profile)))
         }
         val p = c.coreParams
         assert(p.elasticLoadProofSupply && p.guardedNaturalDataPmp && p.splitLowTagAdvance)

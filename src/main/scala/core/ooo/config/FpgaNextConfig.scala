@@ -141,13 +141,15 @@ final case class FpgaNextConfig(
     preparedBareHeadStoreOperands: Boolean = false,
     bankedRobCompletionData: Boolean = false,
     coexistingPhysicalLoadIngress: Boolean = false,
+    contextOwnedInstructionPrefetch: Boolean = false,
     loadPayloadNomination: Boolean = false,
     // None preserves the exact selected topology; this is not a new public default.
     branchPredictorEntriesOverride: Option[Int] = None
 ) {
-    // Constructor parameters only: issueWidth is initialized later.
     require(!loadPayloadNomination || (coexistingPhysicalLoadIngress && certifiedLoadIngress),
         "load payload nomination requires the complete fourth-efficiency ingress topology")
+    require(!contextOwnedInstructionPrefetch || (coexistingPhysicalLoadIngress && fetchThirdPacketLookahead &&
+        fetchTransactionSlots == 2), "context-owned fetch prefetch requires the explicit fourth-profile frontend")
     require(!coexistingPhysicalLoadIngress || (bankedRobCompletionData && certifiedLoadIngress &&
         !physicalLoadIngressFlow && !registeredDataTranslation && !registeredRawCertifiedFlow),
         "coexisting physical ingress belongs only to the explicit third-efficiency descendant")
@@ -362,6 +364,7 @@ final case class FpgaNextConfig(
         (if (bankedRobCompletionData) "-banked-rob-completion-data" else "") +
         (if (coexistingPhysicalLoadIngress) "-coexisting-physical-load-ingress" else "") +
         (if (loadPayloadNomination) "-load-payload-nomination" else "") +
+        (if (contextOwnedInstructionPrefetch) "-context-owned-instruction-prefetch" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
         (if (translatedResponseEmptyFlow) "-translated-response-empty-flow" else "") +
         (if (lsuEntries != 2) s"-lsu$lsuEntries" else "") +
@@ -578,6 +581,7 @@ final case class FpgaNextConfig(
             preparedBareHeadStoreOperands = preparedBareHeadStoreOperands,
             bankedRobCompletionData = bankedRobCompletionData,
             coexistingPhysicalLoadIngress = coexistingPhysicalLoadIngress,
+            contextOwnedInstructionPrefetch = contextOwnedInstructionPrefetch,
             loadPayloadNomination = loadPayloadNomination)
     }
 
@@ -591,7 +595,7 @@ final case class FpgaNextConfig(
             !fetchThirdPacketLookahead && !canonicalFetchCacheKeys && !registeredMemoryOperandCapture &&
             !sharedMulDivOperandReads && !sourceLocalLoadProofCancellation && !sharedLoadProofPmpBounds &&
             !decodedNaturalPmp && !preparedBareHeadStoreOperands && !bankedRobCompletionData &&
-            !coexistingPhysicalLoadIngress && !loadPayloadNomination &&
+            !coexistingPhysicalLoadIngress && !contextOwnedInstructionPrefetch && !loadPayloadNomination &&
             branchPredictorEntriesOverride.isEmpty,
             "experimental backend/fetch topologies use CommonA1CpuTile, not the legacy board factory")
         new BoardSocTop(

@@ -13,6 +13,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     preselectRedirectTokenMatches: Boolean = false,
     proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
     val io = IO(new Bundle {
+        val fetchSpeculationCancel = if (p.contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
         val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val timerInterrupt  = Input(Bool())
@@ -114,6 +115,7 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     io.fetchPc        := core.io.fetchPc
     io.commit         := core.io.commit
     io.trap           := core.io.trap.get
+    io.fetchSpeculationCancel.foreach(_ := core.io.fetchSpeculationCancel.get)
     io.redirect       := core.io.redirect
     io.invalidateFetch := core.io.invalidateFetch
     io.recovering     := core.io.recovering

@@ -27,8 +27,12 @@ class CommonA1CpuTile(
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor2) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor3) ||
             memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor4) ||
-            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor5)),
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalEfficiencyRefactor5) ||
+            memoryProfile.contains(CommonA1MemoryProfile.ExperimentalContextFetchPrefetch)),
         "identity fetch horizon requires its explicit final-configuration policy")
+    require(!config.contextOwnedInstructionPrefetch ||
+        memoryProfile.contains(CommonA1MemoryProfile.ExperimentalContextFetchPrefetch),
+        "context-owned instruction prefetch requires its explicit final-configuration policy")
     require(!config.fetchThirdPacketLookahead || sideEffectFreeFetchRanges.nonEmpty,
         "identity fetch horizon requires explicitly supplied physical RAM ranges from the connected fabric")
     require(!config.fetchThirdPacketLookahead || sideEffectFreeFetchRanges.forall(range =>
@@ -86,7 +90,7 @@ class CommonA1CpuTile(
         fetchThirdPacketLookahead = config.fetchThirdPacketLookahead,
         sideEffectFreeFetchRanges = sideEffectFreeFetchRanges, canonicalFetchCacheKeys = config.canonicalFetchCacheKeys))
     val fetchAdapter = Module(new InstructionTranslationAdapter(p, transactionSlots = config.fetchTransactionSlots,
-        withRequestContext = true))
+        withRequestContext = true, contextOwnedInstructionPrefetch = config.contextOwnedInstructionPrefetch))
     // transactionSlots == 2 selects PipelinedAlignedInstructionTranslation and its fixed two-slot
     // FetchCompletionLedger; the third query does not add an accepted owner or a result slot.
     require(!config.fetchThirdPacketLookahead ||
@@ -103,7 +107,8 @@ class CommonA1CpuTile(
     }
     val physicalFetch = if (p.bufferedFetchRequests) {
         val requests = Module(new InstructionRequestBuffer(fetchAdapter.io.physical.packetWords,
-            p.flowThroughFetchRequests, p.independentFetchCapture, withRequestContext = true))
+            p.flowThroughFetchRequests, p.independentFetchCapture, withRequestContext = true,
+            contextOwnedInstructionPrefetch = config.contextOwnedInstructionPrefetch))
         requests.io.upstream <> fetchAdapter.io.physical
         requests.io.downstream
     } else fetchAdapter.io.physical
@@ -112,9 +117,14 @@ class CommonA1CpuTile(
         lines = config.instructionCacheLines, packetWords = 2,
         prefetchEnabled = false, // public two-word frontend already owns its fetch window
         bankedData = config.bankedInstructionData,
-        parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = config.tags, withRequestContext = true))
+        parallelFallbackAddresses = p.parallelFetchAddresses, tagConfig = config.tags, withRequestContext = true,
+        contextOwnedInstructionPrefetch = config.contextOwnedInstructionPrefetch,
+        sideEffectFreeFetchRanges = sideEffectFreeFetchRanges))
     require(physicalFetch.withRequestContext && fetchCache.io.fetch.withRequestContext,
         "Common A1 physical fetch must retain its owner permission context")
+    require(physicalFetch.withSpeculationContext == config.contextOwnedInstructionPrefetch &&
+        fetchCache.io.fetch.withSpeculationContext == config.contextOwnedInstructionPrefetch,
+        "Common A1 physical fetch must preserve the selected optional speculation context")
     fetchCache.io.fetch <> physicalFetch
     fetchCache.io.pmpState := core.io.pmpState.get
     fetchCache.io.privilege := core.io.fetchPrivilege.get
@@ -201,6 +211,20 @@ class CommonA1CpuTile(
     when(!core.io.fenceIFlush) { fenceSeen := false.B; requestSent := false.B; fabricDone := false.B }
     cache.io.flushRequest := core.io.fenceIFlush || park.map(_.io.flush).getOrElse(false.B)
     val fetchIdle = frontend.io.quiescent && fetchAdapter.io.idle && fetchCache.io.idle
+    if (config.contextOwnedInstructionPrefetch) {
+        // Read-only cancellation union: do not feed this into demand valid/ready or held TL A.
+        // Protected PMP/VM/return changes already pause and drain the full fetch owner graph;
+        // automatic traps are covered directly even when they do not await that drain.
+        val speculationKill = core.io.fetchSpeculationCancel.get || core.io.redirect.valid ||
+            core.io.trap.valid || core.io.invalidateFetch || core.io.pauseFetch.get ||
+            core.io.vmFlush.get || core.io.fenceIFlush || core.io.recovering ||
+            park.map(_.io.stopAdmission).getOrElse(false.B) || io.hold
+        fetchAdapter.io.speculationKill.get := speculationKill
+        fetchCache.io.speculationKill.get := speculationKill
+        fetchAdapter.io.speculationDrained.get := fetchIdle && !frontend.io.memory.request.valid
+        fetchCache.io.speculationMinimumSequence.get := fetchAdapter.io.speculationMinimumSequence.get
+        fetchCache.io.speculationAgeUsable.get := fetchAdapter.io.speculationAgeUsable.get
+    }
     val privateIdle = selection.io.idle && direct.io.idle && physical.io.idle && requests.io.idle && walkIdle
     io.bus.maintenanceStatus.valid := core.io.fenceIFlush && fenceSeen && cache.io.flushDone &&
         privateIdle && fetchIdle && !requestSent
