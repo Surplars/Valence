@@ -187,9 +187,7 @@ class ReadyStoreQuery77BackendGsim(queryEnabled: Boolean, proofRows: Int = 2,
         backend.retirementSlotIdentity == p.retirementSlotIdentity)
     val adapter = Module(new DataTranslationAdapter(p, entries = 8, registerCheckedRequests = true,
         translationHitFlow = profile.translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-        factorCheckedNextAllowed = p.factorCheckedNextAllowed))
+        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp))
     val translation = Module(new SvTranslationService(p.virtualMemoryLevels, profile.dataTranslationEntries,
         p.pmpEntries, loadPeek = enabled, writeReadReuse = profile.dataTlbWriteReadReuse))
     backend.io.rawDestinations.foreach { ports =>

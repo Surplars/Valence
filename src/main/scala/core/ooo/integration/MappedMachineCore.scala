@@ -133,9 +133,7 @@ class MappedMachineCore(
     if (dataTranslation) {
         val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = stagedMemoryFabric,
             translationHitFlow = translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
-            registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
             queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-            factorCheckedNextAllowed = p.factorCheckedNextAllowed,
             registerNextLineDecision = registerNextLineDecision, certifiedLoadIngress = p.certifiedLoadIngress))
         observationTranslation = Some(adapter)
         if (bufferTranslatedResponses) {

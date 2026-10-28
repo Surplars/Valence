@@ -32,9 +32,12 @@ private[ooo] class CheckedDataRequest(p: OooParams, classifyNextLine: Boolean = 
   */
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
-    val registerCanonicalStoreEvent: Boolean = false, val queuedHeadSelection: Boolean = false,
-    val alignedNextLinePmp: Boolean = false, val factorCheckedNextAllowed: Boolean = false,
+    val queuedHeadSelection: Boolean = false, val alignedNextLinePmp: Boolean = false,
     val registerNextLineDecision: Boolean = false, val certifiedLoadIngress: Boolean = false) extends Module {
+    // One configuration source; these read-only views keep elaboration audits explicit.
+    val registerCanonicalStoreEvent: Boolean = p.registeredCanonicalStoreEvent
+    val factorCheckedNextAllowed: Boolean = p.factorCheckedNextAllowed
+
     require(!p.loadPayloadNomination || (p.coexistingPhysicalLoadIngress && certifiedLoadIngress),
         "load payload nomination requires the unchanged coexisting ordinary/certified ingress contract")
     require(!p.coexistingPhysicalLoadIngress || (certifiedLoadIngress && p.bankedRobCompletionData &&
@@ -59,12 +62,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
         "next-line classification requires the existing checked register and aligned line permission")
     require(!p.frozenStoreCheckedFlow || registerCheckedRequests,
         "frozen checked flow retains the non-flow checked authorization register")
-    require(factorCheckedNextAllowed == p.factorCheckedNextAllowed,
-        "checked hint constructor must use the unified OooParams flag")
     require(!factorCheckedNextAllowed || (registerCheckedRequests && p.dataNextLinePrefetch),
         "checked hint factoring requires the non-flow checked queue and enabled next-line prefetch")
-    require(registerCanonicalStoreEvent == p.registeredCanonicalStoreEvent,
-        "canonical event producer and backend lifecycle must use the same OooParams flag")
     require(!usePublishedPmpChanges || p.pmpChangePublicationEnabled,
         "published PMP changes require the integrated same-clock CSR producer contract")
     require(!translationHitFlow || (registerCheckedRequests && p.registeredTranslationHeads &&
@@ -611,11 +610,8 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             // If checked stalls, the identical offer spills into translated,
             // preserving held payload and capacity without a ready path from
             // the external physical port. Older translated work always wins.
-            stage.enq.valid := (if (certifiedLoadIngress)
-                translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
-                    translationHitOffer || frozenCheckedOffer || certifiedIngressOffer
-            else translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
-                translationHitOffer || frozenCheckedOffer)
+            stage.enq.valid := translated.io.deq.valid || identityOffer || precheckedOffer || physicalIngressOffer ||
+                translationHitOffer || frozenCheckedOffer || certifiedIngressOffer
             stage.enq.bits.request := (if (p.loadPayloadNomination) nominatedCheckedPayload.get
                 else Mux(physicalIngressOffer, io.virtual.request.bits, Mux(identityOffer, incoming.bits, request)))
             stage.enq.bits.fault := Mux(identityOffer || physicalIngressOffer, false.B, fault)

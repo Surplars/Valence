@@ -24,7 +24,6 @@ object GuardedNaturalDtaNativeMain extends App {
         "Guarded mode intentionally rejects malformed standalone raw alignment; no CPU or physical timing claim. " +
         "Profile=" + args(1) + "\n")
     ChiselStage.emitCHIRRTLFile(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = config.translationHitFlow, registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-        factorCheckedNextAllowed = p.factorCheckedNextAllowed), Array("--target-dir", args(0)))
+        translationHitFlow = config.translationHitFlow,
+        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp), Array("--target-dir", args(0)))
 }

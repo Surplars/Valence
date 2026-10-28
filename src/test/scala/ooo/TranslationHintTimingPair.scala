@@ -10,8 +10,7 @@ import chisel3.util.experimental.BoringUtils
 object TranslationHintTimingPair {
     def attach(candidate: DataTranslationAdapter, p: OooParams, translationHitFlow: Boolean): Unit = {
         val reference = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-            translationHitFlow = translationHitFlow, registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-            factorCheckedNextAllowed = p.factorCheckedNextAllowed))
+            translationHitFlow = translationHitFlow))
         val a = candidate.io
         val b = reference.io
         b.virtual.request.valid := a.virtual.request.valid

@@ -175,9 +175,8 @@ class MulLoadOperandCaptureBackendGsim(enabled: Boolean) extends Module {
         registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
         retirementSlotIdentity = p.retirementSlotIdentity))
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = config.translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent, queuedHeadSelection = p.queuedHeadSelection,
-        alignedNextLinePmp = p.alignedNextLinePmp, factorCheckedNextAllowed = p.factorCheckedNextAllowed,
+        translationHitFlow = config.translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled, queuedHeadSelection = p.queuedHeadSelection,
+        alignedNextLinePmp = p.alignedNextLinePmp,
         certifiedLoadIngress = p.certifiedLoadIngress))
     val responses = Module(new DataResponseBuffer(registerPayload = p.registeredTranslatedResponses,
         registerHead = p.registeredTranslationHeads, emptyFlow = p.translatedResponseEmptyFlow,

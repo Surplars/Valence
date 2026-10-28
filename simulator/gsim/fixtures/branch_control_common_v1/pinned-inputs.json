@@ -1,0 +1,135 @@
+{
+  "schema": "branch-control-common-v1-input-lock",
+  "source_checkpoint": {
+    "public_commit": "5a0cb2993f177b498774fd570dbee9889901ca80",
+    "tree": "96426d2c3eff810fa92bb2e01245bfa3d2fa8699",
+    "meaning": "Original qualification source tree before publishing this new test-only fixture; not a requirement that the full checkout tree stay equal after adding documentation."
+  },
+  "tools": {
+    "compiler": {
+      "sha256": "0a3c55936ac43954fbe4914e6e73b577ca9e35e75d89ef13d3e28c187f41ca1a",
+      "version": "Debian clang version 19.1.7 (3+b1)",
+      "package": "clang-19",
+      "package_version": "1:19.1.7-3+b1",
+      "architecture": "amd64",
+      "package_sha256": "bbb74458d782b7792b61b0eed92746df5e6d033778c045cf8c2b3835b7c4efc4"
+    },
+    "linker": {
+      "sha256": "7a2fd87d82662beac4371a1a21067b37cd4b7d43777aa61c089d85c45f772f6e",
+      "version": "Debian LLD 19.1.7 (compatible with GNU linkers)",
+      "package": "lld-19",
+      "package_version": "1:19.1.7-3+b1",
+      "architecture": "amd64",
+      "package_sha256": "756a805e8811d527dd2b5417f016c9342b8631fa9c1ddcd56265c13ae33bf3a4",
+      "official_package_url": "https://deb.debian.org/debian/pool/main/l/llvm-toolchain-19/lld-19_19.1.7-3+b1_amd64.deb",
+      "package_dependencies": "libc6 (>= 2.34), libgcc-s1 (>= 3.0), libllvm19 (= 1:19.1.7-3+b1), libstdc++6 (>= 12), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.2.2)",
+      "invocation_name_must_preserve_elf_flavor": true
+    },
+    "nm": {
+      "sha256": "ddb55c0685721bf494aa2d090056b8b32a40614ad4464b305896f527d882c3c1",
+      "version": "GNU nm (GNU Binutils for Debian) 2.44",
+      "scope": "Host GNU nm -n exact symbol text; not a RISC-V code generator"
+    }
+  },
+  "official_lld_metadata": {
+    "inrelease_url": "https://deb.debian.org/debian/dists/trixie/InRelease",
+    "inrelease_sha256": "0584fba32e13e0ab8285fb16c27adea1ec03a73669c18702821094fd6ca86675",
+    "packages_url": "https://deb.debian.org/debian/dists/trixie/main/binary-amd64/Packages.xz",
+    "packages_sha256": "7778d3e3f303b7ddb8ce0fe7c8d57473a076c6bf2e8f241f75421d2396352498",
+    "valid_signature_fingerprints": [
+      "4CB50190207B4758A3F73A796ED0E7B82643E131",
+      "B8E5F13176D2A7A75220028078DBA3BC47EF2265",
+      "41587F7DB8C774BCCF131416762F67A0B2C39DE4"
+    ]
+  },
+  "guest": {
+    "original_source": "simulator/gsim/payloads/branch-program.S",
+    "original_source_sha256": "7a85afcaea1e93441e68fe224e1442c0346c7482d0bb314aea3cae2c1cdd563d",
+    "elf_sha256": "e883f1ba4f951b87afd8388ebe70931a435b92e5bd22cf0ebe551006bcef62fd",
+    "symbols_sha256": "094b2462b68152b1f21499d41cc9f0b605f1684e58f0f4797b27286ee949c72a",
+    "text_sha256": "49ebc6aab5a461d2d4185aaf0c04f91645a4cb46144181f5ec2e304ece45c1f6",
+    "original_body_bytes": 284,
+    "text_bytes": 808,
+    "entry": "0x80200000",
+    "ram_bytes": 131072,
+    "isa": "rv64i",
+    "abi": "lp64",
+    "relax": false,
+    "new_qualified_fixture_not_historical_binary_reproduction": true
+  },
+  "reference": {
+    "source_evaluator_sha256": "e01ce01d70a950a39cbae4315a3bc2921af5f9d6bbb63f1733fc0c062f492b3c",
+    "source_gold_header_sha256": "1ee0f070ab026b5805b23e4504d4ac73a1e2d4d0e719cb47bbb4a2165cc30d86",
+    "qualified_isa_json_sha256": "ae8260b2b4799f76cd28216e7a1ffd1512eb5fbae404a80f27acc6094686ec25",
+    "retired": 240,
+    "roi_retired": 236,
+    "terminal_pc": "0x80200124",
+    "source_not_dut_derived": true
+  },
+  "host_flags": [
+    "-std=c++20",
+    "-O1",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all"
+  ],
+  "models": {
+    "control": {
+      "generated_cpp_sha256": "31928b3511d1c2db47ed501a8a9beab56aefaa42c6b749a79b2aeadb82fc9828",
+      "generated_header_sha256": "2d7cfbd4dd3945666fc407870cda3b154df2beb9c7c7969aba3d640b7c56aa21",
+      "object_sha256": "9bf91883b85e5ef7d11414586a7b16f89f77814d4f1f1774cba977c01dede20e",
+      "cpp_name": "EfficiencyRefactor4BenchmarkGsim0.cpp",
+      "header_name": "EfficiencyRefactor4BenchmarkGsim.h",
+      "object_receipt_sha256": "8c22c69961b34187f2e4a5dfbf502ee0f13f2a59fd619b17977698677be423a3",
+      "registered_mul_load_operand_capture": false,
+      "context_owned_instruction_prefetch": false,
+      "load_payload_nomination": false
+    },
+    "candidate": {
+      "generated_cpp_sha256": "9087c6cc9915a6fcc44ae764f2c8128355b8949ab4121910f1085fe6b77a5578",
+      "generated_header_sha256": "967d6156f23189ea4e498b65e27d322659e6d2246d934d79e84c5e52766dc982",
+      "object_sha256": "ede54f71c450db609f2d018d56bdfa77dc3121e898142b9cc50126fbb8771d5c",
+      "cpp_name": "MulLoadOperandCaptureBenchmarkGsim0.cpp",
+      "header_name": "MulLoadOperandCaptureBenchmarkGsim.h",
+      "object_receipt_sha256": "9eb315333ec2cfc63e23b99453151d278981f03e3c934df5ef709523d0488868",
+      "registered_mul_load_operand_capture": true,
+      "context_owned_instruction_prefetch": false,
+      "load_payload_nomination": false
+    }
+  },
+  "repository_inputs": {
+    "simulator/gsim/payloads/branch-program.S": "7a85afcaea1e93441e68fe224e1442c0346c7482d0bb314aea3cae2c1cdd563d",
+    "simulator/gsim/harness/isa_model.h": "e41fc86cd9dd0319871dbde8330a30d3d4cee60acd25ea6e2b1514d072d0b7d0",
+    "simulator/gsim/harness/muldiv_model.h": "914587343405520a45e8e418a7d2a43d2b13212b27cc74e690c3ab5ff825174a",
+    "simulator/gsim/harness/gsim_model_storage.h": "a254fb916af4041f0e850701b57592571ae3ca7a58458b94aa7058e6fcf27634",
+    "simulator/gsim/harness/context_fetch_prefetch/shared/benchmark_oracle.h": "0ac74f52202da31b026908f254b1445e154a292f145135de92cfc59625b5004f",
+    "simulator/gsim/harness/context_fetch_prefetch/shared/benchmark_image.h": "8ab216e08ecd924c6a099f0fd3d108897c9fafac44668a5ef56fafd0006f63b9",
+    "simulator/gsim/harness/context_fetch_prefetch/shared/matched_memory.h": "8c45b0b95ee1ed7bbd936be7b60a158a31adb9c99b4ec1c7162234d5feb02538"
+  },
+  "fixture_files": {
+    "README.md": "2d973bd876fd129f6e5be3c59558da9dd7acc6a8185ee9acf22ba14ca0b36066",
+    "aliases/candidate/CommonA1BenchmarkGsim.h": "7d66be9e3bab99ce5a5a77c4ac7cd3013220bee25da5d8df3a79918a0790e766",
+    "aliases/control/CommonA1BenchmarkGsim.h": "f2ad14fe742e6d33501262fed0110060032c8dd6dc7973bd303aa16fc89d4a1c",
+    "build_guest.py": "58c00352a7a7a25e27a795514e6e98c22d3ccb6d596dcb21b019d29fadd86962",
+    "check_model_binding.py": "4ab7230d1fdac0ac06a2cafbabec967c90383c7a7ad9e21461ac7e44aa672bdb",
+    "guest/branch-common.S": "eef8875f2f5feef594b25ae561d05488ad01c75bc2446a0401f99ffcdd20b3e3",
+    "guest/branch-common.ld": "a356026adc5890acd4398ce997712b3aa2c276ecac125909396d154ae1e0085b",
+    "host/branch_common.cpp": "c28d3a8ec9bf15a0561e5c66036e2eac100cd3d6d28b07383167cf35d99b459f",
+    "host/branch_gold.h": "287e2473e564ef6a351f4f25bc66559bf50f23cad1e041996395ce0fdf0b8ca8",
+    "host/check_gold.cpp": "6f03d92c32d6ad7c6ab20dab759c90e0150c5cd2e4297310f6b36a6eaa6b1683",
+    "isa-reference/branch_isa.h": "5255aa78c94701751f7ad6819cc50295c94fe8a137c9cd576e50392407cae6f0",
+    "isa-reference/isa_reference.cpp": "dccdd528bfbef54042e82951bc9b91e7d2af80f62fbe8af982dfb5d854fe9c75",
+    "source-reference/source-gold.h": "1ee0f070ab026b5805b23e4504d4ac73a1e2d4d0e719cb47bbb4a2165cc30d86",
+    "source-reference/source_reference.py": "e01ce01d70a950a39cbae4315a3bc2921af5f9d6bbb63f1733fc0c062f492b3c",
+    "source-reference/test_linked_qualification.py": "5de45708104ffcda90552cf99ff7b9bb1eeba9066f9ab824bf5cc04697da6148",
+    "source-reference/test_source_reference.py": "edac3a2c1ee7dd14b518cfc5eefb7d61ead478dc14c77bdc6d6593a0afc12c31",
+    "test_build_guest.py": "76dd445bcb913e998bdbf2f602eff47217841f1f8f857ee39b4b470aef113672"
+  },
+  "limits": {
+    "CPU_run_automatic": false,
+    "generation_fallback": false,
+    "download_or_install": false,
+    "object_requalification_required_on_drift": true,
+    "frequency_or_board_claim": false
+  }
+}

@@ -146,9 +146,7 @@ class CertifiedIngressChainGsim(enabled: Boolean, profileOverride: Option[String
     responses.io.upstream.response.ready := Mux(io.fpMode, fp.io.memory.response.ready, stores.io.memory.response.ready)
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
         translationHitFlow = config.translationHitFlow,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-        factorCheckedNextAllowed = p.factorCheckedNextAllowed, certifiedLoadIngress = p.certifiedLoadIngress))
+        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp, certifiedLoadIngress = p.certifiedLoadIngress))
     val translation = Module(new SvTranslationService(p.virtualMemoryLevels, config.dataTranslationEntries,
         p.pmpEntries, loadPeek = true, writeReadReuse = config.dataTlbWriteReadReuse,
         decodedNaturalPmp = p.decodedNaturalPmp))

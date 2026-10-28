@@ -1,0 +1,1 @@
+VALENCE_BRANCH_MATCHED_PASS cycles=375 work=359 drain=16 roi_cycles=319 retired=240 roi_retired=236 I_requests=9 I_bytes=408 D_reads=0 D_read_bytes=0 D_writes=0 D_write_bytes=0 grants=0 release_acks=0 hash=adcf4a58e6b5e2d5 branch_x10=2a dirty_resident_flush=not_requested

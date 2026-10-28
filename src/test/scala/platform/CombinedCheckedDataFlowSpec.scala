@@ -62,9 +62,8 @@ class CombinedCheckedDataFlowSpec extends AnyFunSuite {
         val p = candidate.coreParams
         def emit(q: OooParams, checked: Boolean = true, hit: Boolean = true): String =
             ChiselStage.emitCHIRRTL(new DataTranslationAdapter(q, registerCheckedRequests = checked,
-                translationHitFlow = hit, registerCanonicalStoreEvent = q.registeredCanonicalStoreEvent,
-                queuedHeadSelection = q.queuedHeadSelection, alignedNextLinePmp = q.alignedNextLinePmp,
-                factorCheckedNextAllowed = q.factorCheckedNextAllowed))
+                translationHitFlow = hit,
+                queuedHeadSelection = q.queuedHeadSelection, alignedNextLinePmp = q.alignedNextLinePmp))
         val fir = emit(p)
         assert(fir.contains("combined immediate ingress transfers exactly once"))
         assert(fir.contains("combined blocked certified PA spills exactly once"))

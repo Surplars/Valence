@@ -118,9 +118,8 @@ class PostedFrozenOverlapChainGsim(overlap: Boolean) extends Module {
     val responses = Module(new DataResponseBuffer(registerPayload = true, registerHead = true,
         returnConfig = p.cpuReturnConfig))
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = profile.translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent, queuedHeadSelection = p.queuedHeadSelection,
-        alignedNextLinePmp = p.alignedNextLinePmp, factorCheckedNextAllowed = p.factorCheckedNextAllowed))
+        translationHitFlow = profile.translationHitFlow, usePublishedPmpChanges = p.pmpChangePublicationEnabled, queuedHeadSelection = p.queuedHeadSelection,
+        alignedNextLinePmp = p.alignedNextLinePmp))
     val translation = Module(new SvTranslationService(3, profile.dataTranslationEntries, p.pmpEntries, loadPeek = true))
     val router0 = Module(new ParallelRegisterRouter(Seq(BigInt("1000", 16) -> BigInt(256)),
         bypassMemoryShift = true, returnConfig = p.cpuReturnConfig))

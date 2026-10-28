@@ -51,7 +51,7 @@ class FrozenCheckedFlowGsim(enabled: Boolean, queuedHead: Boolean) extends Modul
         val checkedVa = Output(UInt(64.W))
     })
     val dut = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = true, registerCanonicalStoreEvent = true, queuedHeadSelection = queuedHead,
+        translationHitFlow = true, queuedHeadSelection = queuedHead,
         alignedNextLinePmp = true))
     dut.io.virtual <> io.upstream
     dut.io.physical <> io.physical

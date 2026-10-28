@@ -80,7 +80,7 @@ class CoexistingPhysicalLoadIngressSpec extends AnyFunSuite {
     test("actual adapter elaborates coexistence only with its certified non-flow checked boundary") {
         def adapter(p: OooParams, certified: Boolean, checked: Boolean = true): DataTranslationAdapter =
             new DataTranslationAdapter(p, registerCheckedRequests = checked, translationHitFlow = true,
-                alignedNextLinePmp = p.alignedNextLinePmp, factorCheckedNextAllowed = p.factorCheckedNextAllowed,
+                alignedNextLinePmp = p.alignedNextLinePmp,
                 certifiedLoadIngress = certified)
         val oldFir = ChiselStage.emitCHIRRTL(adapter(control.config.coreParams, true))
         val newFir = ChiselStage.emitCHIRRTL(adapter(candidate.config.coreParams, true))

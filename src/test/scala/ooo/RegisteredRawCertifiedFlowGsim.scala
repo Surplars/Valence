@@ -74,9 +74,8 @@ class RegisteredRawCertifiedFlowGsim(registeredRaw: Boolean, profileOverride: Op
         val idle = Output(Bool())
     })
     val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        translationHitFlow = config.translationHitFlow, registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-        factorCheckedNextAllowed = p.factorCheckedNextAllowed))
+        translationHitFlow = config.translationHitFlow,
+        queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp))
     val translation = Module(new SvTranslationService(p.virtualMemoryLevels, config.dataTranslationEntries,
         p.pmpEntries, loadPeek = true, writeReadReuse = config.dataTlbWriteReadReuse))
     val pmp = WireDefault(0.U.asTypeOf(new PmpState))

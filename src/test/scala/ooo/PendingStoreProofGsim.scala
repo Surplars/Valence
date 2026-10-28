@@ -144,8 +144,7 @@ class PendingStoreProofTransportGsim(enabled: Boolean) extends Module {
         val idle = Output(Bool())
     })
     val buffer = Module(new StoreBuffer(p))
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
     val translation = Module(new SvTranslationService(3, 16, 16, loadPeek = true, writeReadReuse = true))
     val pmp = PendingStoreProofFixture.pmp(io.pmpCfg, io.pmpAddress)
     buffer.io.upstream <> io.upstream
@@ -305,8 +304,7 @@ class PendingStoreProofBackendGsim(enabledProof: Boolean, enabledBoundOverlap: B
     io.decoded1 := allocate1.bits
     val backend = Module(new IntegerBackend(p,
         registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
-    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true,
-        registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent))
+    val adapter = Module(new DataTranslationAdapter(p, registerCheckedRequests = true))
     val translation = Module(new SvTranslationService(3, 16, 16, loadPeek = enabled, writeReadReuse = true))
     backend.io.rawDestinations.foreach { ports =>
         ports(0) := allocate0.bits.rename.rd

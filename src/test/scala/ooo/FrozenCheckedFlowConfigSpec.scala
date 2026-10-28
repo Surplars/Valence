@@ -13,15 +13,18 @@ class FrozenCheckedFlowConfigSpec extends AnyFunSuite {
             enabled.productElementNames.zip(enabled.productIterator).toMap.filterNot(_._1 == "frozenStoreCheckedFlow"))
         assert(base.copy(frozenStoreCheckedFlow = true).copy(frozenStoreCheckedFlow = false) == base)
     }
-    test("reject adapter constructor missing actual registered checked or canonical boundary") {
+    test("adapter derives canonical stage from OooParams and rejects missing checked boundary") {
         val p = PendingStoreProofFixture.params().copy(
             registeredCanonicalStoreEvent = true, frozenStoreCheckedFlow = true)
-        val canonical = intercept[Exception] {
-            ChiselStage.emitCHIRRTL(new DataTranslationAdapter(p, registerCheckedRequests = true))
+        // The canonical stage is no longer a second, independently supplied constructor flag.
+        val canonical = ChiselStage.emitCHIRRTL {
+            val adapter = new DataTranslationAdapter(p, registerCheckedRequests = true)
+            assert(adapter.registerCanonicalStoreEvent)
+            adapter
         }
-        assert(canonical.toString.contains("canonical event producer and backend lifecycle"))
+        assert(canonical.contains("module DataTranslationAdapter"))
         val checked = intercept[Exception] {
-            ChiselStage.emitCHIRRTL(new DataTranslationAdapter(p, registerCanonicalStoreEvent = true))
+            ChiselStage.emitCHIRRTL(new DataTranslationAdapter(p))
         }
         assert(checked.toString.contains("frozen checked flow retains"))
     }

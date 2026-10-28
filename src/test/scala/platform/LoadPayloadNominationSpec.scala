@@ -98,7 +98,7 @@ class LoadPayloadNominationSpec extends AnyFunSuite {
         def adapter(p: OooParams, certified: Boolean, checked: Boolean = true,
             hitFlow: Boolean = true): DataTranslationAdapter =
             new DataTranslationAdapter(p, registerCheckedRequests = checked, translationHitFlow = hitFlow,
-                alignedNextLinePmp = p.alignedNextLinePmp, factorCheckedNextAllowed = p.factorCheckedNextAllowed,
+                alignedNextLinePmp = p.alignedNextLinePmp,
                 certifiedLoadIngress = certified)
         val oldFir = ChiselStage.emitCHIRRTL(adapter(control.config.coreParams, true))
         val newFir = ChiselStage.emitCHIRRTL(adapter(candidate.config.coreParams, true))

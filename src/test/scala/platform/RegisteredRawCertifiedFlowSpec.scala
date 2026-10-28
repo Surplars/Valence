@@ -64,9 +64,8 @@ class RegisteredRawCertifiedFlowSpec extends AnyFunSuite {
     test("actual adapter retains registered raw results and a separately authorized certified source") {
         def emit(p: OooParams, checked: Boolean = true, hit: Boolean = false): String =
             ChiselStage.emitCHIRRTL(new DataTranslationAdapter(p, registerCheckedRequests = checked,
-                translationHitFlow = hit, registerCanonicalStoreEvent = p.registeredCanonicalStoreEvent,
-                queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp,
-                factorCheckedNextAllowed = p.factorCheckedNextAllowed))
+                translationHitFlow = hit,
+                queuedHeadSelection = p.queuedHeadSelection, alignedNextLinePmp = p.alignedNextLinePmp))
         val p = profile.config.coreParams
         val fir = emit(p)
         assert(fir.contains("DataTranslationResultBuffer") && fir.contains("DataPhysicalPermissionEvaluator"))
