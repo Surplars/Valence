@@ -213,3 +213,70 @@ expected nonzero negative-test exits. No full-CPU behavior, ISA compliance,
 IPC/bandwidth, PPA, synthesis, routed timing or board qualification is claimed.
 Post-validation README/documentation changes are recorded separately from the
 compiled source epoch. The existing CPU identity qualification remains conservative.
+
+## Optional ordinary memory-copy DMA
+
+Schema 2 accepts optional `peripherals.memoryCopyDma: true|false`; omission keeps
+it enabled. Schema 1 retains its exact original fields. Existing configuration
+files and all 12 CPU capacity identities are unchanged. The new
+`a1-rob16-prf48-lsu2-dma-off-jtag-on.json` is a hardware-composition example, not a
+boot-qualified firmware preset. No additional legacy CLI selector is introduced.
+
+Disabling ordinary DMA removes its hardware, its `0x10001000..0x10001027` window
+and its internal IRQ4 contribution, without renumbering anything. The window
+becomes an error hole. External interrupt inputs are not masked. Network DMA
+(IRQ6), GMAC, JTAG, timer, CMU and the coherent Home remain independent. Remaining
+network/JTAG requests still pass through the ordinary data adapter, Atomic and
+Home; they do not bypass coherence or reach DDR directly. An absent line-DMA
+producer removes its optional Atomic/Home line ports as well. The resolved line
+capacity becomes 1 (the existing disabled-port constructor contract), even if the
+requested FPGA profile uses line transfers with depth 4; the profile itself is
+not rewritten.
+
+**Current firmware boundary:** the existing Linux device tree and benchmark
+reference ordinary DMA, and monitor diagnostics access its CSRs. They are not
+supported with DMA disabled. The public exporter therefore rejects DMA-off with
+`--vivado-memories` under the current fixed-COE firmware contract. This is not a
+fundamental restriction on DMA-off FPGA hardware. `--programmable` exports load
+no firmware and remain available for a compatible custom image. The emission and
+resolved reports record DMA presence and this compatibility limitation. No Linux
+boot, full-CPU performance, area or timing qualification is implied.
+
+### Focused DMA composition evidence (2026-10-29)
+
+The bounded batch passed 24 pure Scala checks and 3 structural tests. These cover
+all 12 CPU capacity identities independently of DMA/JTAG choice; four actual
+Fabric DMA×JTAG structures; requested line-DMA depth 4 with its producer present
+or absent, including zero producers; strict JSON and current firmware-export
+compatibility checks. All six prior v1/v2 configuration files retain exact bytes.
+The complete omitted-default A1 SV remains byte-identical (`9a07752e…`), as does
+its CPU identity file (`82c3ddc8…`). An actual public programmable DMA-off export
+was checked against its resolved report and source-bound compilation receipt.
+
+Two static Fabric GSIM models passed independent transaction/data checks with
+ASAN/UBSAN. DMA ON completed in 1,416 cycles: existing copies, dirty-owner probes,
+backpressure and two drain epochs, plus actual IRQ4 delivery. DMA OFF completed
+in 695 cycles: all former CSR slots and byte endpoints return held error replies
+with correct owners; no duplicate reply or unsolicited IRQ4; legitimate external
+source 4 still works; JTAG SBA writes/reads RAM; network RX writes RAM and network
+TX reads a dirty private owner through Home. Two held AXI B responses (one per
+remaining producer) prevent drain until consumed. These directed write addresses
+start uncached/nonresident; the oracle does not require resident dirty Home data
+to be written immediately to DDR. ON and OFF cycle totals use different tests
+and are **not a performance comparison**.
+
+Each model also rejected an injected fixed-data observer mismatch with exit 1
+and no PASS marker. This checks data-oracle sensitivity, not comprehensive
+mutation coverage of routing, interrupts or owner tracking. Both positive runs
+ended with accepted DDR requests fully accounted for. No reset rewrite was used.
+
+The first test compilation failed with four references to the former nonoptional
+`dma.io` in the existing always-DMA probe helper. That real API adaptation failure
+is preserved; the helper now explicitly enables DMA and accesses its known-present
+module. The bounded retry and all subsequent checks passed. No production fallback
+or weakened assertion was introduced.
+
+Evidence: `build/memory-copy-dma-20261029-r2/TERMINAL_RESULTS.json`, with the original
+r1 failure and both durable source checkpoints retained separately. This does not
+qualify full-CPU execution, runtime clock crossing, Linux boot, FPGA deployment,
+IPC/bandwidth, area, frequency or timing.

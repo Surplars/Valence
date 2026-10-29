@@ -83,9 +83,9 @@ object CommonPlatformAbi {
         CommonAddressRegion("timer", timerBase, timerBytes),
         CommonAddressRegion("m-aplic", aplicMachineBase, aplicDomainBytes),
         CommonAddressRegion("s-aplic", aplicSupervisorBase, aplicDomainBytes),
-        CommonAddressRegion("uart", uartBase, uartBytes),
-        CommonAddressRegion("dma", dmaBase, dmaBytes)
-    ) ++ (if (features.networkDma) Seq(CommonAddressRegion("network-dma", networkDmaBase, networkDmaBytes))
+        CommonAddressRegion("uart", uartBase, uartBytes)
+    ) ++ (if (features.memoryCopyDma) Seq(CommonAddressRegion("dma", dmaBase, dmaBytes)) else Seq.empty) ++
+        (if (features.networkDma) Seq(CommonAddressRegion("network-dma", networkDmaBase, networkDmaBytes))
           else Seq.empty) ++
         (if (features.jtagDownload) Seq(CommonAddressRegion("jtag", jtagBase, jtagBytes)) else Seq.empty) ++
         (if (features.ethernetControl) Seq(CommonAddressRegion("ethernet", ethernetBase, ethernetBytes))
@@ -117,7 +117,8 @@ case class CommonPlatformFeatures(
     ethernetControl: Boolean = false,
     networkDma: Boolean = false,
     jtagDownload: Boolean = false,
-    clockManagement: Boolean = false
+    clockManagement: Boolean = false,
+    memoryCopyDma: Boolean = true
 ) {
     require(!networkDma || ethernetControl, "network DMA requires the Ethernet control/stream endpoint")
 }

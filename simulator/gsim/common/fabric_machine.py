@@ -24,12 +24,15 @@ def main():
     parser.add_argument("--cxx")
     parser.add_argument("--java")
     parser.add_argument("--java-classpath-file", type=Path)
+    parser.add_argument("--memory-copy-dma", choices=("on", "off"),
+                        help="static ordinary-DMA option oracle; network and JTAG remain enabled")
     parser.add_argument("--runtime-maintenance", action="store_true")
     parser.add_argument("--runtime-cancellation", action="store_true")
     parser.add_argument("--cloud-tools", action="store_true",
                         help="use clean pinned repository GSIM and coordinated Mill emitter")
     args = parser.parse_args()
     args.runtime_maintenance = args.runtime_maintenance or args.runtime_cancellation
+    require(not (args.memory_copy_dma and args.runtime_maintenance), "DMA option test is static fabric only")
     out = args.out.resolve()
     require(not out.exists(), "fresh output directory required")
     out.mkdir(parents=True)
@@ -44,7 +47,8 @@ def main():
         main_class = ("platform.CommonMachineFabricCancellationGsimMain" if args.runtime_cancellation else
                       "platform.CommonMachineFabricRuntimeGsimMain" if args.runtime_maintenance else
                       "platform.CommonMachineFabricGsimMain")
-        top = "CommonMachineFabricFlatGsim" if args.cloud_tools else "CommonMachineFabric"
+        flat = args.cloud_tools or bool(args.memory_copy_dma)
+        top = "CommonMachineFabricFlatGsim" if flat else "CommonMachineFabric"
         if args.cloud_tools:
             main_class = "platform.CommonMachineFabricFlatGsimMain"
             binary, cxx = common.setup(False)
@@ -67,9 +71,14 @@ def main():
             qualification = json.loads(args.gsim_qualification.read_text())
             validate_qualification(qualification, source, binary, cxx, revision, changed,
                                    hashlib.sha256(diff.encode()).hexdigest(), lock)
+            if args.memory_copy_dma:
+                main_class = "platform.CommonMachineFabricMemoryDmaOptionGsimMain"
             cp, compiled = classpath_manifest(args.java_classpath_file.resolve(), main_class)
             tool_record = {"gsim_revision": revision, "gsim_sha256": sha(binary), "cxx_sha256": sha(cxx),
                            "java_sha256": sha(java), "qualification_sha256": sha(args.gsim_qualification)}
+        if args.memory_copy_dma:
+            main_class = "platform.CommonMachineFabricMemoryDmaOptionGsimMain"
+            receipt["memoryCopyDma"] = args.memory_copy_dma == "on"
         paths = [ROOT / "build.mill", ROOT / "AGENTS.md", Path(__file__),
                  HERE / "common/fabric_machine.cpp"]
         paths += list((ROOT / "src/main/scala").rglob("*.scala"))
@@ -78,12 +87,14 @@ def main():
         receipt.update(inputs=inputs, compiled=compiled, tools=tool_record)
         save()
         model = out / "model"
+        emit_args = ([args.memory_copy_dma] if args.memory_copy_dma else
+                     [str(args.runtime_maintenance).lower(), str(args.runtime_cancellation).lower()])
         if args.cloud_tools:
             guard.run("emit", ["mill", "-i", "IonSoC.test.runMain", main_class, model,
-                               str(args.runtime_maintenance).lower(), str(args.runtime_cancellation).lower()], timeout=180)
+                               *emit_args], timeout=180)
         else:
             guard.run("emit", [java, "-Xmx2g", "-XX:ActiveProcessorCount=2", "-cp", cp,
-                               main_class, model], timeout=180)
+                               main_class, model, *([args.memory_copy_dma] if args.memory_copy_dma else [])], timeout=180)
         fir = model / (top + ".fir")
         require(fir.is_file(), "missing emitted shared fabric")
         guard.run("generate", [binary, "--threads=1", "--dir=" + str(model), fir], timeout=180)
@@ -94,7 +105,7 @@ def main():
         # not alter DUT logic or derive any oracle expectation from the DUT.
         header = (model / (top + ".h")).read_text()
         facade = ['#include "' + top + '.h"', 'struct FabricDut : S' + top + ' {']
-        if args.cloud_tools:
+        if flat:
             for name, typ in re.findall(r"void (set_io\$\$[A-Za-z0-9_$]+)\((\w+) val\);", header):
                 alias = name.replace("__", "$$")
                 if alias == name:
@@ -120,19 +131,26 @@ def main():
             for lane in range(int(count)):
                 alias = name.replace("$$" + base + "$$", "$$" + base + "_" + str(lane) + "$$")
                 facade.append(f"    {typ} {alias}() {{ return {name}()[{lane}]; }}")
-        require(args.cloud_tools or len(arrays) >= 20, "missing retained top-level Vec bindings")
+        require(flat or len(arrays) >= 20, "missing retained top-level Vec bindings")
         facade += arrays + ['};']
         (model / "fabric_machine_vec_api.h").write_text("\n".join(facade) + "\n")
         run = model / "run"
         guard.run("compile", [cxx, "-std=c++20", "-O1", "-fsanitize=address,undefined",
-                              "-fno-sanitize-recover=all", *(["-DRUNTIME_MAINTENANCE"] if args.runtime_maintenance else []),
+                              "-fno-sanitize-recover=all",
+                              *(["-DENABLE_MEMORY_COPY_DMA=" + str(int(args.memory_copy_dma == "on"))]
+                                if args.memory_copy_dma else []), *(["-DRUNTIME_MAINTENANCE"] if args.runtime_maintenance else []),
                               *(["-DRUNTIME_CANCELLATION"] if args.runtime_cancellation else []),
                               "-I" + str(model), *units,
                               HERE / "common/fabric_machine.cpp", "-o", run], timeout=600)
         env = {**os.environ, "ASAN_OPTIONS": "detect_leaks=0", "UBSAN_OPTIONS": "halt_on_error=1"}
-        positive = guard.run("positive", [run], env=env)
-        require("COMMON_MACHINE_FABRIC_PASS " in positive and "epochs=2 dma_words=16 post_status_clear=1" in positive,
-                "shared machine fabric oracle completion missing")
+        run_args = ["--memory-dma-option-only"] if args.memory_copy_dma else []
+        positive = guard.run("positive", [run, *run_args], env=env, timeout=120)
+        if args.memory_copy_dma:
+            require("COMMON_MEMORY_DMA_OPTION_PASS enabled=" + str(int(args.memory_copy_dma == "on")) in positive,
+                    "ordinary DMA composition oracle completion missing")
+        else:
+            require("COMMON_MACHINE_FABRIC_PASS " in positive and "epochs=2 dma_words=16 post_status_clear=1" in positive,
+                    "shared machine fabric oracle completion missing")
         if args.runtime_cancellation:
             require("RUNTIME_CANCELLATION_PASS" in positive, "runtime cancellation oracle missing")
         if args.runtime_maintenance:
@@ -148,7 +166,7 @@ def main():
             )
             for mode in ("--early-resume", "--wrong-resume", "--duplicate-resume"):
                 guard.run("reject" + mode, [sys.executable, "-c", assertion_probe, run, mode], env=env)
-        negative = guard.run("negative", [run, "--inject-mismatch"], env=env, expected=1)
+        negative = guard.run("negative", [run, *run_args, "--inject-mismatch"], env=env, expected=1, timeout=120)
         require("FABRIC memory/MMIO independent oracle mismatch" in negative and "PASS" not in negative,
                 "negative fabric data oracle did not reject corruption")
         require(not any(s in positive + negative for s in ("AddressSanitizer", "runtime error:",

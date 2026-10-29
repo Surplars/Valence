@@ -45,6 +45,7 @@ object CommonMachinePlatformMain extends App {
     val vivado = options.contains("--vivado-memories")
     require(!dynamic || !programmable, "dynamic board profile has no unhandshaked ROM-program source")
     require(programmable != vivado, "select explicit native-programmable or production-Vivado ROM")
+    CommonSocConfigFile.validateFirmware(socConfig, vivado)
     val boundary = if (dynamic) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
     val actualCpuConfig = socConfig.cpuConfig(boundary)
@@ -152,6 +153,9 @@ object CommonMachinePlatformMain extends App {
         "ddrSlots" -> profile.fpga.ddr.maxOutstanding, "ddrWriteSlots" -> profile.fpga.ddr.maxOutstandingWrites,
         "heldFifo" -> "HeldResponseCdcDataFifo", "fifoDepth" -> 16,
         "triSpeedEthernet" -> true, "triSpeedTxFrameSlots" -> 2,
+        "memoryCopyDma" -> peripheralConfig.memoryCopyDma,
+        "legacyDmaFirmwareCompatibility" -> (if (peripheralConfig.memoryCopyDma)
+            "device-present-not-boot-qualification" else "unsupported-existing-linux-dt-benchmark-and-monitor"),
         "jtagDownload" -> peripheralConfig.jtagDownload,
         "jtagDmiAddressBits" -> (if (peripheralConfig.jtagDownload) ujson.Num(7) else ujson.Null),
         "peripheralQualification" -> "configuration-only-not-new-behavior-or-timing-qualification",
@@ -172,7 +176,7 @@ object CommonMachinePlatformMain extends App {
         "effective" -> ujson.Obj.from(Seq("cpu", "clockProfile", "cpuMicroarchitectureProfile", "cpuQualification",
             "cpuClockHz", "fabricClockHz", "timebaseHz", "instructionCacheBytes", "dataCacheBytes", "cacheWays",
             "issueWidth", "a1Resources", "homeClients", "homeLines", "homeWays", "ddrSlots", "ddrWriteSlots",
-            "jtagDownload", "jtagDmiAddressBits", "cpuMmioRegions", "abi").map(k => k -> manifest(k))),
+            "memoryCopyDma", "legacyDmaFirmwareCompatibility", "jtagDownload", "jtagDmiAddressBits", "cpuMmioRegions", "abi").map(k => k -> manifest(k))),
         "cpuIdentitySha256" -> identity("identitySha256"),
         "physicalTimingVerified" -> false, "boardVerified" -> false)
     Files.writeString(output.resolve("resolved-soc-config.json"), ujson.write(resolved, indent = 2) + "\n",

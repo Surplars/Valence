@@ -140,4 +140,47 @@ class CommonSocConfigSpec extends AnyFunSuite {
         }
     }
 
+    test("optional schema 2 DMA field preserves all twelve CPU identities independently of JTAG") {
+        for (rob <- Seq(16, 32, 64); prf <- Seq(48, 64); owners <- Seq(2, 4);
+             jtag <- Seq(true, false); dma <- Seq(true, false)) {
+            val base = expanded(rob, prf, owners).replace("\"jtagDownload\":true", s"\"jtagDownload\":$jtag")
+            val old = CommonSocConfigFile.parse(base)
+            val selected = CommonSocConfigFile.parse(base.replace(s"\"jtagDownload\":$jtag",
+                s"\"jtagDownload\":$jtag,\"memoryCopyDma\":$dma"))
+            assert(selected == old.copy(peripherals = old.peripherals.copy(memoryCopyDma = dma)))
+            assert(selected.cpuConfig(selected.profile.boundary) == old.cpuConfig(old.profile.boundary))
+            assert(CommonCpuMicroarchitectureIdentity.build(selected.profile, None, selected.profile.boundary,
+                cpuSpec = selected.cpuSpec) == CommonCpuMicroarchitectureIdentity.build(old.profile, None,
+                old.profile.boundary, cpuSpec = old.cpuSpec))
+            CommonSocConfigFile.validateFirmware(selected, vivadoMemories = false)
+            if (dma) CommonSocConfigFile.validateFirmware(selected, vivadoMemories = true)
+            else intercept[IllegalArgumentException] {
+                CommonSocConfigFile.validateFirmware(selected, vivadoMemories = true)
+            }
+        }
+    }
+
+    test("checked-in DMA-off example is an explicit programmable-only composition") {
+        val config = CommonSocConfigFile.parse(Files.readString(
+            Paths.get("config/common-soc/a1-rob16-prf48-lsu2-dma-off-jtag-on.json")))
+        assert(config.cpuSpec.contains(CommonA1CpuSpec(2)))
+        assert(config.peripherals == CommonPeripheralConfig(jtagDownload = true, memoryCopyDma = false))
+        CommonSocConfigFile.validateFirmware(config, vivadoMemories = false)
+        intercept[IllegalArgumentException] { CommonSocConfigFile.validateFirmware(config, vivadoMemories = true) }
+    }
+
+    test("DMA option retains strict schema 1 and schema 2 key and type validation") {
+        val base = expanded(16, 48)
+        for (field <- Seq("\"memoryCopyDma\":null", "\"memoryCopyDma\":1", "\"memoryCopyDma\":\"off\"",
+             "\"memoryCopyDMA\":false", "\"memoryCopyDma\":false,\"memoryCopyDma\":true")) {
+            intercept[IllegalArgumentException] {
+                CommonSocConfigFile.parse(base.replace("\"jtagDownload\":true", "\"jtagDownload\":true," + field))
+            }
+        }
+        intercept[IllegalArgumentException] {
+            CommonSocConfigFile.parse(text().replace("\"jtagDownload\":true",
+                "\"jtagDownload\":true,\"memoryCopyDma\":false"))
+        }
+    }
+
 }

@@ -34,4 +34,16 @@ class CommonPeripheralConfigSpec extends AnyFunSuite {
             intercept[IllegalArgumentException] { CommonPeripheralConfig.jtagOption(value) }
         }
     }
+    test("ordinary DMA presence changes only its aperture and keeps positional defaults") {
+        val on = CommonPeripheralConfig()
+        val off = on.copy(memoryCopyDma = false)
+        assert(CommonPlatformFeatures(false, false, false, false).memoryCopyDma)
+        assert(CommonPeripheralConfig(false).memoryCopyDma)
+        assert(off.features == on.features.copy(memoryCopyDma = false))
+        assert(off.mmioRegions == on.mmioRegions.filterNot(_.name == "dma"))
+        assert(CommonPlatformAbi.dmaBase == BigInt("10001000", 16) && CommonPlatformAbi.dmaBytes == 40)
+        assert(CommonPlatformAbi.dmaInterruptSource == 4)
+        assert(off.features.networkDma && off.features.ethernetControl && off.features.clockManagement)
+    }
+
 }

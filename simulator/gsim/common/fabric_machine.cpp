@@ -2,6 +2,9 @@
 #ifndef ENABLE_JTAG
 #define ENABLE_JTAG 1
 #endif
+#ifndef ENABLE_MEMORY_COPY_DMA
+#define ENABLE_MEMORY_COPY_DMA 1
+#endif
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -11,6 +14,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 static void check(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
 struct Driver {
@@ -30,6 +34,9 @@ struct Driver {
     bool holdB=false, inject=false, probeActive=false, ePending=false, privateDirty=false;
     bool holdProbe=false, probeClearEnabled=false, autoClearRequested=false, autoClearAccepted=false;
     unsigned postStatusClears=0;
+    bool captureNetworkTx=false;
+    std::vector<uint32_t> networkTx;
+    unsigned networkControl=0;
 #ifdef RUNTIME_CANCELLATION
     unsigned runtimePrepares=0, runtimeCancels=0, runtimeResumes=0, tileResumes=0, tileResumed=0, terminals=0;
 #endif
@@ -232,6 +239,19 @@ struct Driver {
         }
         check(!dut.get_io$$tile$$coherent_0$$b$$valid() && !dut.get_io$$tile$$lineGrant_0$$valid(),
             "coherent client identity was lost");
+        if(captureNetworkTx && dut.get_io$$ethernetStreams$$txControl$$valid()) {
+            check(dut.get_io$$ethernetStreams$$txControl$$bits$$keep()==15 &&
+                dut.get_io$$ethernetStreams$$txControl$$bits$$data()==(networkControl==0?0xa0000000U:0) &&
+                bool(dut.get_io$$ethernetStreams$$txControl$$bits$$last())==(networkControl==5),
+                "network TX control ABI mismatch");
+            ++networkControl;
+        }
+        if(captureNetworkTx && dut.get_io$$ethernetStreams$$txData$$valid()) {
+            check(dut.get_io$$ethernetStreams$$txData$$bits$$keep()==15 &&
+                bool(dut.get_io$$ethernetStreams$$txData$$bits$$last())==(networkTx.size()==15),
+                "network TX payload extent mismatch");
+            networkTx.push_back(dut.get_io$$ethernetStreams$$txData$$bits$$data());
+        }
         ++cycles; check(cycles<40000,"bounded fabric completion failure");
     }
     void idle(unsigned count) { while(count--) tick(); }
@@ -242,7 +262,18 @@ struct Driver {
 #define GET(field) (lane==0?dut.get_io$$tile$$scalar_0##field():dut.get_io$$tile$$scalar_1##field())
         request(lane,address,write,data,size,atomic,op,clear,lookup); SET($$response$$ready,0);
         do {tick();} while(!GET($$request$$ready));
-        SET($$request$$valid,0); idle(3); SET($$response$$ready,1);
+        SET($$request$$valid,0); idle(3);
+        if(expectedError) {
+            while(!GET($$response$$valid)) tick();
+            uint64_t held=GET($$response$$bits$$memory$$data);
+            for(unsigned n=0;n<8;++n) {
+                check(GET($$response$$valid) && GET($$response$$bits$$owner)==nextOwner[lane] &&
+                    GET($$response$$bits$$memory$$error) && !GET($$response$$bits$$memory$$pageFault) &&
+                    GET($$response$$bits$$memory$$data)==held,"held hole response changed under backpressure");
+                tick();
+            }
+        }
+        SET($$response$$ready,1);
         do {tick();} while(!GET($$response$$valid));
         check(GET($$response$$bits$$owner)==nextOwner[lane] && bool(GET($$response$$bits$$clearReservation))==clear,
             "fabric scalar owner/kind mismatch");
@@ -299,6 +330,144 @@ struct Driver {
         check(dut.get_io$$allObligationsIdle(),"JTAG option retained accepted obligation");
         std::cout<<"COMMON_JTAG_OPTION_PASS enabled="<<ENABLE_JTAG<<" scalar="<<scalarReplies
                  <<" cycles="<<cycles<<"\n";
+    }
+    uint32_t dmi(unsigned address, unsigned op, uint32_t data=0) {
+#if ENABLE_JTAG
+        dut.set_io$$jtagDmi$$response$$ready(0);
+        dut.set_io$$jtagDmi$$request$$bits$$address(address);
+        dut.set_io$$jtagDmi$$request$$bits$$op(op);
+        dut.set_io$$jtagDmi$$request$$bits$$data(data);
+        dut.set_io$$jtagDmi$$request$$valid(1);
+        do { tick(); } while(!dut.get_io$$jtagDmi$$request$$ready());
+        dut.set_io$$jtagDmi$$request$$valid(0);
+        do { tick(); } while(!dut.get_io$$jtagDmi$$response$$valid());
+        uint32_t answer=dut.get_io$$jtagDmi$$response$$bits$$data();
+        for(unsigned n=0;n<4;++n) {
+            check(dut.get_io$$jtagDmi$$response$$valid() &&
+                dut.get_io$$jtagDmi$$response$$bits$$status()==0 &&
+                dut.get_io$$jtagDmi$$response$$bits$$data()==answer,"DMI held response changed");
+            tick();
+        }
+        dut.set_io$$jtagDmi$$response$$ready(1); tick();
+        dut.set_io$$jtagDmi$$response$$ready(0); return answer;
+#else
+        throw std::runtime_error("memory DMA test requires independent JTAG producer");
+#endif
+    }
+    void irq4Setup() {
+        access(0,0x0c000000,true,256,2);
+        access(0,0x0c000010,true,4,2); // source 4, rising edge
+        access(0,0x0c003010,true,11,2);
+        access(0,0x0c001edc,true,4ULL<<32,2);
+    }
+    void finishHeldWrite(unsigned tag) {
+        // Fresh uncached destinations below have no Home/private residency.
+        // Require a real accepted AXI write before testing its retained B owner.
+        unsigned limit=cycles+2000;
+        while(writeReplies.empty()) { check(cycles<limit,"test did not reach retained AXI B"); tick(); }
+        fence(tag);
+        for(unsigned n=0;n<20;++n) {
+            tick(); check(!dut.get_io$$tile$$fabricDrainedEpoch$$valid(),
+                "maintenance acknowledged retained network/debug AXI B owner");
+        }
+        holdB=false;
+        do { tick(); } while(!dut.get_io$$tile$$fabricDrainedEpoch$$valid());
+        for(unsigned n=0;n<5;++n) {
+            check(dut.get_io$$tile$$fabricDrainedEpoch$$bits()==tag,"DMA option drain epoch changed"); tick();
+        }
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(1); tick();
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(0); idle(3); ++maintenance;
+    }
+    void memoryDmaOptionRun() {
+        // Fixed independent network identity also gives the mutation a short oracle.
+        expect(0,0x10002000,0x56444d4100010001ULL);
+#if ENABLE_MEMORY_COPY_DMA
+        run(); // Existing actual ordinary-DMA copies, dirty probes and owner/drain cases.
+        irq4Setup(); unsigned before=msi;
+        access(0,ramBase+0x7000,true,0x1234abcddcba4321ULL);
+        access(0,0x10001000,true,ramBase+0x7000);
+        access(0,0x10001008,true,ramBase+0x7100);
+        access(0,0x10001010,true,8); access(0,0x10001018,true,5);
+        while(access(0,0x10001020,false,0)!=2) {}
+        expect(1,ramBase+0x7100,0x1234abcddcba4321ULL);
+        idle(30); check(msi==before+1,"ordinary DMA IRQ4 did not reach MSI");
+        access(0,0x10001018,true,2); idle(8);
+#else
+        irq4Setup();
+        const unsigned registersBefore=registerRequests, readsBefore=axiReads, writesBefore=axiWrites;
+        // Every former 64-bit register plus both byte endpoints stays a hole.
+        for(unsigned offset=0;offset<40;offset+=8) {
+            access(offset/8%2,0x10001000+offset,false,0,3,false,0,false,true,true);
+            access((offset/8+1)%2,0x10001000+offset,true,5,3,false,0,false,true,true);
+        }
+        for(unsigned offset : {0U,39U}) {
+            access(0,0x10001000+offset,false,0,0,false,0,false,true,true);
+            access(1,0x10001000+offset,true,0xffULL<<((offset&7)*8),0,false,0,false,true,true);
+        }
+        idle(12);
+        check(registerRequests==registersBefore && axiReads==readsBefore && axiWrites==writesBefore,
+            "absent ordinary DMA aliased another endpoint");
+        check(msi==0 && !dut.get_io$$tile$$scalar_0$$response$$valid() &&
+            !dut.get_io$$tile$$scalar_1$$response$$valid(),"absent DMA produced IRQ or duplicate reply");
+        check(dut.get_io$$allObligationsIdle(),"absent DMA retained owner");
+        // External source 4 is independent and must not be masked with the removed DMA.
+        dut.set_io$$sources(1U<<3); idle(30); dut.set_io$$sources(0); idle(12);
+        check(msi==1,"DMA removal masked legitimate external IRQ source 4");
+
+        // Real SBA write/read, not just the JTAG capability register.
+        access(0,0x10003008,true,1); // arm loader
+        dmi(0x39,2,ramBase+0x8000); holdB=true;
+        dmi(0x3c,2,0xcafebabe); finishHeldWrite(51);
+        check((dmi(0x38,1)&((7U<<12)|(1U<<21)|(1U<<22)))==0,"JTAG write failed/busy");
+        expect(0,ramBase+0x8000,0xcafebabe,2);
+        dmi(0x38,2,(2U<<17)|(1U<<20)); dmi(0x39,2,ramBase+0x8000);
+        while(dmi(0x38,1)&(1U<<21)) {}
+        check(dmi(0x3c,1)==0xcafebabe,"JTAG independent readback mismatch");
+
+        // Network RX is an independent producer, with a real held DDR response.
+        access(0,0x10002030,true,ramBase+0x9000); access(0,0x10002038,true,8);
+        access(0,0x10002040,true,1); holdB=true;
+        for(unsigned i=0;i<2;++i) {
+            dut.set_io$$ethernetStreams$$rxData$$bits$$data(i?0x76543210:0xfedcba98);
+            dut.set_io$$ethernetStreams$$rxData$$bits$$keep(15);
+            dut.set_io$$ethernetStreams$$rxData$$bits$$last(i==1);
+            dut.set_io$$ethernetStreams$$rxData$$valid(1);
+            do { tick(); } while(!dut.get_io$$ethernetStreams$$rxData$$ready());
+        }
+        dut.set_io$$ethernetStreams$$rxData$$valid(0);
+        const uint32_t status[6]={0x50000000,0,0,64,0,8};
+        for(unsigned i=0;i<6;++i) {
+            dut.set_io$$ethernetStreams$$rxStatus$$bits$$data(status[i]);
+            dut.set_io$$ethernetStreams$$rxStatus$$bits$$keep(15);
+            dut.set_io$$ethernetStreams$$rxStatus$$bits$$last(i==5);
+            dut.set_io$$ethernetStreams$$rxStatus$$valid(1);
+            do { tick(); } while(!dut.get_io$$ethernetStreams$$rxStatus$$ready());
+        }
+        dut.set_io$$ethernetStreams$$rxStatus$$valid(0); finishHeldWrite(52);
+        expect(0,0x10002048,2); expect(1,ramBase+0x9000,0x76543210fedcba98ULL);
+
+        // TX reads must still visit Home and probe a dirty private owner.
+        for(unsigned i=0;i<8;++i) memory[0x2000+i*8]=0xabc00000+i;
+        dut.set_io$$tile$$coherent_1$$a$$bits$$opcode(6); dut.set_io$$tile$$coherent_1$$a$$bits$$param(1);
+        dut.set_io$$tile$$coherent_1$$a$$bits$$size(6); dut.set_io$$tile$$coherent_1$$a$$bits$$address(ramBase+0x2000);
+        dut.set_io$$tile$$coherent_1$$a$$valid(1);
+        do { tick(); } while(!dut.get_io$$tile$$coherent_1$$a$$ready());
+        dut.set_io$$tile$$coherent_1$$a$$valid(0); while(grants!=1 || ePending) tick(); privateDirty=true;
+        captureNetworkTx=true;
+        access(0,0x10002010,true,ramBase+0x2000); access(0,0x10002018,true,64);
+        access(0,0x10002020,true,1);
+        while(access(0,0x10002028,false,0)!=2) {}
+        captureNetworkTx=false;
+        check(probes==1 && networkControl==6 && networkTx.size()==16,"network TX skipped dirty Home owner");
+        for(unsigned i=0;i<16;++i) check(networkTx[i]==uint32_t((dirtyBase+i/2)>>((i&1)*32)),
+            "network TX independent dirty payload mismatch");
+        idle(12); check(msi==1,"absent ordinary DMA generated unexpected IRQ4");
+#endif
+        idle(12); check(dut.get_io$$allObligationsIdle(),"DMA option retained obligation");
+        check(axiWrites==axiB && reads.empty() && writes.empty() && writeReplies.empty(),
+            "DMA option DDR ledger did not drain");
+        std::cout<<"COMMON_MEMORY_DMA_OPTION_PASS enabled="<<ENABLE_MEMORY_COPY_DMA
+                 <<" epochs="<<maintenance<<" msi="<<msi<<" cycles="<<cycles<<"\n";
     }
     void program(unsigned index,uint32_t value) {
         dut.set_io$$program$$valid(1); dut.set_io$$program$$bits$$index(index); dut.set_io$$program$$bits$$data(value);
@@ -648,7 +817,11 @@ struct Driver {
 int main(int argc,char**argv) {
     try {
         auto d=std::make_unique<Driver>();
-        if(argc>1 && std::string(argv[1])=="--jtag-option-only") {
+        if(argc>1 && std::string(argv[1])=="--memory-dma-option-only") {
+            check(argc==2 || (argc==3 && std::string(argv[2])=="--inject-mismatch"),
+                "unexpected memory DMA option test arguments");
+            d->inject=argc==3; d->memoryDmaOptionRun();
+        } else if(argc>1 && std::string(argv[1])=="--jtag-option-only") {
             check(argc==2 || (argc==3 && std::string(argv[2])=="--inject-mismatch"),
                 "unexpected JTAG option test arguments");
             d->inject=argc==3; d->jtagOptionRun();

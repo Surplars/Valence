@@ -276,9 +276,11 @@ class CommonMachineFabric(
         synchronizer.levelOut
     }.getOrElse(io.externalUartIrq.getOrElse(uart.get.io.irq))
 
-    val dma = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes,
-        lineTransfers = fpga.dmaLineTransfers, lineYieldCycles = fpga.dmaLineYieldCycles,
-        lineEntries = fpga.dmaLineEntries))
+    val dmaLineTransfers = features.memoryCopyDma && fpga.dmaLineTransfers
+    val dmaLineEntries = if (dmaLineTransfers) fpga.dmaLineEntries else 1
+    val dma = if (features.memoryCopyDma) Some(Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes,
+        lineTransfers = dmaLineTransfers, lineYieldCycles = fpga.dmaLineYieldCycles,
+        lineEntries = dmaLineEntries))) else None
     val packetDma = if (features.networkDma) Some(Module(new EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = fpga.network.maxFrameBytes,
         postedRxSlots = fpga.network.postedRxSlots, memoryCredits = fpga.network.memoryCredits,
@@ -305,7 +307,7 @@ class CommonMachineFabric(
         }
     }
     interrupts.io.sources := io.sources | (uartIrq.asUInt << CommonPlatformAbi.interruptBit(3)) |
-        (dma.io.irq.asUInt << CommonPlatformAbi.interruptBit(4)) |
+        (dma.map(_.io.irq).getOrElse(false.B).asUInt << CommonPlatformAbi.interruptBit(4)) |
         (packetDma.map(_.io.irq).getOrElse(false.B).asUInt << CommonPlatformAbi.interruptBit(6))
 
     // Every enabled production window is retained, including the full 256 KiB
@@ -319,35 +321,42 @@ class CommonMachineFabric(
     registers("m-aplic") <> interrupts.io.machineRegisters
     registers("s-aplic") <> interrupts.io.supervisorRegisters
     registers("uart") <> uartRegisters
-    registers("dma") <> dma.io.control
+    dma.foreach(_.io.control <> registers("dma"))
     packetDma.foreach(_.io.control <> registers("network-dma"))
     jtagLoader.foreach(_.io.control <> registers("jtag"))
     io.ethernetRegisters.foreach(_ <> registers("ethernet"))
     io.clockManagementRegisters.foreach(_ <> registers("cmu"))
 
     val atomic = Module(new AtomicDataMemory(base = ramBase, bytes = ramBytes,
-        registerResponseOwners = true, dmaLineTransfers = fpga.dmaLineTransfers,
-        dmaLineEntries = fpga.dmaLineEntries))
+        registerResponseOwners = true, dmaLineTransfers = dmaLineTransfers,
+        dmaLineEntries = dmaLineEntries))
     atomic.io.cpu <> router.io.memory
     atomic.io.clearReservation := scalar.io.clearReservation
-    if (fpga.dmaLineTransfers) atomic.io.dmaLine.get <> dma.io.line.get
-    val networkArbiter = packetDma.map { network =>
+    if (dmaLineTransfers) atomic.io.dmaLine.get <> dma.get.io.line.get
+    val networkArbiter = if (dma.nonEmpty && packetDma.nonEmpty) Some {
         val arbiter = Module(new soc.ip.bus.RegisterArbiter)
-        arbiter.io.clients(0) <> dma.io.memory
-        arbiter.io.clients(1) <> network.io.memory
+        arbiter.io.clients(0) <> dma.get.io.memory
+        arbiter.io.clients(1) <> packetDma.get.io.memory
         arbiter
-    }
-    val ordinaryDma = networkArbiter.map(_.io.memory).getOrElse(dma.io.memory)
-    val debugArbiter = jtagLoader.map { loader =>
+    } else None
+    val ordinaryDma = networkArbiter.map(_.io.memory).orElse(dma.map(_.io.memory))
+        .orElse(packetDma.map(_.io.memory))
+    val debugArbiter = if (ordinaryDma.nonEmpty && jtagLoader.nonEmpty) Some {
         val arbiter = Module(new soc.ip.bus.RegisterArbiter)
-        arbiter.io.clients(0) <> ordinaryDma
-        arbiter.io.clients(1) <> loader.io.memory
+        arbiter.io.clients(0) <> ordinaryDma.get
+        arbiter.io.clients(1) <> jtagLoader.get.io.memory
         arbiter
+    } else None
+    val dmaMemory = debugArbiter.map(_.io.memory).orElse(ordinaryDma).orElse(jtagLoader.map(_.io.memory))
+    if (dmaMemory.nonEmpty) {
+        val dmaAdapter = Module(new DmaRegisterDataAdapter)
+        dmaAdapter.io.registers <> dmaMemory.get
+        atomic.io.dma <> dmaAdapter.io.data
+    } else {
+        atomic.io.dma.request.valid := false.B
+        atomic.io.dma.request.bits := 0.U.asTypeOf(atomic.io.dma.request.bits)
+        atomic.io.dma.response.ready := true.B
     }
-    val dmaMemory = debugArbiter.map(_.io.memory).getOrElse(ordinaryDma)
-    val dmaAdapter = Module(new DmaRegisterDataAdapter)
-    dmaAdapter.io.registers <> dmaMemory
-    atomic.io.dma <> dmaAdapter.io.data
 
     // Ordinary AtomicMemory requests are accepted and forwarded on the same
     // edge. An AMO owns its provenance across both physical read/write phases;
@@ -365,7 +374,7 @@ class CommonMachineFabric(
         nClients = 2, trackedLines = 1024, trackedWays = 4, acquireEntries = 2, writebackEntries = 2,
         mixedReadWrite = true, rawResponseMetadata = physical.rawTileLinkResponseMetadata,
         parallelQualification = physical.parallelHomeQualification, tagConfig = fpga.tags,
-        dmaLineTransfers = fpga.dmaLineTransfers, dmaLineEntries = fpga.dmaLineEntries,
+        dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries,
         lineTransferDispatchFlow = fpga.lineTransferDispatchFlow, lineReadChannel = ddr.lineReadChannel,
         internalLineGrant = true)
     def finalHome: CoherentLineHomeModule = home
@@ -384,7 +393,7 @@ class CommonMachineFabric(
     physicalRequests.io.requestCpu := atomic.io.memoryRequestCpu && !cpuNeedsLookup
     home.io.upstream <> physicalRequests.io.downstream
     home.io.upstreamRequestCpu := physicalRequests.io.downstreamRequestCpu
-    if (fpga.dmaLineTransfers) home.io.dmaLine.get <> atomic.io.memoryLine.get
+    if (dmaLineTransfers) home.io.dmaLine.get <> atomic.io.memoryLine.get
     for (client <- 0 until boundary.coherentClients) {
         home.io.clients(client) <> io.tile.coherent(client)
         io.tile.lineGrant(client) <> home.io.lineGrants.get(client)
@@ -469,7 +478,8 @@ class CommonMachineFabric(
     val ramIdle = ulIdle(crossbar.io.banks(1), managerParams, "ramOwners")
     val sharedOwners = count(atomic.io.memory.request.fire, atomic.io.memory.response.fire, "sharedNativeOwners")
     val bridgeOwners = count(bridge.io.data.request.fire, bridge.io.data.response.fire, "orderedBridgeOwners")
-    val dmaOwners = count(dmaMemory.request.fire, dmaMemory.response.fire, "dmaNativeOwners")
+    val dmaOwners = dmaMemory.map(port => count(port.request.fire, port.response.fire, "dmaNativeOwners"))
+        .getOrElse(0.U)
     val msiOwners = count(io.tile.msi.request.fire, io.tile.msi.response.fire, "msiOwners")
     val streamIdle = io.ethernetStreams.map(s =>
         !s.txData.valid && !s.txControl.valid && !s.rxData.valid && !s.rxStatus.valid).getOrElse(true.B)
@@ -478,8 +488,9 @@ class CommonMachineFabric(
     val networkHeld = if (runtimeNetworkAdmission) !externalOwned.get ||
         (io.networkAdmissionHeld.get.valid && io.networkAdmissionHeld.get.bits === externalEpoch.get &&
             io.networkOwnersIdle.get) else true.B
-    val dmaIdle = !dma.io.active && packetIdle &&
-        dmaOwners === 0.U && !dmaMemory.request.valid && !dmaMemory.response.valid && streamIdle &&
+    val dmaIdle = !dma.map(_.io.active).getOrElse(false.B) && packetIdle &&
+        dmaOwners === 0.U && !dmaMemory.map(_.request.valid).getOrElse(false.B) &&
+        !dmaMemory.map(_.response.valid).getOrElse(false.B) && streamIdle &&
         !io.jtagDmi.map(_.request.valid).getOrElse(false.B)
     val nativeIdle = scalar.io.idle && physicalRequests.io.idle && !atomicActive &&
         sharedOwners === 0.U && bridgeOwners === 0.U &&

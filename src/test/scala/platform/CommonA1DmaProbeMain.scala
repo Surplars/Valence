@@ -9,7 +9,7 @@ import soc.platform._
 class A1DmaProbeFabric(p: CommonCpuTilePortParams, words: Int)
     extends CommonMachineFabric(boundary = p,
         features = CommonPlatformFeatures(ethernetControl = false, networkDma = false,
-            jtagDownload = false, clockManagement = false), ramBytes = 65536,
+            jtagDownload = false, clockManagement = false, memoryCopyDma = true), ramBytes = 65536,
         externalDdr = false, romWords = words, programmable = true,
         externalUart = false, ramResponseDelay = 7) {
     val dmaActive = IO(Output(Bool()))
@@ -17,9 +17,9 @@ class A1DmaProbeFabric(p: CommonCpuTilePortParams, words: Int)
     val dmaRequests = IO(Output(UInt(32.W)))
     val dmaResponses = IO(Output(UInt(32.W)))
     val requests = RegInit(0.U(32.W)); val responses = RegInit(0.U(32.W))
-    when(dma.io.memory.request.fire) { requests := requests + 1.U }
-    when(dma.io.memory.response.fire) { responses := responses + 1.U }
-    dmaActive := dma.io.active; dmaIrq := dma.io.irq
+    when(dma.get.io.memory.request.fire) { requests := requests + 1.U }
+    when(dma.get.io.memory.response.fire) { responses := responses + 1.U }
+    dmaActive := dma.get.io.active; dmaIrq := dma.get.io.irq
     dmaRequests := requests; dmaResponses := responses
 }
 class CommonA1DmaProbeFixture extends CommonA1RuntimeCdcFixture(256, testTimer = true) {

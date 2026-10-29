@@ -92,10 +92,11 @@ class CommonFabricFlatPort(fields: Seq[(String, Data)]) extends Record {
     }: _*)
 }
 class CommonMachineFabricFlatGsim(runtime: Boolean, cancellation: Boolean = false,
-    jtagDownload: Boolean = true) extends Module {
+    jtagDownload: Boolean = true, memoryCopyDma: Boolean = true) extends Module {
     val fabric = Module(new CommonMachineFabric(
         boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime, runtimeCancellation = cancellation),
-        features = CommonPeripheralConfig(jtagDownload = jtagDownload).features, programmable = true))
+        features = CommonPeripheralConfig(jtagDownload = jtagDownload, memoryCopyDma = memoryCopyDma).features,
+        programmable = true))
     private def leaves(data: Data, prefix: String): Seq[(String, Data)] = data match {
         case record: Record => record.elements.toSeq.flatMap { case (name, value) =>
             leaves(value, if (prefix.isEmpty) name else prefix + "__" + name)
@@ -123,4 +124,13 @@ object CommonMachineFabricJtagOptionGsimMain extends App {
     val peripherals = CommonPeripheralConfig.jtagOption(args(1))
     ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(runtime = false,
         jtagDownload = peripherals.jtagDownload), Array("--target-dir", args(0)))
+}
+
+/** Ordinary DMA composition pair, keeping the independent network/JTAG producers enabled. */
+object CommonMachineFabricMemoryDmaOptionGsimMain extends App {
+    require(args.length == 2 && Set("on", "off").contains(args(1)),
+        "fresh output directory and on|off ordinary DMA selection required")
+    require(!java.nio.file.Files.exists(java.nio.file.Paths.get(args(0))))
+    ChiselStage.emitCHIRRTLFile(new CommonMachineFabricFlatGsim(runtime = false,
+        memoryCopyDma = args(1) == "on"), Array("--target-dir", args(0)))
 }

@@ -7,14 +7,28 @@ import soc.platform._
 /** Structural checks only; GSIM separately verifies transactions and errors. */
 class CommonPeripheralElaborationSpec extends AnyFunSuite {
     test("fabric JTAG choice removes the loader and its DMI ports, not unrelated peripherals") {
-        for (enabled <- Seq(true, false)) {
-            val config = CommonPeripheralConfig(jtagDownload = enabled)
+        for (enabled <- Seq(true, false); memoryCopyDma <- Seq(true, false)) {
+            val config = CommonPeripheralConfig(jtagDownload = enabled, memoryCopyDma = memoryCopyDma)
             val rtl = ChiselStage.emitCHIRRTL(new CommonMachineFabric(features = config.features))
             assert(rtl.contains("module JtagRamLoader") == enabled)
             assert(rtl.contains("jtagDmi") == enabled)
             assert(rtl.contains("jtagLinkUp") == enabled)
-            Seq("MemoryCopyDma", "EthernetPacketDma", "CommonInterruptFabric", "MixedCoherentLineHome")
+            assert(rtl.contains("module MemoryCopyDma") == memoryCopyDma)
+            Seq("EthernetPacketDma", "CommonInterruptFabric", "MixedCoherentLineHome")
                 .foreach(name => assert(rtl.contains("module " + name)))
+        }
+    }
+
+    test("zero producers and absent optional line DMA elaborate without dangling ports") {
+        for (enabled <- Seq(true, false)) {
+            val rtl = ChiselStage.emitCHIRRTL(new CommonMachineFabric(
+                features = CommonPlatformFeatures(memoryCopyDma = enabled),
+                fpga = soc.core.ooo.FpgaNextConfig.Selected.copy(dmaLineTransfers = true, dmaLineEntries = 4)))
+            assert(rtl.contains("module MemoryCopyDma") == enabled)
+            assert(rtl.contains("module DmaRegisterDataAdapter") == enabled)
+            assert(!rtl.contains("module RegisterArbiter"))
+            assert(rtl.contains("dmaLine :") == enabled)
+            assert(rtl.contains("module MixedCoherentLineHome"))
         }
     }
 

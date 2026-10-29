@@ -54,11 +54,26 @@ object CommonSocConfigFile {
         }
         val spec = CommonA1CpuSpec(owners.num.toInt, capacity("robEntries", 16), capacity("physicalRegs", 48))
         val peripherals = value("peripherals")
-        fields(peripherals, Set("jtagDownload"), "peripherals")
+        val peripheralFields = Set("jtagDownload") ++
+            (if (expanded && peripherals.isInstanceOf[ujson.Obj] && peripherals.obj.contains("memoryCopyDma")) Set("memoryCopyDma")
+             else Set.empty[String])
+        fields(peripherals, peripheralFields, "peripherals")
         require(peripherals("jtagDownload").isInstanceOf[ujson.Bool], "peripherals.jtagDownload must be boolean")
+        val memoryCopyDma = peripherals.obj.get("memoryCopyDma").map { value =>
+            require(value.isInstanceOf[ujson.Bool], "peripherals.memoryCopyDma must be boolean")
+            value.bool
+        }.getOrElse(true)
         CommonSocConfig(CommonCpuProfile.A1, Some(spec),
-            CommonPeripheralConfig(peripherals("jtagDownload").bool))
+            CommonPeripheralConfig(peripherals("jtagDownload").bool, memoryCopyDma))
     }
+
+    /** Current fixed-COE export contract, not a restriction on FPGA hardware.
+      * Programmable exports contain no firmware and require a compatible custom image.
+      */
+    def validateFirmware(config: CommonSocConfig, vivadoMemories: Boolean): Unit =
+        require(config.peripherals.memoryCopyDma || !vivadoMemories,
+            "DMA-off production-Vivado export is unsupported by the current fixed-COE firmware contract; " +
+                "use programmable export with DMA-aware custom firmware")
 
     /** A file replaces, never overrides or merges with, legacy selectors. */
     def select(cpuArgument: String, options: Seq[String]): CommonSocConfig =
@@ -90,5 +105,6 @@ object CommonSocConfigFile {
             "robEntries" -> config.cpuSpec.map(s => ujson.Num(s.robEntries)).getOrElse(ujson.Null),
             "physicalRegs" -> config.cpuSpec.map(s => ujson.Num(s.physicalRegs)).getOrElse(ujson.Null),
             "experimentalProfile" -> config.a1Experimental.map(s => ujson.Str(s.name)).getOrElse(ujson.Null)),
-        "peripherals" -> ujson.Obj("jtagDownload" -> config.peripherals.jtagDownload))
+        "peripherals" -> ujson.Obj("jtagDownload" -> config.peripherals.jtagDownload,
+            "memoryCopyDma" -> config.peripherals.memoryCopyDma))
 }
