@@ -87,4 +87,57 @@ class CommonSocConfigSpec extends AnyFunSuite {
                 .cpuConfig(CommonCpuProfile.A1.boundary, experimentalRuntime = true)
         }
     }
+
+    private def expanded(rob: Int, prf: Int, owners: Int = 4): String =
+        text(owners).replace("\"schema\":1", "\"schema\":2").replace(
+            s"\"lsuOwners\":$owners", s"\"lsuOwners\":$owners,\"robEntries\":$rob,\"physicalRegs\":$prf")
+
+    test("schema 2 resolves all twelve legal tuples and canonicalizes baseline CPU identity") {
+        val identities = for (rob <- Seq(16, 32, 64); prf <- Seq(48, 64); owners <- Seq(2, 4)) yield {
+            val file = CommonSocConfigFile.parse(expanded(rob, prf, owners))
+            assert(file.cpuSpec.contains(CommonA1CpuSpec(owners, rob, prf)))
+            val identity = CommonCpuMicroarchitectureIdentity.build(file.profile, None,
+                file.profile.boundary, cpuSpec = file.cpuSpec)
+            assert(identity("effectiveCore")("robEntries").str == rob.toString)
+            assert(identity("effectiveCore")("physicalRegs").str == prf.toString)
+            if (rob == 16 && prf == 48) {
+                val v1 = CommonSocConfigFile.parse(text(owners))
+                assert(file == v1)
+                assert(identity == CommonCpuMicroarchitectureIdentity.build(v1.profile, None,
+                    v1.profile.boundary, cpuSpec = v1.cpuSpec))
+            } else {
+                assert(identity("requestedCpuSpec")("robEntries").str == rob.toString)
+                assert(identity("requestedCpuSpec")("physicalRegs").str == prf.toString)
+            }
+            identity("identitySha256").str
+        }
+        assert(identities.distinct.size == 12)
+    }
+
+    test("schema 2 rejects fractional invalid missing duplicate and unknown capacity fields") {
+        val valid = expanded(32, 64)
+        for (value <- Seq("null", "true", "\"32\"", "32.5", "0", "128", "1e100")) {
+            intercept[IllegalArgumentException] {
+                CommonSocConfigFile.parse(valid.replace("\"robEntries\":32", s"\"robEntries\":$value"))
+            }
+        }
+        for (value <- Seq("null", "false", "\"64\"", "64.5", "32", "128")) {
+            intercept[IllegalArgumentException] {
+                CommonSocConfigFile.parse(valid.replace("\"physicalRegs\":64", s"\"physicalRegs\":$value"))
+            }
+        }
+        for (value <- Seq(valid.replace(",\"robEntries\":32", ""),
+            valid.replace("\"physicalRegs\":64", "\"physicalRegs\":64,\"physicalRegs\":48"),
+            valid.replace("\"physicalRegs\":64", "\"physicalRegs\":64,\"issueWidth\":4"))) {
+            intercept[IllegalArgumentException] { CommonSocConfigFile.parse(value) }
+        }
+    }
+
+    test("checked-in schema 2 examples resolve their explicit capacities") {
+        for (rob <- Seq(16, 32)) {
+            val path = Paths.get(s"config/common-soc/a1-rob$rob-prf64-lsu4-jtag-on.json")
+            assert(CommonSocConfigFile.parse(Files.readString(path)) == CommonSocConfigFile.parse(expanded(rob, 64)))
+        }
+    }
+
 }

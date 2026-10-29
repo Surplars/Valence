@@ -1,14 +1,19 @@
 package soc.platform
 
-import soc.core.ooo.FpgaNextConfig
+import soc.core.ooo.{BackendCapacityConfig, FpgaNextConfig}
 
-/** First CPU-private capacity axis for the generic static A1 platform.
-  * Owners are concurrent memory-operation reservations, not issue/return ports.
-  * Width, ISA, ROB/PRF, caches and shared fabric policy are unchanged.
+/** CPU-private capacities for the generic static, two-wide A1 platform.
+  * Owners are concurrent memory reservations, not issue/return ports.
+  * Legal capacity selections are not a claim of CPU behavioral qualification.
   */
-case class CommonA1CpuSpec(lsuOwners: Int) {
+case class CommonA1CpuSpec(lsuOwners: Int, robEntries: Int = 16, physicalRegs: Int = 48) {
     require(Set(2, 4).contains(lsuOwners), "common A1 LSU owners must be 2 or 4")
-    val name: String = s"generic-lsu-owners-$lsuOwners"
+    // Keep baseline overrides absent: None versus Some(default) is part of the
+    // existing effective-config identity. The shared type owns legality checks.
+    val backendCapacity: BackendCapacityConfig = BackendCapacityConfig(
+        Option.when(robEntries != 16)(robEntries), Option.when(physicalRegs != 48)(physicalRegs))
+    val name: String = if (robEntries == 16 && physicalRegs == 48) s"generic-lsu-owners-$lsuOwners"
+        else s"generic-rob-$robEntries-prf-$physicalRegs-lsu-owners-$lsuOwners"
 }
 
 object CommonA1CpuSpec {
@@ -33,6 +38,8 @@ object CommonA1CpuSpec {
         }
         CommonA1ExperimentalSelection.validate(profile, selected, boundary, experimentalRuntime)
         val original = CommonA1ExperimentalSelection.config(profile, selected)
-        spec.map(s => original.copy(lsuEntries = s.lsuOwners)).getOrElse(original)
+        spec.map(s => original.copy(lsuEntries = s.lsuOwners,
+            robEntries = s.backendCapacity.robEntries.orElse(original.robEntries),
+            physicalRegs = s.backendCapacity.physicalRegs.orElse(original.physicalRegs))).getOrElse(original)
     }
 }

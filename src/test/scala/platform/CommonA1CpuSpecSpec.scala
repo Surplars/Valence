@@ -85,4 +85,38 @@ class CommonA1CpuSpecSpec extends AnyFunSuite {
         assert(CommonPeripheralConfig(jtagDownload = false).features ==
             CommonPeripheralConfig().features.copy(jtagDownload = false))
     }
+
+    test("all twelve generic backend capacity selections preserve every unrelated core parameter") {
+        for (rob <- Seq(16, 32, 64); prf <- Seq(48, 64); owners <- Seq(2, 4)) {
+            val spec = CommonA1CpuSpec(owners, rob, prf)
+            val actual = CommonA1CpuSpec.resolve(profile, None, Some(spec), boundary)
+            assert(actual.coreParams == profile.fpga.coreParams.copy(
+                robEntries = rob, physicalRegs = prf, memoryEntries = owners))
+            assert(actual.copy(robEntries = None, physicalRegs = None, lsuEntries = 2) == profile.fpga)
+            assert(actual.robEntries == Option.when(rob != 16)(rob))
+            assert(actual.physicalRegs == Option.when(prf != 48)(prf))
+        }
+        for (rob <- Seq(0, 8, 17, 128)) {
+            intercept[IllegalArgumentException] { CommonA1CpuSpec(4, rob, 64) }
+        }
+        for (prf <- Seq(0, 32, 49, 128)) {
+            intercept[IllegalArgumentException] { CommonA1CpuSpec(4, 32, prf) }
+        }
+    }
+
+    test("legacy omitted and explicit LSU CPU identity digests remain byte-contract compatible") {
+        // CPU identity digests from public d9768e4 exports, not hashes recalculated from this candidate.
+        val omitted = CommonCpuMicroarchitectureIdentity.build(profile, None, boundary)
+        assert(omitted("identitySha256").str ==
+            "8556d52b15d2d65b3f76f070bff41c1a27ee9e31e1b8c84945b967b310b4e7fd")
+        for ((owners, digest) <- Seq(
+            2 -> "f0d02c16b86eeb419e674c6e20e08a82dd008c4f5884119f024b95114adb2e93",
+            4 -> "fa06caa7ee255b133c079a74bd9727666a8f195b5bec98e16d46478a70bf6f94")) {
+            val identity = CommonCpuMicroarchitectureIdentity.build(profile, None, boundary,
+                cpuSpec = Some(CommonA1CpuSpec(owners)))
+            assert(identity("identitySha256").str == digest)
+            assert(identity("requestedCpuSpec").obj.keySet == Set("lsuOwners"))
+        }
+    }
+
 }

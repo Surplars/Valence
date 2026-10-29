@@ -52,3 +52,23 @@ def verify_backend_capacity(fir, rob_entries, physical_regs):
             "token_total_bits": index_bits + 64, "rob_payload_banks": 2,
             "rob_payload_bank_depth": rob_entries // 2, "prf_data_banks": 2,
             "storage_layout_changed": False, "mapped_ram_inference": "UNVERIFIED"}
+
+
+def verify_common_capacity(fir, rob_entries, physical_regs, lsu_owners):
+    """Common generic geometry, including the window-coupled IQ and memory state."""
+    from memory_capacity_geometry import verify_memory_geometry
+    result = verify_backend_capacity(fir, rob_entries, physical_regs)
+    backend = module(fir, "IntegerBackend")
+    declarations = {
+        "queue": rf"^    reg queue : [^\n]+\[{rob_entries}\], clock",
+        "pending": rf"^    regreset pending : UInt<1>\[{rob_entries}\], clock",
+        "memoryLive": rf"^    regreset memoryLive : UInt<1>\[{rob_entries}\], clock",
+    }
+    for name, pattern in declarations.items():
+        if len(re.findall(pattern, backend, re.M)) != 1:
+            raise ValueError("Common capacity: missing or ambiguous " + name)
+    result["issue_entries"] = rob_entries
+    result["pending_entries"] = rob_entries
+    result["memory_live_entries"] = rob_entries
+    result["memory"] = verify_memory_geometry(fir, lsu_owners)
+    return result

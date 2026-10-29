@@ -49,6 +49,42 @@ not renumber IRQs or move devices. UART, Ethernet, DMA and clock management rema
 mandatory. Existing I1, clock and experimental selections remain on the legacy
 CLI, with their original constraints; file schema 1 does not expand them.
 
+## File schema 2: backend-window capacities
+
+Schema 2 retains the same outer/peripheral fields and requires two additional CPU
+integers: `robEntries` and `physicalRegs`. For example:
+
+```json
+{
+  "schema": 2,
+  "cpu": {"kind": "a1", "clockProfile": "production", "lsuOwners": 4,
+          "robEntries": 32, "physicalRegs": 64},
+  "peripherals": {"jtagDownload": true}
+}
+```
+
+The legal domain is ROB 16/32/64 × PRF 48/64 × LSU 2/4. Validation uses the existing
+`BackendCapacityConfig`; PRF shortage is allocation backpressure, not a requirement
+that PRF exceed ROB + 32. All configurations retain two-wide operation and unchanged
+ISA, cache/fabric/coherence and store-buffer policy. The issue queue and per-ROB
+metadata grow with ROB, so this is a **backend-window**, not ROB-storage-only, axis.
+Specialized experimental/runtime topology restrictions are not relaxed.
+
+The existing four schema-1 files remain unchanged. Two schema-2 examples are
+`a1-rob16-prf64-lsu4-jtag-on.json` and `a1-rob32-prf64-lsu4-jtag-on.json`.
+Schema 2 with explicit 16/48 and schema 1 with implicit 16/48 have identical CPU
+identity. Baseline override fields retain their original `None` representation and
+`requestedCpuSpec` retains its old one-field shape. The source JSON and its hash
+preserve input provenance separately. Nondefault capacity identities include both
+ROB and PRF. This normalization does not equate an omitted legacy CPU spec with an
+explicit spec.
+
+All twelve CPU tuples passed pure configuration and actual Common SoC CHIRRTL
+geometry checks in the bounded batch below. Focused rename/ROB behavior passed
+only LSU4 with (ROB,PRF) = (16,48), (16,64), (32,64). ROB64 remains elaboration-only,
+not behavior-qualified. Component tests do not establish full-CPU execution,
+execution-unit timing, ISA coverage, IPC or PPA.
+
 ## Single selection and separate identities
 
 `CommonSocConfig` groups the existing typed CPU profile, optional CPU specification,
@@ -74,12 +110,9 @@ not assert IPC, bandwidth, Fmax, area, timing closure or board correctness.
 
 ## Next parameter axes (not exposed by schema 1)
 
-1. **ROB/PRF capacities:** `BackendCapacityConfig` already admits experimental ROB
-   16/32/64 and PRF 48/64 while retaining two-wide rename/commit/completion.
-   Admission there is not qualification of every Common SoC combination. Issue
-   entry capacity is tied to ROB. A next batch must bind actual generated sizes,
-   wraparound/full/stall/recovery behavior, identity and matched measurement before
-   adding a bounded generic CPU specification; specialized topology guards stay.
+1. **Broader backend qualification:** schema 2 exposes the existing legal capacity
+   domain, not a full CPU or physical qualification. ROB64 behavioral qualification
+   and matched CPU-level measurements remain separate work.
 2. **Cache geometry/concurrency:** `CommonA1CpuTile` currently requires 512 lines,
    two ways and two read-MSHR/response/writeback entries. Merely changing an outer
    JSON field would be misleading. Cache/home/sink-credit constraints and coherence
@@ -128,3 +161,55 @@ hardware or test-fixture failure. Terminal evidence is
 Final documentation is a post-validation delta, not a change to compiled inputs.
 No full CPU execution, GSIM behavioral requalification, IPC/bandwidth benchmark,
 resource mapping, Fmax or board run was performed by this batch.
+
+
+## Backend-capacity validation (2026-10-29)
+
+The next coherent batch passed one fresh compile, **20 Scala tests** (7 CPU spec,
+9 SoC config, 4 peripheral config) and 7 memory-geometry host tests. All four v1
+example files are byte-identical to the preceding public commit. The omitted CPU
+spec and explicit LSU2/LSU4 CPU identities retain their old digests and serialized
+bytes; schema-2 default capacities equal schema 1. This batch had no unexpected
+compile, elaboration or behavioral failure.
+
+All **12** ROB16/32/64 × PRF48/64 × LSU2/4 combinations were actually emitted as
+Common SoC CHIRRTL with JTAG on. The census verifies ROB entries/head/tail/count,
+64-bit tags, PRF free/ready/data/owner storage, issue queue, pending and memory-live
+rows, LSU slots/request/owner FIFOs and the unchanged two-entry store buffer.
+Three mutated-IQ/metadata geometry negatives demonstrate parser sensitivity.
+One actual public schema-2 CLI export (ROB32/PRF64/LSU4/JTAG off) additionally passed
+input-hash, resolved-report and CPU-identity checks. Default SV and identity retain
+the exact hashes recorded above; only this default SoC was lowered to SV.
+
+| LSU4 tuple (ROB/PRF) | Rename/ROB component | Directed index wraps | Cross-wrap recovery cycles |
+|---|---|---:|---:|
+| 16/48 | PASS | 15 | 4 |
+| 16/64 | PASS | 15 | 4 |
+| 32/64 | PASS | 15 | 8 |
+
+The ledger fixture uses exact resolved Common CPU parameters, not a hand-written
+similar profile. Each also passed three fixed seeds / 18,000 randomized cycles
+against an independent transaction deque/register-ownership oracle. Directed
+checks exercise full-window rollback across index wrap and stale completion after
+index reuse. Three retirement-payload observer corruptions failed as expected.
+64-bit token width is structurally checked; this does not claim sensitivity to
+every high tag bit or wraparound of the entire 64-bit tag space. Completion inputs
+are synthetic: no execution unit, accepted LSU request during backend recovery,
+Common transport-owner wrap, or integrated CPU execution is qualified by this test.
+
+The actual owner-banked PRF implementation separately passed depth48 and depth64
+word-oracle checks, including register63 at depth64, x0, bank ownership changes,
+write collisions and reset. Four data/priority observer negatives were rejected.
+A fifth, separate depth48 invalid-address test triggered the actual DUT assertion;
+it is not counted as an observer corruption. ASAN/UBSAN reported no unexpected
+failure. The existing small PRF fixture's synchronous-reset-only GSIM adaptation
+preserves original and adjusted FIR and produced identical SV with matching
+firtool options. This is not a general or asynchronous-reset equivalence claim.
+
+Evidence: `build/backend-capacity-20261029-r1/TERMINAL_RESULTS.json`, source/delta,
+command receipts, original/adjusted FIR and independent-oracle logs are archived
+separately. There are 48 successful bounded command receipts, including the exact
+expected nonzero negative-test exits. No full-CPU behavior, ISA compliance,
+IPC/bandwidth, PPA, synthesis, routed timing or board qualification is claimed.
+Post-validation README/documentation changes are recorded separately from the
+compiled source epoch. The existing CPU identity qualification remains conservative.

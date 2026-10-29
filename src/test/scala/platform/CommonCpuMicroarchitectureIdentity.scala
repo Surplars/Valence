@@ -135,7 +135,16 @@ object CommonCpuMicroarchitectureIdentity {
                 "aonHz" -> value(profile.aonHz), "uartHz" -> value(profile.uartHz)),
             "runtimeMode" -> (if (experimentalRuntime) "experimental-a1-runtime"
                 else if (profile.clockProfile == "boot50-dynamic") "public-i1-runtime" else "static"))
-        cpuSpec.foreach(spec => result("requestedCpuSpec") = value(spec))
+        cpuSpec.foreach { spec =>
+            // v1's implicit 16/48 and v2's explicit 16/48 describe the same CPU.
+            // Preserve the old one-field shape; input-file provenance is separate.
+            val requested = ujson.Obj("lsuOwners" -> value(spec.lsuOwners))
+            if (spec.robEntries != 16 || spec.physicalRegs != 48) {
+                requested("robEntries") = value(spec.robEntries)
+                requested("physicalRegs") = value(spec.physicalRegs)
+            }
+            result("requestedCpuSpec") = requested
+        }
         result("identitySha256") = digest(result)
         result
     }

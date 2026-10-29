@@ -8,10 +8,11 @@ RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 ## Common SoC 参数化入口
 
 [严格 JSON 配置与解析结果](docs/common-soc-configuration.md)：使用
-`config/common-soc/` 中的四个明确组合选择 generic A1 的 LSU 2/4 个 owner
-及 JTAG RAM 下载端点 on/off。保留现有 CLI、两发射、完整 RV64GC 与一致性；
-导出 `resolved-soc-config.json` 记录实际规模。已验证配置/结构，不代表 IPC、
-面积或频率提升，ROB/PRF/cache 等下一参数轴仍需独立闭环。
+`config/common-soc/` 保留原有 schema 1 的 LSU 2/4 与 JTAG on/off 示例；
+schema 2 增加 ROB 16/32/64、PRF 48/64，保持两发射、完整 RV64GC 与现有一致性。
+12 种 CPU 容量组合均已通过实际 Common SoC 结构导出；其中 LSU4 的
+16/48、16/64、32/64 通过重命名/ROB 组件验证，ROB64 尚未做行为验证。
+默认 RTL 与旧 CPU 身份保持不变；不据此宣称完整 CPU 性能、面积或频率提升。
 
 ## A1 云端候选（2026-10-27）
 

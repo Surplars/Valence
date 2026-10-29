@@ -4,7 +4,7 @@ import java.nio.file.{Files, Paths}
 import soc.platform._
 import upickle.core.{ObjVisitor, Visitor}
 
-/** File schema v1 intentionally exposes only the four closed static A1 choices.
+/** Schema v1 retains its original shape; v2 adds explicit backend capacities.
   * JSON belongs to the generator, not to synthesizable hardware configuration.
   */
 object CommonSocConfigFile {
@@ -36,17 +36,27 @@ object CommonSocConfigFile {
     def parse(text: String): CommonSocConfig = {
         val value = ujson.StringParser.transform(text, UniqueKeys)
         fields(value, Set("schema", "cpu", "peripherals"), "SoC configuration")
-        require(value("schema") == ujson.Num(1), "SoC configuration schema must be 1")
+        require(value("schema") == ujson.Num(1) || value("schema") == ujson.Num(2),
+            "SoC configuration schema must be 1 or 2")
+        val expanded = value("schema") == ujson.Num(2)
         val cpu = value("cpu")
-        fields(cpu, Set("kind", "clockProfile", "lsuOwners"), "cpu")
+        fields(cpu, Set("kind", "clockProfile", "lsuOwners") ++
+            (if (expanded) Set("robEntries", "physicalRegs") else Set.empty[String]), "cpu")
         require(cpu("kind") == ujson.Str("a1") && cpu("clockProfile") == ujson.Str("production"),
-            "SoC file schema 1 supports only generic A1 production; other profiles retain the legacy CLI")
+            "SoC files support only generic A1 production; other profiles retain the legacy CLI")
         val owners = cpu("lsuOwners")
         require(owners == ujson.Num(2) || owners == ujson.Num(4), "cpu.lsuOwners must be the number 2 or 4")
+        def capacity(key: String, default: Int): Int = if (!expanded) default else {
+            val number = cpu(key)
+            require(number.isInstanceOf[ujson.Num] && number.num.isValidInt,
+                s"cpu.$key must be an integer number")
+            number.num.toInt
+        }
+        val spec = CommonA1CpuSpec(owners.num.toInt, capacity("robEntries", 16), capacity("physicalRegs", 48))
         val peripherals = value("peripherals")
         fields(peripherals, Set("jtagDownload"), "peripherals")
         require(peripherals("jtagDownload").isInstanceOf[ujson.Bool], "peripherals.jtagDownload must be boolean")
-        CommonSocConfig(CommonCpuProfile.A1, Some(CommonA1CpuSpec(owners.num.toInt)),
+        CommonSocConfig(CommonCpuProfile.A1, Some(spec),
             CommonPeripheralConfig(peripherals("jtagDownload").bool))
     }
 
@@ -77,6 +87,8 @@ object CommonSocConfigFile {
     def requested(config: CommonSocConfig): ujson.Obj = ujson.Obj(
         "cpu" -> ujson.Obj("kind" -> config.profile.kind, "clockProfile" -> config.profile.clockProfile,
             "lsuOwners" -> config.cpuSpec.map(s => ujson.Num(s.lsuOwners)).getOrElse(ujson.Null),
+            "robEntries" -> config.cpuSpec.map(s => ujson.Num(s.robEntries)).getOrElse(ujson.Null),
+            "physicalRegs" -> config.cpuSpec.map(s => ujson.Num(s.physicalRegs)).getOrElse(ujson.Null),
             "experimentalProfile" -> config.a1Experimental.map(s => ujson.Str(s.name)).getOrElse(ujson.Null)),
         "peripherals" -> ujson.Obj("jtagDownload" -> config.peripherals.jtagDownload))
 }

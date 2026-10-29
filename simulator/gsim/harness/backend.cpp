@@ -421,6 +421,66 @@ static Request moveRequest(unsigned rd, unsigned source) {
             uint32_t((4u << 13) | (rd << 7) | (source << 2) | 2u)};
 }
 
+#ifdef COMMON_CAPACITY
+// Directed capacity coverage supplements the existing independent ledger oracle.
+// Keep full 64-bit tags: index wrap is not tag wrap.
+static void commonCapacityTests() {
+    Scoreboard model;
+    Input in;
+    unsigned wraps = 0, highestRegister = 0;
+    Token previous{};
+    bool havePrevious = false;
+    // Repeatedly write every architectural destination and recycle ownership.
+    // Small ROBs need not allocate register 63; the separate PRF test covers it.
+    for (unsigned round = 0; round < 8 * ROB_ENTRIES; ++round) {
+        in = {}; in.allocate = {request(1 + (2 * round) % 31), request(1 + (2 * round + 1) % 31)};
+        auto out = model.tick(in);
+        for (const auto &a : out.allocated) if (a.valid) {
+            if (havePrevious && a.token.index < previous.index) ++wraps;
+            highestRegister = std::max(highestRegister, a.destination);
+            previous = a.token; havePrevious = true;
+        }
+        model.drain();
+    }
+    if (wraps < 4 || highestRegister < 32)
+        throw std::runtime_error("Common capacity register/index coverage missing");
+
+    // Start near the end, then fill across wrap without consuming PRF entries.
+    model.reset();
+    for (unsigned i = 0; i < ROB_ENTRIES - 2; ++i) {
+        in = {}; in.allocate[0] = request(0); model.tick(in); model.drain();
+    }
+    for (unsigned i = 0; i < ROB_ENTRIES / 2; ++i) {
+        in = {}; in.allocate = {request(0), request(0)}; model.tick(in);
+    }
+    if (model.queue.size() != ROB_ENTRIES || model.queue.front().token.index != ROB_ENTRIES - 2)
+        throw std::runtime_error("Common cross-wrap fixture did not fill ROB");
+    const Token stale = model.queue.back().token;
+    in = {}; in.recover = true; in.boundary = model.queue[2].token;
+    model.tick(in);
+    unsigned recoveryCycles = 1;
+    while (model.busy()) { model.tick(Input{}); ++recoveryCycles; }
+    if (recoveryCycles < 2) throw std::runtime_error("Common multicycle recovery not exercised");
+    model.drain();
+    bool reused = false;
+    for (unsigned i = 0; i < 2 * ROB_ENTRIES; ++i) {
+        in = {}; in.allocate[0] = request(0);
+        const auto out = model.tick(in);
+        if (out.allocated[0].valid && out.allocated[0].token.index == stale.index) {
+            if (out.allocated[0].token.tag == stale.tag)
+                throw std::runtime_error("Common reused full token");
+            in = {}; in.complete[0] = {true, true, stale, 0xbad, 2, 0xbad};
+            model.tick(in); reused = true;
+        }
+        model.drain();
+    }
+    if (!reused) throw std::runtime_error("Common stale completion index not reused");
+    std::cout << "Common capacity directed: PASS wraps=" << wraps
+              << " highestPhysical=" << highestRegister << " recoveryCycles=" << recoveryCycles
+              << " staleAfterIndexReuse=1 fullTagBits=" << TAG_BITS << "\n";
+}
+#endif
+
 static void headTrapTests(bool inject) {
 #if FAST_HEAD_TRAP
     Scoreboard model(inject);
@@ -645,6 +705,9 @@ static void authorizationTests(bool injectSystem, bool injectSource) {
 }
 
 int main(int argc, char **argv) {
+#ifdef COMMON_CAPACITY
+    commonCapacityTests();
+#endif
     if (argc == 2 && (std::string(argv[1]) == "--authorization-short" ||
             std::string(argv[1]) == "--inject-head-system-mismatch" ||
             std::string(argv[1]) == "--inject-tentative-source-mismatch")) {

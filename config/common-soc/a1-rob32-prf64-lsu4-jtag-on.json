@@ -1,0 +1,13 @@
+{
+  "schema": 2,
+  "cpu": {
+    "kind": "a1",
+    "clockProfile": "production",
+    "lsuOwners": 4,
+    "robEntries": 32,
+    "physicalRegs": 64
+  },
+  "peripherals": {
+    "jtagDownload": true
+  }
+}
