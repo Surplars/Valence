@@ -158,7 +158,7 @@ public:
             {"validation",{0x8d840747e3c118f2ULL,0xe3c1}},
             {"smoke",{0x1122334455ULL,0xff}}
         };
-        require(test=="smoke","capacity batch selects smoke only");
+        require(test=="smoke"||test=="performance","capacity comparison selects smoke or performance only");
         require(nativeExpected.count(test),"unknown manifest workload");
         require(reference.regs[11]==nativeExpected.at(test).first&&reference.regs[13]==nativeExpected.at(test).second,"independent ISA CRC disagrees with sealed native expected signature");
         dut.set_io$$hold(true);dut.set_reset(true);dut.step();dut.step();dut.set_reset(false);

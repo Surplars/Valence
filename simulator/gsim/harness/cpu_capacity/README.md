@@ -32,8 +32,9 @@ The three models were freshly generated and compiled from public base
 `f318ea9d28f4f2575190fe12dfb1660784114263` plus this test-only source addition.
 Each fresh FIR/header/step implementation received an independent, hash-bound
 ABI/wiring/phase review before native build. No historical model/PASS was reused.
-The preserved executed-source epoch precedes this documentation-only update;
-all executable Scala/C++/guest/oracle bytes remain unchanged. The complete
+For that parent qualification, the preserved executed-source epoch precedes its
+documentation-only update; executable Scala/C++/guest/oracle bytes were unchanged.
+The separately reviewed host-only follow-up below is a new source epoch. The complete
 source-bound result is identified by SHA256
 `0377742ff77691e0ef928b20c315dc33a9c328a9881fd7fd740b5d0593d3e70f`.
 
@@ -42,6 +43,78 @@ upgrade to universal CPU qualification. The existing identity qualification
 flags intentionally remain unchanged: the source-bound report above qualifies
 only these configurations and cases. ROB64 and LSU2 are not CPU-execution
 qualified by this batch, and retaining RV64GC hardware is not full ISA/FP proof.
+
+## Separate fixed-input capacity comparison
+
+A subsequent host-only epoch starts from public qualification commit
+`1bbf4845120259c3401ddc7bef5fa4fc64e5dae3`. The sole executable source change
+admits `performance` as well as `smoke` in `common.cpp`; the already sealed
+signature table, independent ISA oracle, service, observers and DUT are unchanged.
+Three fresh common hosts link the exact three qualified model objects. All three
+smoke outputs first matched their corresponding parent output byte for byte;
+then all three fixed performance cases passed. This does **not** rewrite the
+parent 21-positive/9-negative gate or qualify the other nine CPU tuples.
+
+These are **generic, full-feature two-wide A1 configurations**, not the older
+experimental optimized/efficiency profiles. In particular, effective
+`postedStoreMerge=false`, `fastBufferedStoreRetire=false`, and
+`dataNextLinePrefetch=true` are preserved. LSU4 denotes owner capacity, not four
+load/store issue ports. All other hardware and service parameters stay fixed.
+
+| ROB / PRF / LSU | ROI cycles | ROI IPC | Whole-work cycles | Whole-work IPC | ROI equal-clock speedup | Whole-work speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 / 48 / 4 | 470604 | 0.766090 | 500689 | 0.767602 | baseline | baseline |
+| 16 / 64 / 4 | 470604 | 0.766090 | 500689 | 0.767602 | 0% | 0% |
+| 32 / 64 / 4 | 449274 | 0.802461 | 478890 | 0.802543 | +4.74766% | +4.55198% |
+
+Speedup is `baseline_cycles / candidate_cycles - 1`; cycle reduction is
+`1 - candidate_cycles / baseline_cycles`. For 32/64/4, ROI cycles decrease
+4.53247% and whole-work cycles decrease 4.35380%. PRF48→64 alone gives **0%**
+on this input. The PRF64 pair isolates ROB16→32 capacity; no internal stall
+mechanism is inferred from these aggregate results.
+
+All three retire 384330 total / 360525 ROI instructions, architectural hash
+`eb74228486f9b622`, x11 CRC `8e3a1fd7e714e9f5`, x13 CRC `e714`. Each reports
+157 I requests / 9936 bytes, 65 D reads / 4160 bytes, 0 external D writes,
+65 grants and 0 release acknowledgements. Dirty resident flush is not requested;
+zero external write traffic does not mean zero guest stores. All physical stores,
+final GPRs and owner drain still pass their independent checks. Drain is 7 cycles
+and post-drain GPR inspection is 32 cycles, excluded from whole-work cycles;
+total cycles are 500728, 500728 and 478929.
+
+### Fixed input and reproduction boundary
+
+Use the original one-iteration performance workload, not a rebuilt guest or
+newly selected seed/input:
+
+- ELF: 20176 bytes, SHA256
+  `9a8e716320ec08591fd25a2dfdf4c73b7714908ab8a190b607dc8e10cd1b43ac`.
+- Symbols: 1845 bytes, SHA256
+  `671642be3f3323baf72147820ab26dbad86bf6c3f298f8e5aa3db4e83440e67d`.
+- Same cold reset, boot image, half-open ROI markers, 3-cycle memory service,
+  8-byte beats, 16 live slots, line assembly, trap and full-owner-drain semantics.
+- Generate `CommonA1CapacityGsim` for the chosen ROB/PRF with LSU4 using the
+  qualified pinned GSIM flow; independently verify its ABI before reuse. Compile
+  `common.cpp` with its model header, shared headers and harness include path,
+  `-DCAPACITY_ROB_ENTRIES=16` or `32`, then link that model's objects. The recorded
+  native flags are `-std=c++20 -O1 -g -fsanitize=address,undefined
+  -fno-sanitize-recover=all`, Clang 19. Never mix objects between specs.
+- Invocation: `common PERFORMANCE_ELF SYMBOLS performance 3000000`.
+  Run each model's original smoke first with `smoke 100000` and require its exact
+  saved output. Each run has an external 180-second wall limit; native host
+  compile/link limits are 300/180 seconds, 4 CPU affinity, sampled owned-tree
+  RSS limit 4 GiB and 512 MiB reserve, not a hard kernel memory-limit claim.
+
+The fixed-input binaries and raw receipts are hash-identified reproducibility
+inputs, not embedded in this source fixture; without their exact bytes the table
+is not freshly reproduced. The completed result manifest SHA256 is
+`83f544bfdb65ad84fc501010ef8b28b4a11a6c7299f54ae9f283d7169520e344`.
+All six runs pass without sanitizer findings or timeout; no alternative input,
+model, service law or budget was substituted after observing results.
+
+This measures **equal-clock CPU-tile cycle cost under a fixed host service**,
+not actual clock frequency, area/PPA, physical DDR bandwidth, an official
+CoreMark score, NaxRiscv parity or full-SoC performance.
 
 ## Architectural and service independence
 
@@ -105,7 +178,9 @@ quiescence, ownersIdle, ROB occupancy, and DTA physical request/reply. No
 canonical/FP/proof optional taps. Token index is 4/4/5 bits, occupancy 5/5/6;
 tag and architectural values 64, instruction32, rd5, PRF destination6.
 Generated FIR/header inspection and compile-time binding are required for every
-new model; old model headers/objects/PASS records are not reusable evidence.
+new model; historical models cannot establish evidence for a different model.
+The follow-up below reuses only these exact three qualified model objects, with
+fresh hash/source/ABI binding checks and newly compiled host executables.
 
 Source/ABI review and a durable source checkpoint preceded this validation.
 Sequential fresh GSIM model groups only; 4 CPUs, 3 GiB JVM, sampled owned process

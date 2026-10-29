@@ -51,7 +51,11 @@
     "source_sha256": "5a83211f46aacc09e5a9b8590c65c05f43e97e013bdbe730e5c5b53abf72b44f",
     "extraction": "See README; marked capture audit deletion, generic model and explicit D binding, documented independent observer checks",
     "historical_source_path": "build/mul-load-cpu-preparation-20261028-r1/capture-audited-hosts/common.cpp",
-    "source_kind": "recovered historical source bytes; not a claim this path exists in public base"
+    "source_kind": "recovered historical source bytes; not a claim this path exists in public base",
+    "sha256": "5f8639a566fc4e78ea2c06bac66aba59ae25809d1d3952d67c4a2410c78cdece",
+    "followup_public_base": "1bbf4845120259c3401ddc7bef5fa4fc64e5dae3",
+    "followup_parent_sha256": "49e2b125e7eb7d43a0c82b02e58449c5300010581253abf995889ea267fc951e",
+    "followup_change": "Only workload admission extends smoke to smoke or performance; historical signature table, service and ISA oracle unchanged."
   },
   "simulator/gsim/harness/cpu_capacity/dependent.cpp": {
     "source_sha256": "aa852edd8c6938c8b022f70194b001ce07696a752f95772fa80027c361c885a7",
