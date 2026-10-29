@@ -11,18 +11,22 @@ import soc.platform._
   * image. CPU specifications and peripheral composition are explicit bounded choices.
   */
 object CommonMachinePlatformMain extends App {
-    require(args.length >= 3, "output, i1|a1, and --compile-receipt=... required")
+    require(args.length >= 3, "output, i1|a1|--soc-config=FILE, and --compile-receipt=... required")
     val output = Paths.get(args(0)).toAbsolutePath.normalize
     require(!Files.exists(output), "fresh output directory required")
     val options = args.drop(2)
-    val clockProfile = options.find(_.startsWith("--clock-profile=")).map(_.stripPrefix("--clock-profile=")).getOrElse("production")
-    val profile = CommonCpuProfile.named(args(1), clockProfile)
-    val peripheralConfig = CommonPeripheralConfig.jtagOption(
-        options.find(_.startsWith("--jtag-download=")).map(_.stripPrefix("--jtag-download=")).getOrElse("on"))
-    val selected = options.find(_.startsWith("--experimental-a1-profile=")).map(option =>
-        CommonA1ExperimentalSelection.named(option.stripPrefix("--experimental-a1-profile=")))
-    val cpuSpec = options.find(_.startsWith("--a1-lsu-owners=")).map(option =>
-        CommonA1CpuSpec.lsuOption(option.stripPrefix("--a1-lsu-owners=")))
+    val configurationPath = if (args(1).startsWith("--soc-config="))
+        Some(Paths.get(args(1).stripPrefix("--soc-config=")).toAbsolutePath.normalize) else None
+    val configurationBytes = configurationPath.map(Files.readAllBytes(_))
+    val configurationHash = configurationBytes.map(bytes => MessageDigest.getInstance("SHA-256")
+        .digest(bytes).map(b => f"${b & 255}%02x").mkString)
+    val socConfig = CommonSocConfigFile.select(args(1), options.toSeq,
+        configurationBytes.map(bytes => new String(bytes, java.nio.charset.StandardCharsets.UTF_8)).getOrElse(""))
+    val profile = socConfig.profile
+    val clockProfile = profile.clockProfile
+    val peripheralConfig = socConfig.peripherals
+    val selected = socConfig.a1Experimental
+    val cpuSpec = socConfig.cpuSpec
     val chirrtlOnly = options.contains("--emit-chirrtl-only")
     val dynamic = clockProfile == "boot50-dynamic"
     peripheralConfig.validateRuntime(dynamic)
@@ -33,7 +37,6 @@ object CommonMachinePlatformMain extends App {
     require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") ||
         x.startsWith("--clock-profile=") || x.startsWith("--experimental-a1-profile=") ||
         x.startsWith("--jtag-download=") || x.startsWith("--a1-lsu-owners=")))
-    require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
         .stripPrefix("--compile-receipt=")).toAbsolutePath.normalize
     require(ujson.read(Files.readString(compileReceipt))("exit").num == 0,
@@ -44,7 +47,7 @@ object CommonMachinePlatformMain extends App {
     require(programmable != vivado, "select explicit native-programmable or production-Vivado ROM")
     val boundary = if (dynamic) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
-    val actualCpuConfig = CommonA1CpuSpec.resolve(profile, selected, cpuSpec, boundary)
+    val actualCpuConfig = socConfig.cpuConfig(boundary)
     val identity = CommonCpuMicroarchitectureIdentity.build(profile, selected, boundary, cpuSpec = cpuSpec)
     val root = Paths.get(sys.props.getOrElse("chisel.project.root", ".")).toAbsolutePath.normalize
     val compileBinding = if (selected.nonEmpty || cpuSpec.nonEmpty)
@@ -88,6 +91,7 @@ object CommonMachinePlatformMain extends App {
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
             s"--lowering-options=$lowering",
             "--default-layer-specialization=enable", "--verification-flavor=if-else-fatal"))
+    require(configurationPath.map(sha) == configurationHash, "SoC configuration file changed during emission")
     require(hashes(sourcePaths) == sources, "source changed during emission")
     require(hashes(classPaths) == classes, "compiled classes changed during emission")
     compileBinding.foreach(binding => require(
@@ -131,7 +135,11 @@ object CommonMachinePlatformMain extends App {
         "cpuClockHz" -> profile.cpuHz, "fabricClockHz" -> profile.fabricHz,
         "timebaseHz" -> profile.clocks.timebaseHz, "ddrUiHz" -> profile.ddrUiHz,
         "aonHz" -> profile.aonHz, "uartHz" -> profile.uartHz, "uartBaud" -> profile.uartBaud,
-        "instructionCacheBytes" -> 32768, "dataCacheBytes" -> 32768, "cacheWays" -> 2,
+        "instructionCacheBytes" -> (if (profile.kind == "i1") profile.i1.instructionCacheBytes
+            else actualCpuConfig.instructionCacheLines * actualCpuConfig.cacheLineBytes),
+        "dataCacheBytes" -> (if (profile.kind == "i1") profile.i1.dataCacheBytes
+            else actualCpuConfig.dataCacheLines * actualCpuConfig.cacheLineBytes),
+        "cacheWays" -> (if (profile.kind == "i1") profile.i1.coherentCacheWays else actualCpuConfig.cacheWays),
         "tlbEntries" -> (if (profile.kind == "i1") profile.i1.tlbEntries else actualCpuConfig.dataTranslationEntries),
         "issueWidth" -> (if (profile.kind == "i1") 1 else actualCpuConfig.issueWidth),
         "a1Resources" -> (if (profile.kind == "a1") ujson.Obj(
@@ -153,6 +161,23 @@ object CommonMachinePlatformMain extends App {
         "physicalTimingVerified" -> false, "boardVerified" -> false,
         "sources" -> objectOf(sources), "compiledClasspath" -> objectOf(classes),
         "artifacts" -> objectOf(artifacts))
+    // Configuration/provenance report, not an architectural identity or a new
+    // CPU behavior/performance qualification. Effective fields reuse the same
+    // resolved values as emission-profile; there is no second sizing table.
+    val resolved = ujson.Obj(
+        "schema" -> 1, "purpose" -> "resolved-soc-configuration-not-performance-qualification",
+        "requested" -> CommonSocConfigFile.requested(socConfig),
+        "configurationFile" -> configurationPath.map(p => ujson.Str(p.toString)).getOrElse(ujson.Null),
+        "configurationSha256" -> configurationHash.map(ujson.Str(_)).getOrElse(ujson.Null),
+        "effective" -> ujson.Obj.from(Seq("cpu", "clockProfile", "cpuMicroarchitectureProfile", "cpuQualification",
+            "cpuClockHz", "fabricClockHz", "timebaseHz", "instructionCacheBytes", "dataCacheBytes", "cacheWays",
+            "issueWidth", "a1Resources", "homeClients", "homeLines", "homeWays", "ddrSlots", "ddrWriteSlots",
+            "jtagDownload", "jtagDmiAddressBits", "cpuMmioRegions", "abi").map(k => k -> manifest(k))),
+        "cpuIdentitySha256" -> identity("identitySha256"),
+        "physicalTimingVerified" -> false, "boardVerified" -> false)
+    Files.writeString(output.resolve("resolved-soc-config.json"), ujson.write(resolved, indent = 2) + "\n",
+        StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+    manifest("artifacts") = objectOf(hashes(walk(output)))
     Files.writeString(output.resolve("emission-profile.json"), ujson.write(manifest, indent = 2) + "\n",
         StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
 }

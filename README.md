@@ -5,6 +5,14 @@ Valence 是 OpenIon 的可配置 RISC-V SoC 工程，使用 Scala、Chisel 和 M
 4 发射属于独立实验配置。ISA、微架构和外设配置分别控制，不能由某个板级配置推断所有配置的能力。
 RVA23 和多 hart 是后续目标，不代表当前已完成 profile 合规。
 
+## Common SoC 参数化入口
+
+[严格 JSON 配置与解析结果](docs/common-soc-configuration.md)：使用
+`config/common-soc/` 中的四个明确组合选择 generic A1 的 LSU 2/4 个 owner
+及 JTAG RAM 下载端点 on/off。保留现有 CLI、两发射、完整 RV64GC 与一致性；
+导出 `resolved-soc-config.json` 记录实际规模。已验证配置/结构，不代表 IPC、
+面积或频率提升，ROB/PRF/cache 等下一参数轴仍需独立闭环。
+
 ## A1 云端候选（2026-10-27）
 
 [MUL registered-load operand capture（2026-10-28）](docs/a1-mul-registered-load-capture.md)：默认 OFF，仅原共享 M 端口空闲时使用稳定 LSU 结果。

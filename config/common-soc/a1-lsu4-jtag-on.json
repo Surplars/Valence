@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "cpu": {
+    "kind": "a1",
+    "clockProfile": "production",
+    "lsuOwners": 4
+  },
+  "peripherals": {
+    "jtagDownload": true
+  }
+}
