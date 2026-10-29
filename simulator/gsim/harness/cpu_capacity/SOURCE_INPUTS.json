@@ -1,0 +1,98 @@
+{
+  "simulator/gsim/harness/cpu_capacity/shared/matched_memory.h": {
+    "source_sha256": "8c45b0b95ee1ed7bbd936be7b60a158a31adb9c99b4ec1c7162234d5feb02538",
+    "sha256": "8c45b0b95ee1ed7bbd936be7b60a158a31adb9c99b4ec1c7162234d5feb02538",
+    "source": "simulator/gsim/a1_coexisting_load_ingress/matched_memory.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/benchmark_image.h": {
+    "source_sha256": "8ab216e08ecd924c6a099f0fd3d108897c9fafac44668a5ef56fafd0006f63b9",
+    "sha256": "8ab216e08ecd924c6a099f0fd3d108897c9fafac44668a5ef56fafd0006f63b9",
+    "source": "simulator/gsim/a1_coexisting_load_ingress/benchmark_image.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/benchmark_oracle.h": {
+    "source_sha256": "0ac74f52202da31b026908f254b1445e154a292f145135de92cfc59625b5004f",
+    "sha256": "0ac74f52202da31b026908f254b1445e154a292f145135de92cfc59625b5004f",
+    "source": "simulator/gsim/a1_coexisting_load_ingress/benchmark_oracle.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/isa_model.h": {
+    "source_sha256": "e41fc86cd9dd0319871dbde8330a30d3d4cee60acd25ea6e2b1514d072d0b7d0",
+    "sha256": "e41fc86cd9dd0319871dbde8330a30d3d4cee60acd25ea6e2b1514d072d0b7d0",
+    "source": "simulator/gsim/harness/isa_model.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/muldiv_model.h": {
+    "source_sha256": "914587343405520a45e8e418a7d2a43d2b13212b27cc74e690c3ab5ff825174a",
+    "sha256": "914587343405520a45e8e418a7d2a43d2b13212b27cc74e690c3ab5ff825174a",
+    "source": "simulator/gsim/harness/muldiv_model.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/branch_gold.h": {
+    "source_sha256": "287e2473e564ef6a351f4f25bc66559bf50f23cad1e041996395ce0fdf0b8ca8",
+    "sha256": "287e2473e564ef6a351f4f25bc66559bf50f23cad1e041996395ce0fdf0b8ca8",
+    "source": "simulator/gsim/fixtures/branch_control_common_v1/host/branch_gold.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/source-gold.h": {
+    "source_sha256": "1ee0f070ab026b5805b23e4504d4ac73a1e2d4d0e719cb47bbb4a2165cc30d86",
+    "sha256": "1ee0f070ab026b5805b23e4504d4ac73a1e2d4d0e719cb47bbb4a2165cc30d86",
+    "source": "simulator/gsim/fixtures/branch_control_common_v1/source-reference/source-gold.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/shared/branch_isa.h": {
+    "source_sha256": "5255aa78c94701751f7ad6819cc50295c94fe8a137c9cd576e50392407cae6f0",
+    "sha256": "5255aa78c94701751f7ad6819cc50295c94fe8a137c9cd576e50392407cae6f0",
+    "source": "simulator/gsim/fixtures/branch_control_common_v1/isa-reference/branch_isa.h",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/common.cpp": {
+    "source_sha256": "5a83211f46aacc09e5a9b8590c65c05f43e97e013bdbe730e5c5b53abf72b44f",
+    "extraction": "See README; marked capture audit deletion, generic model and explicit D binding, documented independent observer checks",
+    "historical_source_path": "build/mul-load-cpu-preparation-20261028-r1/capture-audited-hosts/common.cpp",
+    "source_kind": "recovered historical source bytes; not a claim this path exists in public base"
+  },
+  "simulator/gsim/harness/cpu_capacity/dependent.cpp": {
+    "source_sha256": "aa852edd8c6938c8b022f70194b001ce07696a752f95772fa80027c361c885a7",
+    "extraction": "See README; marked capture audit deletion, generic model and explicit D binding, documented independent observer checks",
+    "historical_source_path": "build/mul-load-cpu-preparation-20261028-r1/capture-audited-hosts/dependent.cpp",
+    "source_kind": "recovered historical source bytes; not a claim this path exists in public base"
+  },
+  "simulator/gsim/harness/cpu_capacity/independent.cpp": {
+    "source_sha256": "a576a1078328634f54a07f4dd93f79480b56a3c25af9f456bd2aa7257f49b83b",
+    "extraction": "See README; marked capture audit deletion, generic model and explicit D binding, documented independent observer checks",
+    "historical_source_path": "build/mul-load-cpu-preparation-20261028-r1/capture-audited-hosts/independent.cpp",
+    "source_kind": "recovered historical source bytes; not a claim this path exists in public base"
+  },
+  "simulator/gsim/harness/cpu_capacity/branch.cpp": {
+    "source_sha256": "c28d3a8ec9bf15a0561e5c66036e2eac100cd3d6d28b07383167cf35d99b459f",
+    "extraction": "Generic model and explicit D binding; documented independent observer checks",
+    "source": "simulator/gsim/fixtures/branch_control_common_v1/host/branch_common.cpp",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/alu.cpp": {
+    "source_sha256": "f5091b10dbae4ccf6ccc7d58fdf811cc82dfdd1e43ae0e14c3a9c0f4403a8107",
+    "extraction": "Exact RAM case filter, capacity guards, omit private fetch metrics",
+    "source": "simulator/gsim/harness/a1_common_cpu_retirement.cpp",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  },
+  "simulator/gsim/harness/cpu_capacity/fault.cpp": {
+    "source_sha256": "8c3deadc27d0762511611ee0266c04966623274fbe9bf49289a4871978b194e9",
+    "extraction": "See README; private witness removal only, generic binding, new independent token/prefix/capacity checks",
+    "historical_source_path": "build/second-efficiency-pmp-cpu-witnesses-20261026-r1/fault_host.cpp",
+    "source_kind": "recovered historical source bytes; not a claim this path exists in public base"
+  },
+  "simulator/gsim/harness/cpu_capacity/fault_guest.h": {
+    "source_sha256": "8c3deadc27d0762511611ee0266c04966623274fbe9bf49289a4871978b194e9",
+    "extraction": "Original constexpr ncVa through end SmokeProgram, unchanged; new pragma/comment only",
+    "historical_source_path": "build/second-efficiency-pmp-cpu-witnesses-20261026-r1/fault_host.cpp",
+    "source_kind": "recovered historical source bytes; not a claim this path exists in public base"
+  },
+  "simulator/gsim/harness/cpu_capacity/fault_instruction_service.h": {
+    "source_sha256": "e818bb97bd18bea2c4b4bf4458f8e352dc3182f81723f0dc6fc0fe65f1dfd903",
+    "extraction": "C++ includes/constants/helpers/Program before originalPrograms + Request through CacheOwner before StoreWitness; omit surrounding namespace and unused Memory/dataBase/ISA include",
+    "source": "simulator/gsim/harness/registered_raw_certified_cpu.cpp",
+    "public_base": "f318ea9d28f4f2575190fe12dfb1660784114263"
+  }
+}
