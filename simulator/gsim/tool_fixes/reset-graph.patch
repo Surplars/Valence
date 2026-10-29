@@ -1,0 +1,312 @@
+--- a/src/AST2Graph.cpp
++++ b/src/AST2Graph.cpp
+@@ -1625,6 +1625,11 @@
+   }
+   removeDummyDim(g);
+ 
++  // Cache each use's declared reset type before addReset repurposes a
++  // register's reset field as the kind of its own reset. A UInt register
++  // may feed both a synchronous reset and an explicit asAsyncReset cast.
++  for (Node* reg : g->regsrc) reg->resetCond->getRoot()->inferReset();
++
+   for (Node* reg : g->regsrc) {
+     /* set lvalue to regDst */
+     for (ExpTree* tree : reg->assignTree) {
+@@ -1651,6 +1656,7 @@
+ 
+   for (auto it = allSignals.begin(); it != allSignals.end(); it ++) {
+     it->second->constructSuperNode();
++    g->allNodes.push_back(it->second);
+   }
+   /* must be called after constructSuperNode all finished */
+   for (auto it = allSignals.begin(); it != allSignals.end(); it ++) {
+--- a/src/Node.cpp
++++ b/src/Node.cpp
+@@ -5,7 +5,27 @@
+ int Node::counter = 1;
+ 
+ void Node::updateConnect() {
+-  if (type == NODE_REG_SRC) return;
++  if (type == NODE_REG_SRC) {
++    // Ordinary NEXT promotion is an anti-dependency, not a combinational edge.
++    // Async reset controls/values, in contrast, are true CURRENT dependencies.
++    if (reset == ASYRESET && resetTree) {
++      std::set<Node*> controls, values;
++      getENodeRelyNodes(resetTree->getRoot()->getChild(0), controls);
++      getENodeRelyNodes(resetTree->getRoot()->getChild(1), values);
++      Assert(controls.find(this) == controls.end(), "async reset control depends on its own CURRENT: %s", name.c_str());
++      ENode* value = resetTree->getRoot()->getChild(1);
++      const bool directHold = value->getNode() == this && value->getChildNum() == 0;
++      Assert(values.find(this) == values.end() || directHold,
++        "async reset value has nontrivial CURRENT feedback: %s", name.c_str());
++      for (Node* n : controls) { addPrev(n); n->addNext(this); }
++      for (Node* n : values) {
++        // A reset value equal to this register is a hold, not a feedback edge.
++        // Do not suppress a real self-dependent reset CONTROL above.
++        if (n != this) { addPrev(n); n->addNext(this); }
++      }
++    }
++    return;
++  }
+   std::queue<ENode*> q;
+   for (ExpTree* tree : assignTree) {
+     q.push(tree->getRoot());
+@@ -44,30 +64,18 @@
+ }
+ 
+ void Node::updateDep(){ // only reg_src can reach here
+-  std::set<Node*> prevNodes;
+-  for (ExpTree* tree : assignTree) tree->getRelyNodes(prevNodes);
+-  for (Node* n : prevNodes) {
+-    depNext.insert(n);
+-    n->depPrev.insert(this);
+-  }
+-  std::set<Node*> nextNodes;
+-  if (reset == ASYRESET) {
+-    getENodeRelyNodes(resetTree->getRoot()->getChild(0), nextNodes);
+-  }
+-  for (Node* n : nextNodes) {
+-    depNext.insert(n);
+-    n->depPrev.insert(this);
+-    for (Node* srcNext : next) {
+-      srcNext->addDepPrev(n);
+-      n->addDepNext(srcNext);
+-    }
+-    if (getDst()) {
+-      getDst()->depPrev.insert(n);
+-      n->depNext.insert(getDst());
++  // Preserve the old-state promotion before computing its successor NEXT.
++  // Reset references in the CURRENT mux must not become reversed anti-edges.
++  std::set<Node*> currentReads;
++  for (ExpTree* tree : assignTree) tree->getRelyNodes(currentReads);
++  for (Node* n : currentReads) {
++    if (n->type == NODE_REG_DST) {
++      depNext.insert(n);
++      n->depPrev.insert(this);
+     }
+   }
+   std::set<Node*> resetValNodes;
+-  if (resetTree) {
++  if (reset == UINTRESET && resetTree) {
+     Assert(resetTree->getRoot()->opType == OP_RESET, "invalid resetTree");
+     getENodeRelyNodes(resetTree->getRoot()->getChild(1), resetValNodes);
+   }
+@@ -182,15 +190,31 @@
+ }
+ 
+ void Node::addUpdateTree() {
+-  ENode* dstENode = new ENode(getDst());
+-  dstENode->width = width;
+-  assignTree.push_back(new ExpTree(dstENode, this));
++  ENode* current = new ENode(getDst());
++  current->width = width;
+   if (reset == UINTRESET || reset == ASYRESET) {
+-    ENode* whenNode = new ENode(OP_RESET);
+-    whenNode->addChild(resetCond->getRoot());
+-    whenNode->addChild(resetVal->getRoot());
+-    resetTree = new ExpTree(whenNode, this);
+-  }
++    ENode* resetNode = new ENode(OP_RESET);
++    resetNode->addChild(resetCond->getRoot()->dup());
++    resetNode->addChild(resetVal->getRoot()->dup());
++    resetTree = new ExpTree(resetNode, this);
++
++    // FIR register reset has priority over every ordinary/partial NEXT write.
++    // Append one whole-register conditional assignment, not just the last lane.
++    ENode* priority = new ENode(OP_WHEN);
++    priority->addChild(resetCond->getRoot()->dup());
++    priority->addChild(resetVal->getRoot()->dup());
++    priority->addChild(nullptr);
++    getDst()->assignTree.push_back(new ExpTree(priority, getDst()));
++
++    if (reset == ASYRESET) {
++      ENode* mux = new ENode(OP_MUX);
++      mux->addChild(resetCond->getRoot()->dup());
++      mux->addChild(resetVal->getRoot()->dup());
++      mux->addChild(current);
++      current = mux;
++    }
++  }
++  assignTree.push_back(new ExpTree(current, this));
+ }
+ 
+ bool Node::anyExtEdge() {
+--- a/src/cppEmitter.cpp
++++ b/src/cppEmitter.cpp
+@@ -704,7 +704,6 @@
+ 
+ void graph::genStep(int subStepIdxMax) {
+   emitFuncDecl(0, "void S%s::step() {\n", name.c_str());
+-  emitBodyLock(1, "resetAll();\n");
+   for (SuperNode* super : sortedSuper) {
+     for (Node* member : super->member) {
+       if (member->isReset() && member->type == NODE_REG_SRC) {
+@@ -712,6 +711,8 @@
+       }
+     }
+   }
++  // Snapshot every register reset control before any synchronous reset side effect.
++  emitBodyLock(1, "resetAll();\n");
+   for (int i = 0; i <= subStepIdxMax; i ++) {
+     emitBodyLock(1, "subStep%d();\n", i);
+   }
+--- a/src/instsGenerator.cpp
++++ b/src/instsGenerator.cpp
+@@ -172,10 +172,13 @@
+     /* A loop per copy gives the C++ compiler a basic block per assignment, and
+        its value numbering scans those superlinearly. One block copy is
+        equivalent here: a bare reference over a single dimension is contiguous,
+-       cannot overlap the destination since a register splits into current and
+-       next state. Element storage sizes must agree, and neither truncation nor
++       normally copies distinct current/next state. An exact identical reference
++       is handled below as a no-op. Element storage sizes must agree, and neither truncation nor
+        sign extension may be needed. The count comes from the dimension rather
+        than sizeof, which keeps a prefix copy exact. */
++    // This same-layout bare-reference branch may also see a cloned hold
++    // assignment. Exact self-copy is a no-op, not an overlapping memcpy.
++    if (lvalue == rinfo->arrayRef()) return ret;
+     ret = format("memcpy(%s, %s, %d * sizeof(%s[0]));",
+                  lvalue.c_str(), rinfo->arrayRef().c_str(), num, lvalue.c_str());
+   } else {
+--- a/src/mergeNodes.cpp
++++ b/src/mergeNodes.cpp
+@@ -213,62 +213,40 @@
+ }
+ 
+ void graph::mergeResetAll() {
+-  std::map<Node*, std::pair<SuperNode*, SuperNode*>> resetSuper; // node as uint / async reset
++  // Async reset is already part of CURRENT/NEXT expressions and their true
++  // dependency graph. Only UInt resets retain the pre-promotion reset phase.
++  std::map<Node*, SuperNode*> resetSuper;
+   for (Node* reg : regsrc) {
+-    if (reg->reset != UINTRESET && reg->reset != ASYRESET) continue;
++    if (reg->reset != UINTRESET) continue;
+     std::set<Node*> prev;
+-    if (reg->resetTree->getRoot()->opType == OP_RESET) {
+-      getENodeRelyNodes(reg->resetTree->getRoot()->getChild(0), prev);
+-    } else {
+-      Panic();
+-      reg->resetTree->getRelyNodes(prev);
+-    }
+-    if (prev.size() != 1) reg->display();
++    Assert(reg->resetTree->getRoot()->opType == OP_RESET, "invalid reset tree");
++    getENodeRelyNodes(reg->resetTree->getRoot()->getChild(0), prev);
+     Assert(prev.size() == 1, "multiple prevReset %s", reg->name.c_str());
+-    Node* prevNode = *prev.begin();
+-    SuperNode* uintSuper, *asyncSuper;
+-    if (resetSuper.find(prevNode) == resetSuper.end()) {
+-      uintSuper = new SuperNode();
+-      uintSuper->superType = SUPER_UINT_RESET;
+-      asyncSuper = new SuperNode();
+-      asyncSuper->superType = SUPER_ASYNC_RESET;
+-      uintSuper->resetNode = asyncSuper->resetNode = prevNode;
+-      resetSuper[prevNode] = std::make_pair(uintSuper, asyncSuper);
+-    } else {
+-      std::tie(uintSuper, asyncSuper) = resetSuper[prevNode];
+-    }
++    Node* control = *prev.begin();
++    SuperNode* super;
++    if (resetSuper.find(control) == resetSuper.end()) {
++      super = new SuperNode();
++      super->superType = SUPER_UINT_RESET;
++      super->resetNode = control;
++      resetSuper[control] = super;
++    } else super = resetSuper[control];
+     Node* resetReg = reg->dup(NODE_REG_RESET, reg->name);
+     resetReg->regNext = reg;
+     resetReg->assignTree.push_back(new ExpTree(reg->resetTree->getRoot(), resetReg));
+-    if (reg->reset == ASYRESET) asyncSuper->add_member(resetReg);
+-    else uintSuper->add_member(resetReg);
+-
++    super->add_member(resetReg);
+     if (reg->getDst()->status == VALID_NODE) {
+-      Node* resetRegDst = reg->dup(NODE_REG_RESET, reg->getDst()->name);
+-      resetRegDst->regNext = reg;
+-      resetRegDst->assignTree.push_back(new ExpTree(reg->resetTree->getRoot(), resetRegDst));
+-      if (reg->reset == ASYRESET) asyncSuper->add_member(resetRegDst);
+-      else uintSuper->add_member(resetRegDst);
+-    }
+-  }
+-  for (auto iter : resetSuper) {
+-    SuperNode* uintSuper = iter.second.first;
+-    SuperNode* asyncSuper = iter.second.second;
+-    if (uintSuper->member.size() != 0) {
+-      allReset.push_back(uintSuper);
+-      iter.first->setUIntReset();
+-    }
+-    if (asyncSuper->member.size() != 0) {
+-      allReset.push_back(asyncSuper);
+-      iter.first->setAsyncReset();
+-      /* Keep special super types such as extmodules on their own emit path. */
+-      if (iter.first->super->superType == SUPER_VALID) {
+-        iter.first->super->superType = SUPER_ASYNC_RESET;
+-        iter.first->super->resetNode = asyncSuper->resetNode;
+-      }
+-    }
+-  }
+-}
++      Node* resetDst = reg->dup(NODE_REG_RESET, reg->getDst()->name);
++      resetDst->regNext = reg;
++      resetDst->assignTree.push_back(new ExpTree(reg->resetTree->getRoot(), resetDst));
++      super->add_member(resetDst);
++    }
++  }
++  for (auto entry : resetSuper) {
++    allReset.push_back(entry.second);
++    entry.first->setUIntReset();
++  }
++}
++
+ /*
+   merge nodes with out-degree=1 to their successors
+ */
+--- a/src/replication.cpp
++++ b/src/replication.cpp
+@@ -61,6 +61,11 @@
+   size_t oldNum = countNodes();
+   size_t oldSuper = sortedSuper.size();
+   std::set<Node*> mustNodes;
++  // resetTree remains optimizer/dependency metadata even when async reset is
++  // expression-lowered. Pin its post-split references, not pre-split identities.
++  for (Node* reg : regsrc) {
++    if (reg->resetTree) reg->resetTree->getRelyNodes(mustNodes);
++  }
+   for (SuperNode* super : sortedSuper) { // TODO: support op in index
+     for (Node* member : super->member) {
+       if (!member->isArray()) continue;
+@@ -80,7 +85,9 @@
+     for (Node* member : super->member) {
+       int op = member->repOpCount();
+       int threadHold = super->member.size() == 1 ? 3 : 0;
+-      if (mustNodes.find(member) != mustNodes.end() || op < 0 || op * (int)member->next.size() >= threadHold || !member->anyExtEdge()) {
++      // Reset groups retain this exact node outside ordinary assignTree edges.
++      // Replicating it would orphan allReset/resetNode and lose reset scheduling.
++      if (member->isReset() || mustNodes.find(member) != mustNodes.end() || op < 0 || op * (int)member->next.size() >= threadHold || !member->anyExtEdge()) {
+         opNum[member] = -1; // mark node is valid
+       } else {
+         opNum[member] = op; // mark node is replicated
+--- a/src/splitArray.cpp
++++ b/src/splitArray.cpp
+@@ -328,6 +328,7 @@
+   std::vector<Node*> arrayMember;
+   for (int i = 0; i < entryNum; i ++) {
+     arrayMember.push_back(node->arrayMemberNode(i));
++    allNodes.push_back(arrayMember.back());
+   }
+   splitArrayMap[node] = arrayMember;
+   /* distribute arrayVal */
+--- a/src/topoSort.cpp
++++ b/src/topoSort.cpp
+@@ -36,6 +36,12 @@
+       }
+     }
+   }
++  // A mixed true/anti-dependency cycle must not silently drop its component.
++  std::set<SuperNode*> expected;
++  for (Node* node : allNodes) {
++    if (node->status != DEAD_NODE && node->super) expected.insert(node->super);
++  }
++  Assert(visited == expected, "incomplete reset/data dependency order: visited %ld of %ld", visited.size(), expected.size());
+   /* insert registers */
+   sortedSuper.insert(sortedSuper.end(), potentialRegs.begin(), potentialRegs.end());
+   /* order sortedSuper */

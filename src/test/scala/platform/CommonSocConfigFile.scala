@@ -4,7 +4,7 @@ import java.nio.file.{Files, Paths}
 import soc.platform._
 import upickle.core.{ObjVisitor, Visitor}
 
-/** Schema v1 retains its original shape; v2 adds explicit backend capacities.
+/** Schema v1 retains its original shape; v2 adds backend capacities and peripheral choices.
   * JSON belongs to the generator, not to synthesizable hardware configuration.
   */
 object CommonSocConfigFile {
@@ -55,25 +55,30 @@ object CommonSocConfigFile {
         val spec = CommonA1CpuSpec(owners.num.toInt, capacity("robEntries", 16), capacity("physicalRegs", 48))
         val peripherals = value("peripherals")
         val peripheralFields = Set("jtagDownload") ++
-            (if (expanded && peripherals.isInstanceOf[ujson.Obj] && peripherals.obj.contains("memoryCopyDma")) Set("memoryCopyDma")
-             else Set.empty[String])
+            (if (expanded && peripherals.isInstanceOf[ujson.Obj])
+                Set("memoryCopyDma", "network").filter(peripherals.obj.contains) else Set.empty[String])
         fields(peripherals, peripheralFields, "peripherals")
         require(peripherals("jtagDownload").isInstanceOf[ujson.Bool], "peripherals.jtagDownload must be boolean")
-        val memoryCopyDma = peripherals.obj.get("memoryCopyDma").map { value =>
-            require(value.isInstanceOf[ujson.Bool], "peripherals.memoryCopyDma must be boolean")
+        def optionalBoolean(key: String): Boolean = peripherals.obj.get(key).map { value =>
+            require(value.isInstanceOf[ujson.Bool], s"peripherals.$key must be boolean")
             value.bool
         }.getOrElse(true)
         CommonSocConfig(CommonCpuProfile.A1, Some(spec),
-            CommonPeripheralConfig(peripherals("jtagDownload").bool, memoryCopyDma))
+            CommonPeripheralConfig(peripherals("jtagDownload").bool,
+                optionalBoolean("memoryCopyDma"), optionalBoolean("network")))
     }
 
     /** Current fixed-COE export contract, not a restriction on FPGA hardware.
       * Programmable exports contain no firmware and require a compatible custom image.
       */
-    def validateFirmware(config: CommonSocConfig, vivadoMemories: Boolean): Unit =
+    def validateFirmware(config: CommonSocConfig, vivadoMemories: Boolean): Unit = {
         require(config.peripherals.memoryCopyDma || !vivadoMemories,
             "DMA-off production-Vivado export is unsupported by the current fixed-COE firmware contract; " +
                 "use programmable export with DMA-aware custom firmware")
+        require(config.peripherals.network || !vivadoMemories,
+            "network-off production-Vivado export is unsupported by the current fixed-COE netboot firmware contract; " +
+                "use programmable export with network-aware custom firmware")
+    }
 
     /** A file replaces, never overrides or merges with, legacy selectors. */
     def select(cpuArgument: String, options: Seq[String]): CommonSocConfig =
@@ -106,5 +111,5 @@ object CommonSocConfigFile {
             "physicalRegs" -> config.cpuSpec.map(s => ujson.Num(s.physicalRegs)).getOrElse(ujson.Null),
             "experimentalProfile" -> config.a1Experimental.map(s => ujson.Str(s.name)).getOrElse(ujson.Null)),
         "peripherals" -> ujson.Obj("jtagDownload" -> config.peripherals.jtagDownload,
-            "memoryCopyDma" -> config.peripherals.memoryCopyDma))
+            "memoryCopyDma" -> config.peripherals.memoryCopyDma, "network" -> config.peripherals.network))
 }

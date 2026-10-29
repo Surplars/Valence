@@ -46,4 +46,34 @@ class CommonPeripheralConfigSpec extends AnyFunSuite {
         assert(off.features.networkDma && off.features.ethernetControl && off.features.clockManagement)
     }
 
+    test("all eight static compositions retain fixed apertures and independent device choices") {
+        val full = CommonPeripheralConfig()
+        for (network <- Seq(false, true); jtag <- Seq(false, true); dma <- Seq(false, true)) {
+            val selection = CommonPeripheralConfig(jtag, dma, network)
+            assert(selection.features.ethernetControl == network && selection.features.networkDma == network)
+            assert(selection.features.jtagDownload == jtag && selection.features.memoryCopyDma == dma)
+            assert(selection.features.clockManagement)
+            val absent = (if (network) Set.empty[String] else Set("ethernet", "network-dma")) ++
+                (if (jtag) Set.empty[String] else Set("jtag")) ++ (if (dma) Set.empty[String] else Set("dma"))
+            assert(selection.mmioRegions == full.mmioRegions.filterNot(r => absent(r.name)))
+            val soc = CommonSocConfig(CommonCpuProfile.A1, peripherals = selection)
+            assert(soc.cmu.resources.size == 7)
+            assert(soc.cmu.resources.take(5) == CommonCpuProfile.A1.cmu.resources.take(5))
+            assert(soc.cmu.resources.map(_.name) == CommonCpuProfile.A1.cmu.resources.map(_.name))
+            assert(soc.cmu.presentMask == (if (network) 0x7f else 0x1f))
+            assert(soc.cmu.gateableMask == (if (network) 0x68 else 0x08))
+            assert(soc.cpuConfig(soc.profile.boundary) == soc.profile.fpga)
+        }
+        assert(CommonPeripheralConfig(false, false).network)
+    }
+
+    test("network-off rejects real runtime network ownership instead of fabricating drain completion") {
+        val off = CommonPeripheralConfig(network = false)
+        off.validateRuntime(runtimeDebugAdmission = true, runtimeNetworkAdmission = false)
+        val failure = intercept[IllegalArgumentException] {
+            off.validateRuntime(runtimeDebugAdmission = true, runtimeNetworkAdmission = true)
+        }
+        assert(failure.getMessage.contains("requires the GMAC and packet DMA"))
+    }
+
 }

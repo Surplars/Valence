@@ -483,27 +483,27 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         bank.sourceClock := clock
         bank.alwaysOnClock := io.alwaysOnClock.get
         bank.rawUartClock := io.peripheralClock.get
-        bank.rawTxClock := io.nativeGmac.get.rawTxClock
-        bank.rawRxClock := io.nativeGmac.get.rawRxClock
+        bank.rawTxClock.get := io.nativeGmac.get.rawTxClock
+        bank.rawRxClock.get := io.nativeGmac.get.rawRxClock
         bank.commonReset := (reset.asBool || io.ddrReady.map(ready => !ready).getOrElse(false.B)).asAsyncReset
         bank.cmuRegisters <> platform.io.clockManagementRegisters.get
         bank.uartRegisters <> platform.io.externalUartRegisters.get
         platform.io.externalUartIrq.get := bank.uartIrq
-        bank.gmacRegisters <> platform.io.ethernetRegisters.get
-        bank.streams <> platform.io.ethernetStreams.get
+        bank.gmacRegisters.get <> platform.io.ethernetRegisters.get
+        bank.streams.get <> platform.io.ethernetStreams.get
         bank.uartRx := io.uartRx
-        bank.gmiiRxData := io.nativeGmac.get.rxData
-        bank.gmiiRxValid := io.nativeGmac.get.rxValid
-        bank.gmiiRxError := io.nativeGmac.get.rxError
-        bank.linkUp := io.nativeGmac.get.linkUp
+        bank.gmiiRxData.get := io.nativeGmac.get.rxData
+        bank.gmiiRxValid.get := io.nativeGmac.get.rxValid
+        bank.gmiiRxError.get := io.nativeGmac.get.rxError
+        bank.linkUp.get := io.nativeGmac.get.linkUp
         if (triSpeedEthernet) bank.triSpeedRgmii.get <> io.nativeGmac.get.triSpeedRgmii.get
-        bank.mdioIn := io.nativeGmac.get.mdioIn
-        io.nativeGmac.get.txData := bank.gmiiTxData
-        io.nativeGmac.get.txEnable := bank.gmiiTxEnable
-        io.nativeGmac.get.txError := bank.gmiiTxError
-        io.nativeGmac.get.mdc := bank.mdc
-        io.nativeGmac.get.mdioOut := bank.mdioOut
-        io.nativeGmac.get.mdioOe := bank.mdioOe
+        bank.mdioIn.get := io.nativeGmac.get.mdioIn
+        io.nativeGmac.get.txData := bank.gmiiTxData.get
+        io.nativeGmac.get.txEnable := bank.gmiiTxEnable.get
+        io.nativeGmac.get.txError := bank.gmiiTxError.get
+        io.nativeGmac.get.mdc := bank.mdc.get
+        io.nativeGmac.get.mdioOut := bank.mdioOut.get
+        io.nativeGmac.get.mdioOe := bank.mdioOe.get
         Some(bank)
     } else None
     val ethernetIrq = if (ethernetControl && !managedPeripherals) {
@@ -541,7 +541,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         irq.resetIn := bridge.sourceReset
         irq.levelIn := io.ethernetIrq.get
         irq.levelOut
-    } else nativeBank.map(_.gmacIrq).getOrElse(false.B)
+    } else nativeBank.map(_.gmacIrq.get).getOrElse(false.B)
     val cmuIrq = nativeBank.map(_.cmuIrq).getOrElse(cmuConfig.map { config =>
         val manager = Module(new ClockManagementBoundary(config))
         manager.sourceClock := clock

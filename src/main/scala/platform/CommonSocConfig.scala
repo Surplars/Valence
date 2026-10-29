@@ -10,6 +10,13 @@ case class CommonSocConfig(
     peripherals: CommonPeripheralConfig = CommonPeripheralConfig(),
     a1Experimental: Option[CommonA1ExperimentalSelection] = None
 ) {
+    // Keep the seven-resource software ABI. An absent MAC is not a gated or
+    // immediately-drained endpoint, and cannot accept CMU stop requests.
+    val cmu = if (peripherals.network) profile.cmu else profile.cmu.copy(
+        resources = profile.cmu.resources.zipWithIndex.map { case (resource, index) =>
+            if (index == 5 || index == 6) resource.copy(present = false, canGate = false) else resource
+        })
+
     def cpuConfig(boundary: CommonCpuTilePortParams, experimentalRuntime: Boolean = false) =
         CommonA1CpuSpec.resolve(profile, a1Experimental, cpuSpec, boundary, experimentalRuntime)
 }

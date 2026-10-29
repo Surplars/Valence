@@ -45,8 +45,8 @@ issue or return ports. Names describe settings, not measured performance tiers.
 
 JTAG means the RAM-download/DMI endpoint, not architectural halt/resume debug.
 Disabling it preserves the fixed ABI/MMIO hole and all other peripherals; it does
-not renumber IRQs or move devices. UART, Ethernet, DMA and clock management remain
-mandatory. Existing I1, clock and experimental selections remain on the legacy
+not renumber IRQs or move devices. Schema 1 retains Ethernet, ordinary DMA, UART and clock management; schema 2
+adds the optional composition axes described below. Existing I1, clock and experimental selections remain on the legacy
 CLI, with their original constraints; file schema 1 does not expand them.
 
 ## File schema 2: backend-window capacities
@@ -117,8 +117,9 @@ not assert IPC, bandwidth, Fmax, area, timing closure or board correctness.
    two ways and two read-MSHR/response/writeback entries. Merely changing an outer
    JSON field would be misleading. Cache/home/sink-credit constraints and coherence
    tests must close together before exposing a real cache axis.
-3. **Other peripherals:** only JTAG has end-to-end optional presence today.
-   Other options require actual conditional instances/ports, unchanged ABI holes,
+3. **Other peripherals:** JTAG and ordinary DMA have end-to-end optional presence;
+   the network subsystem is the next bounded composition batch below.
+   Further options require actual conditional instances/ports, unchanged ABI holes,
    interrupt/software descriptions and focused routing tests, not just feature bits.
 4. **Width:** remains two-wide in this flow. Wider issue/retire is not unlocked by
    this work or by unrelated component parameter ranges.
@@ -280,3 +281,84 @@ Evidence: `build/memory-copy-dma-20261029-r2/TERMINAL_RESULTS.json`, with the or
 r1 failure and both durable source checkpoints retained separately. This does not
 qualify full-CPU execution, runtime clock crossing, Linux boot, FPGA deployment,
 IPC/bandwidth, area, frequency or timing.
+
+
+## Static network-subsystem selection
+
+Schema 2 optionally accepts `peripherals.network` as a Boolean, defaulting to
+`true`. Schema 1 keeps its exact original field set. The choice jointly controls
+the GMAC/PHY-management logic and Ethernet packet DMA; it is not a packet-DMA-only
+switch. `a1-rob16-prf48-lsu2-network-off.json` is a concrete programmable-ROM preset.
+Network, JTAG download and ordinary memory-copy DMA are independent static choices.
+
+With network disabled, the actual MAC, packet DMA and their external register,
+stream, PHY and raw-clock ports are absent. UART, timebase, CMU, CPU configuration,
+DDR interface and Home coherence remain. The network-DMA aperture at
+`0x10002000..0x100020ff` and Ethernet aperture at `0x10040000..0x1007ffff` become
+unmapped holes; devices and interrupt numbers are not shifted. Internal Ethernet
+IRQ 5 and packet-DMA IRQ 6 contributions disappear, but independent external
+sources at those numbers remain valid.
+
+CMU resource indices remain AON, CPU, TIME, UART, DDR_UI, GMAC_TX and GMAC_RX.
+The last two entries advertise `present=false` and `canGate=false`, producing
+present mask `0x1f` and gateable mask `0x08`. They are absent endpoints, not
+fake-drained or instantly acknowledged managed clocks. Network-dependent runtime
+admission/control/rate combinations remain rejected. The default enabled CMU
+retains masks `0x7f` and `0x68`.
+
+The exporter reports the actual network presence and CMU masks separately from
+CPU identity. Network removal does not identify a different CPU microarchitecture.
+The existing fixed-COE firmware calls netboot/GMAC discovery and quieting routines
+(`fpga/firmware/bootrom.c` and `netboot_board.c`) and the existing Linux description
+assumes network devices. Therefore this exporter rejects network-off with
+`--vivado-memories`; programmable exports require compatible custom firmware and
+software descriptions. This is the current image contract, not a hardware ban on
+network-free FPGA systems. No new firmware boot compatibility is asserted.
+
+### Focused network composition evidence (2026-10-29)
+
+The bounded batch passed 28 pure Scala checks and 5 structural tests, including
+all eight network × JTAG × ordinary-DMA compositions. Complete platform exports
+confirm actual MAC/packet-DMA removal, retained UART/CMU/coherent Home and unchanged
+CPU identity. The default SV remains byte-identical (`9a07752e…`), as does its CPU
+identity file (`82c3ddc8…`); all seven earlier JSON presets retain exact bytes.
+
+Two network-off Fabric models passed ASAN/UBSAN transaction checks. With ordinary
+DMA and JTAG present, dirty-owner probes, late probes, drain and JTAG SBA held-B
+and readback paths passed (2,932 cycles). With both absent, ordinary RAM/MMIO and
+zero-producer drain passed (1,588 cycles). Each checks 42 former network addresses
+with reads, writes and held error responses: all packet-DMA CSR words plus byte
+endpoints, and sparse GMAC interior/boundary samples—not every GMAC byte address.
+Owner preservation, no alias to DDR/endpoints, and external IRQ 5/6 delivery are
+checked. Each also rejects an observer-only hole-response error-bit mutation with
+exit 1 and the exact expected diagnostic. Different workloads mean these cycle
+counts are **not a bandwidth or performance comparison**.
+
+The actual network-off managed bank additionally passed four independent UART
+receive/wake sequences, one serial transmit, four absent-resource STOP rejections
+and 66 MMIO transactions (11,415 cycles), with ASAN/UBSAN. Its observer-only first
+UART receive-byte mutation is rejected with the exact expected diagnostic.
+
+These results use two explicit generator epochs. The Fabric models used the
+previously pinned GSIM with the initialization byte-span fix. The bank preserves
+its original AsyncReset FIR and original host/oracle, but uses the separately
+qualified reset-graph repair described in `simulator/gsim/tool_fixes/RESET_GRAPH.md`.
+The original bank generation was blocked before native compilation by missing
+reset aliases and unqualified reset scheduling. An initial two-site tool repair
+failed the unchanged held-reset oracle; the old tool also failed the unchanged
+synchronous-release oracle. These failures were retained, not hidden with a FIR
+reset-type rewrite. The final tool passed five named microfixtures, one observer
+negative and two generator rejection controls before the bank was regenerated
+and its actual reset/step interface independently reviewed.
+
+The repair is bounded by those fixtures and GSIM step semantics. Arbitrary chained
+synchronous reset-group networks, real-time setter edges, physical CDC and general
+RTL compiler equivalence remain unqualified. Fabric wide line-grant payloads are
+not independently inspected by these hosts. This batch does not measure full-CPU
+IPC, bandwidth, PPA, Linux boot, FPGA timing or runtime independent-clock behavior.
+
+Evidence is split between `build/network-option-20261029-r1/PARTIAL_RESULTS.json`
+(the immutable original source and Fabric epoch) and
+`build/network-option-reset-recovery-20261029-r1/EXECUTION_RESULT.json`
+(the unchanged bank under the qualified repaired tool). Public documentation and
+tool reproduction files are a separately reviewed post-validation addition.

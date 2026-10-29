@@ -48,17 +48,17 @@ class I1NetworkFpgaShell(p: FiveStageSocConfig, jtagChain: Int = 0,
     val bank = Module(new ManagedPeripheralBank(cmu, p.clockHz, uartHz, p.uartBaud, hardwareClocks,
         network, triSpeedEthernet = true, balancedRawClocks = hardwareClocks && p.core.coherentControlCuts))
     bank.sourceClock := io.clockIn; bank.alwaysOnClock := io.alwaysOnClock
-    bank.rawUartClock := io.uartClockIn; bank.rawTxClock := io.macTxClock; bank.rawRxClock := io.macRxClock
+    bank.rawUartClock := io.uartClockIn; bank.rawTxClock.get := io.macTxClock; bank.rawRxClock.get := io.macRxClock
     bank.commonReset := commonReset
     bank.cmuRegisters <> soc.io.cmuControl.get
     bank.uartRegisters <> soc.io.externalUart.get
-    bank.gmacRegisters <> soc.io.gmacControl.get
+    bank.gmacRegisters.get <> soc.io.gmacControl.get
     bank.uartRx := io.uartRx; io.uartTx := bank.uartTx
     bank.triSpeedRgmii.get <> io.rgmii
-    bank.gmiiRxData := 0.U; bank.gmiiRxValid := false.B; bank.gmiiRxError := false.B
-    bank.linkUp := false.B
-    bank.mdioIn := io.mdioIn
-    io.mdc := bank.mdc; io.mdioOut := bank.mdioOut; io.mdioOe := bank.mdioOe
+    bank.gmiiRxData.get := 0.U; bank.gmiiRxValid.get := false.B; bank.gmiiRxError.get := false.B
+    bank.linkUp.get := false.B
+    bank.mdioIn.get := io.mdioIn
+    io.mdc := bank.mdc.get; io.mdioOut := bank.mdioOut.get; io.mdioOe := bank.mdioOe.get
     io.clockEnabled := bank.enabled
     val dma = withClockAndReset(io.clockIn, release.resetOut) {
         Module(new EthernetPacketDma(p.networkDmaBase, p.ddrBase, p.ddrBytes,
@@ -67,9 +67,9 @@ class I1NetworkFpgaShell(p: FiveStageSocConfig, jtagChain: Int = 0,
     }
     dma.io.control <> soc.io.networkDmaControl.get
     soc.io.networkMemory.get <> dma.io.memory
-    bank.streams.txData <> dma.io.txData; bank.streams.txControl <> dma.io.txControl
-    dma.io.rxData <> bank.streams.rxData; dma.io.rxStatus <> bank.streams.rxStatus
-    soc.io.networkIrqs.get := Cat(bank.cmuIrq, dma.io.irq, bank.gmacIrq)
+    bank.streams.get.txData <> dma.io.txData; bank.streams.get.txControl <> dma.io.txControl
+    dma.io.rxData <> bank.streams.get.rxData; dma.io.rxStatus <> bank.streams.get.rxStatus
+    soc.io.networkIrqs.get := Cat(bank.cmuIrq, dma.io.irq, bank.gmacIrq.get)
     soc.io.externalUartIrq.get := bank.uartIrq
     soc.io.uartRx := true.B
     val irq = Module(new CdcLevel)

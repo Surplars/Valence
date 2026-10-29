@@ -183,4 +183,39 @@ class CommonSocConfigSpec extends AnyFunSuite {
         }
     }
 
+    test("schema 2 network option composes with DMA and JTAG and defaults on") {
+        for (network <- Seq(false, true); dma <- Seq(false, true); jtag <- Seq(false, true)) {
+            val json = expanded(16, 48).replace("\"jtagDownload\":true",
+                s"\"jtagDownload\":$jtag,\"memoryCopyDma\":$dma,\"network\":$network")
+            val config = CommonSocConfigFile.parse(json)
+            assert(config.peripherals == CommonPeripheralConfig(jtag, dma, network))
+            assert(CommonSocConfigFile.requested(config)("peripherals")("network").bool == network)
+            CommonSocConfigFile.validateFirmware(config, vivadoMemories = false)
+        }
+        assert(CommonSocConfigFile.parse(expanded(16, 48)).peripherals.network)
+        assert(CommonSocConfigFile.parse(text()).peripherals.network)
+        val preset = CommonSocConfigFile.parse(Files.readString(
+            Paths.get("config/common-soc/a1-rob16-prf48-lsu2-network-off.json")))
+        assert(preset.peripherals == CommonPeripheralConfig(network = false))
+        assert(preset.cpuSpec.contains(CommonA1CpuSpec(2)))
+    }
+
+    test("network field rejects old schema wrong types duplicates and fixed netboot firmware") {
+        val valid = expanded(16, 48).replace("\"jtagDownload\":true", "\"jtagDownload\":true,\"network\":false")
+        for (bad <- Seq("null", "0", "1", "\"off\"", "[]", "{}")) {
+            intercept[IllegalArgumentException] {
+                CommonSocConfigFile.parse(valid.replace("\"network\":false", s"\"network\":$bad"))
+            }
+        }
+        Seq(text().replace("\"jtagDownload\":true", "\"jtagDownload\":true,\"network\":false"),
+            valid.replace("\"network\":false", "\"network\":false,\"network\":true"),
+            valid.replace("\"network\":false", "\"network\":false,\"netw\\u006frk\":true"))
+            .foreach(bad => intercept[IllegalArgumentException] { CommonSocConfigFile.parse(bad) })
+        val failure = intercept[IllegalArgumentException] {
+            CommonSocConfigFile.validateFirmware(CommonSocConfigFile.parse(valid), vivadoMemories = true)
+        }
+        assert(failure.getMessage.contains("fixed-COE netboot firmware contract"))
+        CommonSocConfigFile.validateFirmware(CommonSocConfigFile.parse(expanded(16, 48)), vivadoMemories = true)
+    }
+
 }

@@ -213,8 +213,8 @@ class CommonFixedMacEpochFixture extends CommonI1RuntimeFixedFixture {
         bank.sourceClock := fabricClock
         bank.alwaysOnClock := alwaysOnClock
         bank.rawUartClock := alwaysOnClock
-        bank.rawTxClock := txClock
-        bank.rawRxClock := rxClock
+        bank.rawTxClock.get := txClock
+        bank.rawRxClock.get := rxClock
         bank.commonReset := commonColdReset
         for (port <- Seq(bank.cmuRegisters, bank.uartRegisters)) {
             port.request.valid := false.B
@@ -222,14 +222,14 @@ class CommonFixedMacEpochFixture extends CommonI1RuntimeFixedFixture {
             port.response.ready := true.B
         }
         bank.uartRx := true.B
-        bank.gmiiRxData := 0.U
-        bank.gmiiRxValid := false.B
-        bank.gmiiRxError := false.B
-        bank.linkUp := false.B // Unused legacy GMII input, not the real PHY.
-        bank.mdioIn := managed.mdioIn
-        managed.mdc := bank.mdc
-        managed.mdioOut := bank.mdioOut
-        managed.mdioOe := bank.mdioOe
+        bank.gmiiRxData.get := 0.U
+        bank.gmiiRxValid.get := false.B
+        bank.gmiiRxError.get := false.B
+        bank.linkUp.get := false.B // Unused legacy GMII input, not the real PHY.
+        bank.mdioIn.get := managed.mdioIn
+        managed.mdc := bank.mdc.get
+        managed.mdioOut := bank.mdioOut.get
+        managed.mdioOe := bank.mdioOe.get
         bank.triSpeedRgmii.get.rxRise := Cat(packet.gmiiRxValid, packet.gmiiRxData(3, 0))
         bank.triSpeedRgmii.get.rxFall := Cat(packet.gmiiRxValid ^ packet.gmiiRxError, packet.gmiiRxData(7, 4))
         managed.linkUp := bank.triSpeedRgmii.get.linkUp
@@ -244,12 +244,12 @@ class CommonFixedMacEpochFixture extends CommonI1RuntimeFixedFixture {
         }
         controlArbiter.io.masters(0) <> fabric.io.ethernetRegisters.get
         controlArbiter.io.masters(1) <> controlRegisters
-        bank.gmacRegisters <> controlArbiter.io.downstream
+        bank.gmacRegisters.get <> controlArbiter.io.downstream
     }
 
     override protected def wirePacketPlane(): Unit = {
         val streams = fabric.io.ethernetStreams.get
-        val endpoint = bank.streams
+        val endpoint = bank.streams.get
         streams.rxData <> endpoint.rxData
         streams.rxStatus <> endpoint.rxStatus
         val statusAllow = !packet.holdRxStatusLast || !endpoint.rxStatus.bits.last
@@ -279,7 +279,7 @@ class CommonFixedMacEpochFixture extends CommonI1RuntimeFixedFixture {
         // the CPU-side register port that could be temporarily unselected.
         a.io.controlProducersClosed := fabric.io.runtimeHeld.get.valid &&
             fabric.io.runtimeHeld.get.bits === network.io.held.bits && fabric.io.allObligationsIdle &&
-            !bank.gmacRegisters.request.valid && !controlRegisters.request.valid
+            !bank.gmacRegisters.get.request.valid && !controlRegisters.request.valid
         a.io.terminalConsumedAtAon := runtime.io.terminalConsumedAtAon.get
         a.io.retired := runtime.io.runtimeComplete.fire
         network.io.macRxDrained := a.io.rxDrained
@@ -306,9 +306,9 @@ class CommonFixedMacEpochFixture extends CommonI1RuntimeFixedFixture {
         packet.rxBadFcs := bank.observe.rxBadFcs
         packet.txBusy := bank.observe.txBusy
         packet.txDone := bank.observe.txDone
-        packet.gmiiTxData := bank.gmiiTxData
-        packet.gmiiTxEnable := bank.gmiiTxEnable
-        packet.gmiiTxError := bank.gmiiTxError
+        packet.gmiiTxData := bank.gmiiTxData.get
+        packet.gmiiTxEnable := bank.gmiiTxEnable.get
+        packet.gmiiTxError := bank.gmiiTxError.get
         packet.rxStatusLastBlocked := endpoint.rxStatus.valid && endpoint.rxStatus.bits.last && !statusAllow
         packet.txControlLastBlocked := streams.txControl.valid && streams.txControl.bits.last && !controlAllow
         packet.txDataLastBlocked := streams.txData.valid && streams.txData.bits.last && !dataAllow

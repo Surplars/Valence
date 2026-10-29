@@ -78,13 +78,13 @@ class ManagedRuntimeControlFixture(config: NetworkDmaConfig, slots: Int) extends
     bank.sourceClock := sourceClock
     bank.alwaysOnClock := alwaysOnClock
     bank.rawUartClock := rawUartClock
-    bank.rawTxClock := rawTxClock
-    bank.rawRxClock := rawRxClock
+    bank.rawTxClock.get := rawTxClock
+    bank.rawRxClock.get := rawRxClock
     bank.commonReset := commonReset
     bank.cmuRegisters <> cmuRegisters
     bank.uartRegisters <> uartRegisters
-    bank.gmacRegisters <> gmacRegisters
-    bank.streams <> streams
+    bank.gmacRegisters.get <> gmacRegisters
+    bank.streams.get <> streams
     bank.runtimeAdmissionPort.get <> runtimeAdmission
     bank.controlPark.get <> controlPark
     bank.triSpeedRgmii.get.rxRise := rawRgmiiRxRise
@@ -95,21 +95,21 @@ class ManagedRuntimeControlFixture(config: NetworkDmaConfig, slots: Int) extends
     requestedSpeed := bank.triSpeedRgmii.get.requestedSpeed
     appliedSpeed := bank.triSpeedRgmii.get.appliedSpeed
     mediaPending := bank.triSpeedRgmii.get.pending
-    bank.gmiiRxData := 0.U
-    bank.gmiiRxValid := false.B
-    bank.gmiiRxError := false.B
-    bank.linkUp := false.B // Unused legacy-GMII input, not the real PHY result.
-    bank.mdioIn := mdioIn
-    mdc := bank.mdc
-    mdioOut := bank.mdioOut
-    mdioOe := bank.mdioOe
-    gmiiTxData := bank.gmiiTxData
-    gmiiTxEnable := bank.gmiiTxEnable
-    gmiiTxError := bank.gmiiTxError
+    bank.gmiiRxData.get := 0.U
+    bank.gmiiRxValid.get := false.B
+    bank.gmiiRxError.get := false.B
+    bank.linkUp.get := false.B // Unused legacy-GMII input, not the real PHY result.
+    bank.mdioIn.get := mdioIn
+    mdc := bank.mdc.get
+    mdioOut := bank.mdioOut.get
+    mdioOe := bank.mdioOe.get
+    gmiiTxData := bank.gmiiTxData.get
+    gmiiTxEnable := bank.gmiiTxEnable.get
+    gmiiTxError := bank.gmiiTxError.get
     bank.uartRx := uartRx
     uartTx := bank.uartTx
     uartIrq := bank.uartIrq
-    gmacIrq := bank.gmacIrq
+    gmacIrq := bank.gmacIrq.get
     cmuIrq := bank.cmuIrq
     enabled := bank.enabled
     quiesce := bank.quiesce

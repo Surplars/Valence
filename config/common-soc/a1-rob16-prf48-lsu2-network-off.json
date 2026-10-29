@@ -1,0 +1,15 @@
+{
+  "schema": 2,
+  "cpu": {
+    "kind": "a1",
+    "clockProfile": "production",
+    "lsuOwners": 2,
+    "robEntries": 16,
+    "physicalRegs": 48
+  },
+  "peripherals": {
+    "jtagDownload": true,
+    "memoryCopyDma": true,
+    "network": false
+  }
+}

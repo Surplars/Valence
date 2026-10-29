@@ -35,7 +35,8 @@ class CommonPlatformRuntimePort(p: CommonCpuTilePortParams) extends Bundle {
   * clock by default. independentDdrClock inserts a complete five-channel AXI
   * crossing to the separately supplied fixed DDR UI clock; board CDC/STA signoff
   * remains required before enabling that configuration. All raw/CPU/fabric clocks must remain running.
-  * This is a native tri-speed RGMII-edge/DMI/AXI assembly, not an FPGA pin/MMCM/MIG wrapper.
+  * The static composition may omit network and DMI endpoints. This is a native
+  * assembly, not an FPGA pin/MMCM/MIG wrapper.
   */
 class CommonMachinePlatform(
     val profile: CommonCpuProfile,
@@ -63,7 +64,7 @@ class CommonMachinePlatform(
     val cpuSpec: Option[CommonA1CpuSpec] = None
 ) extends RawModule {
     val socConfig = CommonSocConfig(profile, cpuSpec, peripheralConfig, a1Experimental)
-    socConfig.peripherals.validateRuntime(runtimeDebugAdmission)
+    socConfig.peripherals.validateRuntime(runtimeDebugAdmission, runtimeNetworkAdmission)
     require(!experimentalA1Runtime || (profile == CommonCpuProfile.A1Boot50 &&
         runtimeRateControl && performanceTelemetry && independentDebugClock && independentDdrClock &&
         independentTimebaseClock && runtimeNetworkAdmission && runtimeFixedQualification &&
@@ -113,8 +114,8 @@ class CommonMachinePlatform(
     val timebaseClock = if (independentTimebaseClock) Some(IO(Input(Clock()))) else None
     val debugClock = if (independentDebugClock) Some(IO(Input(Clock()))) else None
     val rawUartClock = IO(Input(Clock()))
-    val rawTxClock = IO(Input(Clock()))
-    val rawRxClock = IO(Input(Clock()))
+    val rawTxClock = if (peripheralConfig.network) Some(IO(Input(Clock()))) else None
+    val rawRxClock = if (peripheralConfig.network) Some(IO(Input(Clock()))) else None
     val commonColdReset = IO(Input(AsyncReset()))
     val io = IO(new Bundle {
         val ddrAxi = new Axi4MemoryPort(32, profile.fpga.ddr.axiIdWidth)
@@ -123,11 +124,18 @@ class CommonMachinePlatform(
         val bootEnable = Input(Bool())
         val sources = Input(UInt(CommonPlatformAbi.interruptSources.W))
         val uartRx = Input(Bool()); val uartTx = Output(Bool())
-        val gmiiRxData = Input(UInt(8.W)); val gmiiRxValid = Input(Bool()); val gmiiRxError = Input(Bool())
-        val gmiiTxData = Output(UInt(8.W)); val gmiiTxEnable = Output(Bool()); val gmiiTxError = Output(Bool())
-        val linkUp = Input(Bool()); val mdc = Output(Bool()); val mdioIn = Input(Bool())
-        val triSpeedRgmii = new soc.ip.ethernet.TriSpeedRgmiiPortV1
-        val mdioOut = Output(Bool()); val mdioOe = Output(Bool())
+        val gmiiRxData = if (peripheralConfig.network) Some(Input(UInt(8.W))) else None
+        val gmiiRxValid = if (peripheralConfig.network) Some(Input(Bool())) else None
+        val gmiiRxError = if (peripheralConfig.network) Some(Input(Bool())) else None
+        val gmiiTxData = if (peripheralConfig.network) Some(Output(UInt(8.W))) else None
+        val gmiiTxEnable = if (peripheralConfig.network) Some(Output(Bool())) else None
+        val gmiiTxError = if (peripheralConfig.network) Some(Output(Bool())) else None
+        val linkUp = if (peripheralConfig.network) Some(Input(Bool())) else None
+        val mdc = if (peripheralConfig.network) Some(Output(Bool())) else None
+        val mdioIn = if (peripheralConfig.network) Some(Input(Bool())) else None
+        val triSpeedRgmii = if (peripheralConfig.network) Some(new soc.ip.ethernet.TriSpeedRgmiiPortV1) else None
+        val mdioOut = if (peripheralConfig.network) Some(Output(Bool())) else None
+        val mdioOe = if (peripheralConfig.network) Some(Output(Bool())) else None
         val jtagDmi = if (peripheralConfig.jtagDownload) Some(Flipped(new DebugDmiPort(7))) else None
         val jtagLinkUp = if (peripheralConfig.jtagDownload) Some(Input(Bool())) else None
         val maintenance = Flipped(Decoupled(new CommonTileMaintenanceCommand(boundary)))
@@ -370,9 +378,10 @@ class CommonMachinePlatform(
     fabric.io.program.foreach(_ := io.program.get)
     fabric.io.uartRx := true.B // actual UART is the shared managed bank below
     protected def buildPeripheralBank(): ManagedPeripheralBank =
-        new ManagedPeripheralBank(profile.cmu, profile.cpuHz, profile.uartHz,
+        new ManagedPeripheralBank(socConfig.cmu, profile.cpuHz, profile.uartHz,
         profile.uartBaud, hardwareClocks, networkDmaConfig = profile.fpga.network,
-        triSpeedEthernet = true, triSpeedTxFrameSlots = 2, runtimeAdmission = runtimeNetworkAdmission,
+        triSpeedEthernet = peripheralConfig.network, triSpeedTxFrameSlots = (if (peripheralConfig.network) 2 else 1),
+        networkEnabled = peripheralConfig.network, runtimeAdmission = runtimeNetworkAdmission,
         runtimeControlPark = runtimeControlQualification, runtimeFixedMac = runtimeFixedMac,
         runtimeRateControl = runtimeRateControl, performanceTelemetry = performanceTelemetry,
         sourceClockHz = profile.fabricHz, rateDomains = Some(configuredRateDomains))
@@ -402,8 +411,10 @@ class CommonMachinePlatform(
     }
     }
     peripherals.sourceClock := fabricClock; peripherals.alwaysOnClock := alwaysOnClock
-    peripherals.rawUartClock := rawUartClock; peripherals.rawTxClock := rawTxClock
-    peripherals.rawRxClock := rawRxClock; peripherals.commonReset := commonColdReset
+    peripherals.rawUartClock := rawUartClock
+    peripherals.rawTxClock.foreach(_ := rawTxClock.get)
+    peripherals.rawRxClock.foreach(_ := rawRxClock.get)
+    peripherals.commonReset := commonColdReset
     if (!runtimeRateControl) {
         // Production CMU extension is discoverable, but no clock backend or real
         // CPU/fabric quiesce endpoint is connected yet. Explicit absence rejects
@@ -517,18 +528,21 @@ class CommonMachinePlatform(
     }
     peripherals.cmuRegisters <> fabric.io.clockManagementRegisters.get
     peripherals.uartRegisters <> fabric.io.externalUartRegisters.get
-    peripherals.gmacRegisters <> fabric.io.ethernetRegisters.get
-    peripherals.streams <> fabric.io.ethernetStreams.get
     fabric.io.externalUartIrq.get := peripherals.uartIrq
-    fabric.io.sources := io.sources | (peripherals.gmacIrq.asUInt << CommonPlatformAbi.interruptBit(5)) |
-        (peripherals.cmuIrq.asUInt << CommonPlatformAbi.interruptBit(7))
+    fabric.io.sources := io.sources | ((if (peripheralConfig.network) peripherals.gmacIrq.get.asUInt else 0.U) <<
+        CommonPlatformAbi.interruptBit(5)) | (peripherals.cmuIrq.asUInt << CommonPlatformAbi.interruptBit(7))
     peripherals.uartRx := io.uartRx; io.uartTx := peripherals.uartTx
-    peripherals.gmiiRxData := io.gmiiRxData; peripherals.gmiiRxValid := io.gmiiRxValid
-    peripherals.gmiiRxError := io.gmiiRxError; peripherals.linkUp := io.linkUp
-    peripherals.triSpeedRgmii.get <> io.triSpeedRgmii
-    io.gmiiTxData := peripherals.gmiiTxData; io.gmiiTxEnable := peripherals.gmiiTxEnable
-    io.gmiiTxError := peripherals.gmiiTxError; io.mdc := peripherals.mdc
-    peripherals.mdioIn := io.mdioIn; io.mdioOut := peripherals.mdioOut; io.mdioOe := peripherals.mdioOe
+    if (peripheralConfig.network) {
+        peripherals.gmacRegisters.get <> fabric.io.ethernetRegisters.get
+        peripherals.streams.get <> fabric.io.ethernetStreams.get
+        peripherals.gmiiRxData.get := io.gmiiRxData.get; peripherals.gmiiRxValid.get := io.gmiiRxValid.get
+        peripherals.gmiiRxError.get := io.gmiiRxError.get; peripherals.linkUp.get := io.linkUp.get
+        peripherals.triSpeedRgmii.get <> io.triSpeedRgmii.get
+        io.gmiiTxData.get := peripherals.gmiiTxData.get; io.gmiiTxEnable.get := peripherals.gmiiTxEnable.get
+        io.gmiiTxError.get := peripherals.gmiiTxError.get; io.mdc.get := peripherals.mdc.get
+        peripherals.mdioIn.get := io.mdioIn.get
+        io.mdioOut.get := peripherals.mdioOut.get; io.mdioOe.get := peripherals.mdioOe.get
+    }
 
     io.retire := 0.U.asTypeOf(io.retire)
     io.trap := 0.U.asTypeOf(io.trap)

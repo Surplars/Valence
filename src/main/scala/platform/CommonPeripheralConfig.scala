@@ -1,18 +1,22 @@
 package soc.platform
 
 /** Supported composition choices for the common platform, separate from CPU
-  * geometry and microarchitecture qualification. Other peripherals remain present.
+  * geometry and microarchitecture qualification. UART and clock management remain present.
   * Disabling a device leaves its ABI address unused; it never renumbers devices.
   */
-case class CommonPeripheralConfig(jtagDownload: Boolean = true, memoryCopyDma: Boolean = true) {
+case class CommonPeripheralConfig(jtagDownload: Boolean = true, memoryCopyDma: Boolean = true,
+    network: Boolean = true) {
     val features: CommonPlatformFeatures = CommonPlatformFeatures(
-        ethernetControl = true, networkDma = true, jtagDownload = jtagDownload, clockManagement = true,
+        ethernetControl = network, networkDma = network, jtagDownload = jtagDownload, clockManagement = true,
         memoryCopyDma = memoryCopyDma)
     val mmioRegions: Seq[CommonAddressRegion] = CommonPlatformAbi.cpuMmioRegions(features)
 
-    def validateRuntime(runtimeDebugAdmission: Boolean): Unit =
+    def validateRuntime(runtimeDebugAdmission: Boolean, runtimeNetworkAdmission: Boolean = false): Unit = {
         require(!runtimeDebugAdmission || jtagDownload,
             "runtime debug admission requires the JTAG RAM-download endpoint")
+        require(!runtimeNetworkAdmission || network,
+            "runtime network admission requires the GMAC and packet DMA subsystem")
+    }
 }
 
 object CommonPeripheralConfig {

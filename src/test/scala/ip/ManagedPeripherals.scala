@@ -42,27 +42,27 @@ class ManagedPeripheralGsim extends Module {
     bank.sourceClock := clock
     bank.alwaysOnClock := clock
     bank.rawUartClock := clock
-    bank.rawTxClock := clock
-    bank.rawRxClock := clock
+    bank.rawTxClock.get := clock
+    bank.rawRxClock.get := clock
     bank.commonReset := reset.asBool.asAsyncReset
     bank.cmuRegisters <> io.cmu
     bank.uartRegisters <> io.uart
-    bank.gmacRegisters <> io.gmac
-    bank.streams <> io.streams
+    bank.gmacRegisters.get <> io.gmac
+    bank.streams.get <> io.streams
     bank.uartRx := io.uartRx
-    bank.gmiiRxData := io.rxData
-    bank.gmiiRxValid := io.rxValid
-    bank.gmiiRxError := io.rxError
-    bank.linkUp := true.B
-    bank.mdioIn := true.B
+    bank.gmiiRxData.get := io.rxData
+    bank.gmiiRxValid.get := io.rxValid
+    bank.gmiiRxError.get := io.rxError
+    bank.linkUp.get := true.B
+    bank.mdioIn.get := true.B
     io.uartTx := bank.uartTx
-    io.txData := bank.gmiiTxData
-    io.txEnable := bank.gmiiTxEnable
-    io.txError := bank.gmiiTxError
+    io.txData := bank.gmiiTxData.get
+    io.txEnable := bank.gmiiTxEnable.get
+    io.txError := bank.gmiiTxError.get
     io.enabled := bank.enabled
     io.quiesce := bank.quiesce
     io.isolate := bank.isolate
-    io.irq := Cat(bank.cmuIrq, bank.gmacIrq, bank.uartIrq)
+    io.irq := Cat(bank.cmuIrq, bank.gmacIrq.get, bank.uartIrq)
 }
 
 object ManagedPeripheralsGsimMain extends App {

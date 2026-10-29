@@ -92,10 +92,11 @@ class CommonFabricFlatPort(fields: Seq[(String, Data)]) extends Record {
     }: _*)
 }
 class CommonMachineFabricFlatGsim(runtime: Boolean, cancellation: Boolean = false,
-    jtagDownload: Boolean = true, memoryCopyDma: Boolean = true) extends Module {
+    jtagDownload: Boolean = true, memoryCopyDma: Boolean = true, network: Boolean = true) extends Module {
     val fabric = Module(new CommonMachineFabric(
         boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime, runtimeCancellation = cancellation),
-        features = CommonPeripheralConfig(jtagDownload = jtagDownload, memoryCopyDma = memoryCopyDma).features,
+        features = CommonPeripheralConfig(jtagDownload = jtagDownload, memoryCopyDma = memoryCopyDma,
+            network = network).features,
         programmable = true))
     private def leaves(data: Data, prefix: String): Seq[(String, Data)] = data match {
         case record: Record => record.elements.toSeq.flatMap { case (name, value) =>

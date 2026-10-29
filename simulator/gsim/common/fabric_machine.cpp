@@ -1,9 +1,13 @@
 #include "fabric_machine_vec_api.h"
+#include "../harness/gsim_model_storage.h"
 #ifndef ENABLE_JTAG
 #define ENABLE_JTAG 1
 #endif
 #ifndef ENABLE_MEMORY_COPY_DMA
 #define ENABLE_MEMORY_COPY_DMA 1
+#endif
+#ifndef ENABLE_NETWORK
+#define ENABLE_NETWORK 1
 #endif
 #include <algorithm>
 #include <array>
@@ -18,7 +22,8 @@
 
 static void check(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
 struct Driver {
-    FabricDut dut;
+    GsimModelStorage<FabricDut> storage;
+    FabricDut& dut=storage.get();
     std::string runtimeNegative;
     struct Read { uint64_t address; unsigned id, beats, beat, size, due; };
     struct Write { uint64_t address; unsigned id, beats, beat, size; };
@@ -34,6 +39,7 @@ struct Driver {
     bool holdB=false, inject=false, probeActive=false, ePending=false, privateDirty=false;
     bool holdProbe=false, probeClearEnabled=false, autoClearRequested=false, autoClearAccepted=false;
     unsigned postStatusClears=0;
+    bool networkHoleMutation=false;
     bool captureNetworkTx=false;
     std::vector<uint32_t> networkTx;
     unsigned networkControl=0;
@@ -75,6 +81,7 @@ struct Driver {
         dut.set_io$$jtagDmi$$request$$bits$$address(0); dut.set_io$$jtagDmi$$request$$bits$$data(0);
         dut.set_io$$jtagDmi$$request$$bits$$op(0); dut.set_io$$jtagDmi$$response$$ready(1);
 #endif
+#if ENABLE_NETWORK
 #define STREAM(name) dut.set_io$$ethernetStreams##name##$$valid(0); \
     dut.set_io$$ethernetStreams##name##$$bits$$data(0); \
     dut.set_io$$ethernetStreams##name##$$bits$$keep(0); \
@@ -82,6 +89,7 @@ struct Driver {
         STREAM($$rxData); STREAM($$rxStatus);
 #undef STREAM
         dut.set_io$$ethernetStreams$$txData$$ready(1); dut.set_io$$ethernetStreams$$txControl$$ready(1);
+#endif
 #define TL_INIT(port) \
         dut.set_io$$tile##port##$$a$$valid(0); \
         dut.set_io$$tile##port##$$a$$bits$$opcode(4); dut.set_io$$tile##port##$$a$$bits$$param(0); \
@@ -138,7 +146,11 @@ struct Driver {
         dut.set_io##port##$$response$$valid(!registerReplies[index].empty() && registerReplies[index].front().due<=cycles); \
         dut.set_io##port##$$response$$bits$$data(registerReplies[index].empty()?0:registerReplies[index].front().data); \
         dut.set_io##port##$$response$$bits$$error(0)
-        REGISTER($$externalUartRegisters,0); REGISTER($$ethernetRegisters,1); REGISTER($$clockManagementRegisters,2);
+        REGISTER($$externalUartRegisters,0);
+#if ENABLE_NETWORK
+        REGISTER($$ethernetRegisters,1);
+#endif
+        REGISTER($$clockManagementRegisters,2);
 #undef REGISTER
         dut.set_io$$tile$$coherent_1$$b$$ready(!holdProbe);
         if(autoClearRequested) {
@@ -215,7 +227,10 @@ struct Driver {
         if(regReply[index] && dut.get_io##port##$$response$$ready()) registerReplies[index].pop_front(); \
         if(dut.get_io##port##$$request$$valid() && regReady[index]) { \
             registerReplies[index].push_back({0,cycles+5,dut.get_io##port##$$request$$bits$$write()?0ULL:value}); ++registerRequests; }
-        REGISTER($$externalUartRegisters,0,0xa5ULL); REGISTER($$ethernetRegisters,1,0x1234ULL);
+        REGISTER($$externalUartRegisters,0,0xa5ULL);
+#if ENABLE_NETWORK
+        REGISTER($$ethernetRegisters,1,0x1234ULL);
+#endif
         REGISTER($$clockManagementRegisters,2,0x5678ULL);
 #undef REGISTER
         if(ePending && dut.get_io$$tile$$coherent_1$$e$$ready()) ePending=false;
@@ -239,6 +254,7 @@ struct Driver {
         }
         check(!dut.get_io$$tile$$coherent_0$$b$$valid() && !dut.get_io$$tile$$lineGrant_0$$valid(),
             "coherent client identity was lost");
+#if ENABLE_NETWORK
         if(captureNetworkTx && dut.get_io$$ethernetStreams$$txControl$$valid()) {
             check(dut.get_io$$ethernetStreams$$txControl$$bits$$keep()==15 &&
                 dut.get_io$$ethernetStreams$$txControl$$bits$$data()==(networkControl==0?0xa0000000U:0) &&
@@ -252,6 +268,7 @@ struct Driver {
                 "network TX payload extent mismatch");
             networkTx.push_back(dut.get_io$$ethernetStreams$$txData$$bits$$data());
         }
+#endif
         ++cycles; check(cycles<40000,"bounded fabric completion failure");
     }
     void idle(unsigned count) { while(count--) tick(); }
@@ -267,8 +284,13 @@ struct Driver {
             while(!GET($$response$$valid)) tick();
             uint64_t held=GET($$response$$bits$$memory$$data);
             for(unsigned n=0;n<8;++n) {
+                bool observedError=GET($$response$$bits$$memory$$error);
+                if(networkHoleMutation) {
+                    std::cerr<<"COMMON_NETWORK_OPTION_MUTANT_REACHED\n";
+                    observedError=!observedError; networkHoleMutation=false;
+                }
                 check(GET($$response$$valid) && GET($$response$$bits$$owner)==nextOwner[lane] &&
-                    GET($$response$$bits$$memory$$error) && !GET($$response$$bits$$memory$$pageFault) &&
+                    observedError && !GET($$response$$bits$$memory$$pageFault) &&
                     GET($$response$$bits$$memory$$data)==held,"held hole response changed under backpressure");
                 tick();
             }
@@ -379,6 +401,7 @@ struct Driver {
         dut.set_io$$tile$$fabricDrainedEpoch$$ready(0); idle(3); ++maintenance;
     }
     void memoryDmaOptionRun() {
+#if ENABLE_NETWORK
         // Fixed independent network identity also gives the mutation a short oracle.
         expect(0,0x10002000,0x56444d4100010001ULL);
 #if ENABLE_MEMORY_COPY_DMA
@@ -468,6 +491,105 @@ struct Driver {
             "DMA option DDR ledger did not drain");
         std::cout<<"COMMON_MEMORY_DMA_OPTION_PASS enabled="<<ENABLE_MEMORY_COPY_DMA
                  <<" epochs="<<maintenance<<" msi="<<msi<<" cycles="<<cycles<<"\n";
+#else
+        throw std::runtime_error("ordinary DMA option mode requires network enabled");
+#endif
+    }
+    // Static composition tests use the same DDR, register, MSI and coherent
+    // service above. Expectations below are fixed public ABI values, not parsed RTL.
+    void networkOptionRun() {
+#if ENABLE_NETWORK
+        throw std::runtime_error("network option mode requires network disabled");
+#else
+        check(ENABLE_JTAG==ENABLE_MEMORY_COPY_DMA,
+            "network option batch supports both remaining producers on or both off");
+        networkHoleMutation=inject; inject=false;
+        expect(0,0x10000000,0xa5,0);
+        const unsigned registersBefore=registerRequests, readsBefore=axiReads, writesBefore=axiWrites;
+        unsigned holes=0;
+        auto hole=[&](uint64_t address,unsigned size) {
+            access(holes%2,address,false,0,size,false,0,false,true,true);
+            access((holes+1)%2,address,true,0x5aULL<<((address&7)*8),size,false,0,false,true,true);
+            ++holes;
+        };
+        // Every former 64-bit packet-DMA CSR and its two byte endpoints.
+        for(unsigned offset=0;offset<256;offset+=8) hole(0x10002000ULL+offset,3);
+        hole(0x10002000ULL,0); hole(0x100020ffULL,0);
+        // Sparse GMAC aperture interior and boundary samples, not an exhaustive scan.
+        for(unsigned offset : {0U,8U,0x1000U,0x10000U,0x20000U,0x3fff8U})
+            hole(0x10040000ULL+offset,3);
+        hole(0x10040000ULL,0); hole(0x1007ffffULL,0);
+        idle(12);
+        check(registerRequests==registersBefore && axiReads==readsBefore && axiWrites==writesBefore,
+            "absent network aperture aliased another endpoint");
+        check(!dut.get_io$$tile$$scalar_0$$response$$valid() &&
+            !dut.get_io$$tile$$scalar_1$$response$$valid(),"network hole duplicated scalar reply");
+        check(dut.get_io$$allObligationsIdle(),"network holes retained accepted owner");
+#if ENABLE_MEMORY_COPY_DMA
+        // Original ordinary-DMA copies, scalar dirty lookup, late DMA dirty probe,
+        // reservation clear, retained B and two epoch checks remain unchanged.
+        run(false);
+        check(probes==2 && grants==2 && maintenance==2 && postStatusClears==1,
+            "network-off ordinary DMA did not exercise dirty/drain path");
+#else
+        access(0,ramBase+0x100,true,0x0123456789abcdefULL);
+        expect(1,ramBase+0x100,0x0123456789abcdefULL);
+        expect(0,0x10080000,0x5678);
+        // All optional producers really absent; ordinary DMA and JTAG stay holes.
+        access(0,0x10001000,false,0,3,false,0,false,true,true);
+        access(1,0x10003000,false,0,3,false,0,false,true,true);
+        fence(61);
+        do { tick(); } while(!dut.get_io$$tile$$fabricDrainedEpoch$$valid());
+        for(unsigned n=0;n<8;++n) {
+            check(dut.get_io$$tile$$fabricDrainedEpoch$$valid() &&
+                dut.get_io$$tile$$fabricDrainedEpoch$$bits()==61,"zero-producer drain reply changed");
+            tick();
+        }
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(1); tick();
+        dut.set_io$$tile$$fabricDrainedEpoch$$ready(0); idle(8); ++maintenance;
+        check(!dut.get_io$$tile$$fabricDrainedEpoch$$valid(),"zero-producer drain replayed");
+#endif
+#if ENABLE_JTAG
+        access(0,0x10003008,true,1); // real SBA producer, not capability-only
+        dmi(0x39,2,ramBase+0x8000); holdB=true;
+        dmi(0x3c,2,0xcafebabe); finishHeldWrite(62);
+        check((dmi(0x38,1)&((7U<<12)|(1U<<21)|(1U<<22)))==0,"network-off JTAG write failed/busy");
+        expect(0,ramBase+0x8000,0xcafebabe,2);
+        // Reacquire the same line, then require JTAG's read to probe the dirty owner.
+        unsigned grantsBefore=grants, probesBefore=probes;
+        dut.set_io$$tile$$coherent_1$$a$$valid(1);
+        do { tick(); } while(!dut.get_io$$tile$$coherent_1$$a$$ready());
+        dut.set_io$$tile$$coherent_1$$a$$valid(0);
+        while(grants!=grantsBefore+1 || ePending) tick(); privateDirty=true;
+        dmi(0x38,2,(2U<<17)|(1U<<20)); dmi(0x39,2,ramBase+0x2008);
+        while(dmi(0x38,1)&(1U<<21)) {}
+        check(dmi(0x3c,1)==1 && probes==probesBefore+1,
+            "network-off JTAG dirty-owner independent readback mismatch");
+#endif
+        // Removed internal network sources must remain quiet; external source
+        // numbers 5/6 remain usable (do not mask the shared APLIC input bits).
+        access(0,0x0c000000,true,256,2);
+        for(unsigned source : {5U,6U}) {
+            const unsigned shift=(source&1)*32;
+            access(0,0x0c000000+source*4,true,4ULL<<shift,2);
+            access(0,0x0c003000+source*4,true,11ULL<<shift,2);
+            access(0,0x0c001edc,true,uint64_t(source)<<32,2);
+        }
+        unsigned beforeMsi=msi;
+        idle(40); check(msi==beforeMsi,"absent network generated unsolicited IRQ5/6");
+        for(unsigned source : {5U,6U}) {
+            dut.set_io$$sources(1U<<(source-1)); idle(30);
+            dut.set_io$$sources(0); idle(12);
+            check(msi==++beforeMsi,"network removal masked external IRQ5/6");
+        }
+        idle(20);
+        check(dut.get_io$$allObligationsIdle(),"network option retained obligation");
+        check(axiWrites==axiB && reads.empty() && writes.empty() && writeReplies.empty() && msiReplies.empty(),
+            "network option response ledger did not drain");
+        std::cout<<"COMMON_NETWORK_OPTION_PASS producers="<<ENABLE_MEMORY_COPY_DMA
+                 <<" holes="<<holes<<" probes="<<probes<<" grants="<<grants
+                 <<" epochs="<<maintenance<<" msi="<<msi<<" cycles="<<cycles<<"\n";
+#endif
     }
     void program(unsigned index,uint32_t value) {
         dut.set_io$$program$$valid(1); dut.set_io$$program$$bits$$index(index); dut.set_io$$program$$bits$$data(value);
@@ -675,7 +797,7 @@ struct Driver {
                  <<" terminal_fence=1 stale_duplicate_reject=1 resumed_traffic=1\n";
     }
 #endif
-    void run() {
+    void run(bool report=true) {
         program(0,0x11223344); program(1,0x55667788); program(32766,0xdecafbad); program(32767,0x89abcdef);
         fetch(0x80000000,0x5566778811223344ULL,15); fetch(0x8001fff8,0x89abcdefdecafbadULL,9);
         // I1's separately authorized fetchSpan reuses the containing 64-bit
@@ -691,7 +813,11 @@ struct Driver {
         expect(0,0x80000000,0x5566778811223344ULL,1);
         expect(0,0x80000004,0x5566778811223344ULL,2);
         access(1,ramBase+0x100,true,0x0123456789abcdefULL); expect(0,ramBase+0x100,0x0123456789abcdefULL);
-        expect(0,0x10000000,0xa5,0); expect(1,0x10060000,0x1234); expect(0,0x10080000,0x5678);
+        expect(0,0x10000000,0xa5,0);
+#if ENABLE_NETWORK
+        expect(1,0x10060000,0x1234);
+#endif
+        expect(0,0x10080000,0x5678);
         access(0,0x0200bff8,true,100); dut.set_io$$timerTick(1); idle(7); dut.set_io$$timerTick(0);
         expect(1,0x0200bff8,107); access(0,0x02004000,true,106); idle(3);
         check(dut.get_io$$tile$$timerInterrupt() && !dut.get_io$$tile$$softwareInterrupt(),"fabric timer/software interrupt mismatch");
@@ -807,7 +933,7 @@ struct Driver {
 #endif
         idle(8); check(dut.get_io$$allObligationsIdle(),"fabric retained an accepted obligation");
         check(axiWrites==axiB && reads.empty() && writes.empty() && writeReplies.empty(),"DDR real response ledger mismatch");
-        std::cout<<"COMMON_MACHINE_FABRIC_PASS cycles="<<cycles<<" scalar="<<scalarReplies<<" rom="<<romReads
+        if(report) std::cout<<"COMMON_MACHINE_FABRIC_PASS cycles="<<cycles<<" scalar="<<scalarReplies<<" rom="<<romReads
                  <<" rom_subword="<<romSubwordReads<<" rom_denied="<<romDenied
                  <<" axi_reads="<<axiReads<<" axi_writes="<<axiWrites<<" axi_b="<<axiB<<" registers="<<registerRequests
                  <<" msi="<<msi<<" probes="<<probes<<" grants="<<grants<<" clear="<<clearReplies
@@ -817,7 +943,11 @@ struct Driver {
 int main(int argc,char**argv) {
     try {
         auto d=std::make_unique<Driver>();
-        if(argc>1 && std::string(argv[1])=="--memory-dma-option-only") {
+        if(argc>1 && std::string(argv[1])=="--network-option-only") {
+            check(argc==2 || (argc==3 && std::string(argv[2])=="--inject-mismatch"),
+                "unexpected network option test arguments");
+            d->inject=argc==3; d->networkOptionRun();
+        } else if(argc>1 && std::string(argv[1])=="--memory-dma-option-only") {
             check(argc==2 || (argc==3 && std::string(argv[2])=="--inject-mismatch"),
                 "unexpected memory DMA option test arguments");
             d->inject=argc==3; d->memoryDmaOptionRun();

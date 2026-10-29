@@ -29,7 +29,7 @@ object CommonMachinePlatformMain extends App {
     val cpuSpec = socConfig.cpuSpec
     val chirrtlOnly = options.contains("--emit-chirrtl-only")
     val dynamic = clockProfile == "boot50-dynamic"
-    peripheralConfig.validateRuntime(dynamic)
+    peripheralConfig.validateRuntime(dynamic, dynamic)
     val diagnosticOption = "--diagnostic-rates=" + CommonDiagnosticRateProfile.option
     val diagnostic = options.contains(diagnosticOption)
     require(!diagnostic || dynamic, "diagnostic rates require boot50-dynamic")
@@ -152,7 +152,13 @@ object CommonMachinePlatformMain extends App {
         "homeAcquireEntries" -> 2, "homeWritebackEntries" -> 2,
         "ddrSlots" -> profile.fpga.ddr.maxOutstanding, "ddrWriteSlots" -> profile.fpga.ddr.maxOutstandingWrites,
         "heldFifo" -> "HeldResponseCdcDataFifo", "fifoDepth" -> 16,
-        "triSpeedEthernet" -> true, "triSpeedTxFrameSlots" -> 2,
+        "triSpeedEthernet" -> peripheralConfig.network,
+        "triSpeedTxFrameSlots" -> (if (peripheralConfig.network) ujson.Num(2) else ujson.Null),
+        "network" -> peripheralConfig.network,
+        "legacyNetworkFirmwareCompatibility" -> (if (peripheralConfig.network)
+            "device-present-not-boot-qualification" else "unsupported-existing-netboot-and-linux-description"),
+        "cmuPresentMask" -> ("0x" + socConfig.cmu.presentMask.toString(16)),
+        "cmuGateableMask" -> ("0x" + socConfig.cmu.gateableMask.toString(16)),
         "memoryCopyDma" -> peripheralConfig.memoryCopyDma,
         "legacyDmaFirmwareCompatibility" -> (if (peripheralConfig.memoryCopyDma)
             "device-present-not-boot-qualification" else "unsupported-existing-linux-dt-benchmark-and-monitor"),
@@ -176,6 +182,7 @@ object CommonMachinePlatformMain extends App {
         "effective" -> ujson.Obj.from(Seq("cpu", "clockProfile", "cpuMicroarchitectureProfile", "cpuQualification",
             "cpuClockHz", "fabricClockHz", "timebaseHz", "instructionCacheBytes", "dataCacheBytes", "cacheWays",
             "issueWidth", "a1Resources", "homeClients", "homeLines", "homeWays", "ddrSlots", "ddrWriteSlots",
+            "network", "legacyNetworkFirmwareCompatibility", "cmuPresentMask", "cmuGateableMask",
             "memoryCopyDma", "legacyDmaFirmwareCompatibility", "jtagDownload", "jtagDmiAddressBits", "cpuMmioRegions", "abi").map(k => k -> manifest(k))),
         "cpuIdentitySha256" -> identity("identitySha256"),
         "physicalTimingVerified" -> false, "boardVerified" -> false)
