@@ -9,6 +9,11 @@
 
 性能实验单列：[Orbital-A1 ready/raw73、measured74 与资格限制](timing-closure-candidate-20261014.md)。这些候选不由功能基线入口自动选择；历史记录保留原有范围。
 
+## 公共 SoC 的显式配置
+
+- [A1 访存容量规格](common-a1-cpu-spec.md)：限定的 LSU 2/4 所有者容量选项，保留完整 ISA 与共享平台；配置、组件验证和 CPU 性能证据分开记录。
+- [JTAG RAM 下载外设选项](common-jtag-peripheral-option.md)：真实实例与接口可裁剪，剩余 ABI 地址不重排。
+
 ## Orbital-I1：独立参数化顺序核（dev2）
 
 - [本次兼容合并与公共平台边界](dev2-integration-20261019.md)：保留两侧已有配置、时序资格范围和后续统一外设计划。

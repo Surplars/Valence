@@ -8,7 +8,7 @@ import soc.platform._
 
 /** Explicit production geometry exporter. Programmable ROM is for native
   * verification only; the same emitted model can load the guest and full TUI
-  * image. CPU/cache/owner geometry is unchanged; JTAG RAM download can be omitted.
+  * image. CPU specifications and peripheral composition are explicit bounded choices.
   */
 object CommonMachinePlatformMain extends App {
     require(args.length >= 3, "output, i1|a1, and --compile-receipt=... required")
@@ -21,6 +21,8 @@ object CommonMachinePlatformMain extends App {
         options.find(_.startsWith("--jtag-download=")).map(_.stripPrefix("--jtag-download=")).getOrElse("on"))
     val selected = options.find(_.startsWith("--experimental-a1-profile=")).map(option =>
         CommonA1ExperimentalSelection.named(option.stripPrefix("--experimental-a1-profile=")))
+    val cpuSpec = options.find(_.startsWith("--a1-lsu-owners=")).map(option =>
+        CommonA1CpuSpec.lsuOption(option.stripPrefix("--a1-lsu-owners=")))
     val chirrtlOnly = options.contains("--emit-chirrtl-only")
     val dynamic = clockProfile == "boot50-dynamic"
     peripheralConfig.validateRuntime(dynamic)
@@ -30,7 +32,7 @@ object CommonMachinePlatformMain extends App {
     val legalFlags = Set("--programmable", "--vivado-memories", "--emit-chirrtl-only", diagnosticOption)
     require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") ||
         x.startsWith("--clock-profile=") || x.startsWith("--experimental-a1-profile=") ||
-        x.startsWith("--jtag-download=")))
+        x.startsWith("--jtag-download=") || x.startsWith("--a1-lsu-owners=")))
     require(options.map(_.takeWhile(_ != '=')).distinct.length == options.length)
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
         .stripPrefix("--compile-receipt=")).toAbsolutePath.normalize
@@ -42,10 +44,11 @@ object CommonMachinePlatformMain extends App {
     require(programmable != vivado, "select explicit native-programmable or production-Vivado ROM")
     val boundary = if (dynamic) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
-    val identity = CommonCpuMicroarchitectureIdentity.build(profile, selected, boundary)
-    val actualCpuConfig = CommonA1ExperimentalSelection.config(profile, selected)
+    val actualCpuConfig = CommonA1CpuSpec.resolve(profile, selected, cpuSpec, boundary)
+    val identity = CommonCpuMicroarchitectureIdentity.build(profile, selected, boundary, cpuSpec = cpuSpec)
     val root = Paths.get(sys.props.getOrElse("chisel.project.root", ".")).toAbsolutePath.normalize
-    val compileBinding = selected.map(_ => CommonCpuMicroarchitectureIdentity.verifyCompileReceipt(compileReceipt, root))
+    val compileBinding = if (selected.nonEmpty || cpuSpec.nonEmpty)
+        Some(CommonCpuMicroarchitectureIdentity.verifyCompileReceipt(compileReceipt, root)) else None
     def walk(directory: Path): Seq[Path] = {
         val stream = Files.walk(directory)
         try stream.iterator.asScala.filter(Files.isRegularFile(_)).toSeq finally stream.close()
@@ -79,7 +82,7 @@ object CommonMachinePlatformMain extends App {
         runtimeFixedQualification = dynamic, runtimeControlQualification = dynamic,
         runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic,
         diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic, a1Experimental = selected,
-        peripheralConfig = peripheralConfig)
+        peripheralConfig = peripheralConfig, cpuSpec = cpuSpec)
     if (chirrtlOnly) ChiselStage.emitCHIRRTLFile(platform(), Array("--target-dir", output.toString))
     else ChiselStage.emitSystemVerilogFile(platform(), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
@@ -130,7 +133,12 @@ object CommonMachinePlatformMain extends App {
         "aonHz" -> profile.aonHz, "uartHz" -> profile.uartHz, "uartBaud" -> profile.uartBaud,
         "instructionCacheBytes" -> 32768, "dataCacheBytes" -> 32768, "cacheWays" -> 2,
         "tlbEntries" -> (if (profile.kind == "i1") profile.i1.tlbEntries else actualCpuConfig.dataTranslationEntries),
-        "issueWidth" -> (if (profile.kind == "i1") 1 else 2),
+        "issueWidth" -> (if (profile.kind == "i1") 1 else actualCpuConfig.issueWidth),
+        "a1Resources" -> (if (profile.kind == "a1") ujson.Obj(
+            "robEntries" -> actualCpuConfig.coreParams.robEntries,
+            "physicalRegisters" -> actualCpuConfig.coreParams.physicalRegs,
+            "lsuOwners" -> actualCpuConfig.coreParams.memoryEntries,
+            "storeBufferEntries" -> actualCpuConfig.coreParams.storeBufferEntries) else ujson.Null),
         "homeClients" -> 2, "homeLines" -> 1024, "homeWays" -> 4,
         "homeAcquireEntries" -> 2, "homeWritebackEntries" -> 2,
         "ddrSlots" -> profile.fpga.ddr.maxOutstanding, "ddrWriteSlots" -> profile.fpga.ddr.maxOutstandingWrites,

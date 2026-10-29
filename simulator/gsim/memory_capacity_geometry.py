@@ -40,7 +40,19 @@ def verify_memory_geometry(fir, slots):
     instances = re.findall(r"^    inst slots_(\d+) of LoadStoreUnit(?:_\d+)? ", lsu, re.M)
     if sorted(map(int, instances)) != list(range(slots)):
         raise RuntimeError("Emitted LSU slots differ from expected geometry")
-    requests = ram(child(fir, backend, "requests"), slots)
+    request_queue = child(fir, backend, "requests")
+    # Current production wrapper keeps request and proof sidecars in one Queue.
+    # Historical direct-Queue exports remain valid; neither path trusts a name
+    # as its capacity proof: inspect the actual backing RAM below.
+    if re.match(r"^  module RegisteredRequestQueue(?:_\d+)?\s*:", request_queue):
+        request_queue = child(fir, request_queue, "entries")
+        if not re.match(r"^  module Queue\d+_RegisteredRequestEntry(?:_\d+)?\s*:", request_queue):
+            raise RuntimeError("Registered request entries do not target the request-entry Queue")
+        if not re.search(r"^    [cs]mem ram : \{ request : \{ atomic : UInt<1>, atomicOp : UInt<5>, "
+                         r"address : UInt<64>, write : UInt<1>, size : UInt<2>, data : UInt<64>, "
+                         r"mask : UInt<8>,", request_queue, re.M):
+            raise RuntimeError("Registered request Queue RAM lacks the actual request payload")
+    requests = ram(request_queue, slots)
     # Registered load-forwarding sidebands also use the Scala val name owners.
     # Chisel therefore suffixes the queue instance in the current selected profile.
     # Match only an actual instance, require uniqueness, and still prove RAM shape.

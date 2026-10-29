@@ -112,15 +112,16 @@ object CommonCpuMicroarchitectureIdentity {
     }
 
     def build(profile: CommonCpuProfile, selected: Option[CommonA1ExperimentalSelection],
-        boundary: CommonCpuTilePortParams, experimentalRuntime: Boolean = false): ujson.Obj = {
-        CommonA1ExperimentalSelection.validate(profile, selected, boundary, experimentalRuntime)
-        val config = CommonA1ExperimentalSelection.config(profile, selected)
+        boundary: CommonCpuTilePortParams, experimentalRuntime: Boolean = false,
+        cpuSpec: Option[CommonA1CpuSpec] = None): ujson.Obj = {
+        val config = CommonA1CpuSpec.resolve(profile, selected, cpuSpec, boundary, experimentalRuntime)
         val result = ujson.Obj(
             "schema" -> 1,
             "cpuFamily" -> profile.kind,
-            "microarchitectureProfile" -> ujson.Str(selected.map(_.name).getOrElse(
+            "microarchitectureProfile" -> ujson.Str(cpuSpec.map(_.name).orElse(selected.map(_.name)).getOrElse(
                 if (profile.kind == "a1") "selected" else "public-i1")),
-            "qualification" -> (if (selected.nonEmpty) "EXPERIMENTAL_NOT_TIMING_QUALIFIED"
+            "qualification" -> (if (cpuSpec.nonEmpty) "EXPLICIT_CPU_SPEC_NOT_CPU_BEHAVIOR_QUALIFIED"
+                else if (selected.nonEmpty) "EXPERIMENTAL_NOT_TIMING_QUALIFIED"
                 else "PUBLIC_UNCHANGED_NOT_TIMING_QUALIFIED"),
             "effectiveConfig" -> configuration(config),
             "effectiveCore" -> (if (profile.kind == "a1") value(config.coreParams) else value(profile.i1)),
@@ -134,6 +135,7 @@ object CommonCpuMicroarchitectureIdentity {
                 "aonHz" -> value(profile.aonHz), "uartHz" -> value(profile.uartHz)),
             "runtimeMode" -> (if (experimentalRuntime) "experimental-a1-runtime"
                 else if (profile.clockProfile == "boot50-dynamic") "public-i1-runtime" else "static"))
+        cpuSpec.foreach(spec => result("requestedCpuSpec") = value(spec))
         result("identitySha256") = digest(result)
         result
     }

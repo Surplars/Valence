@@ -59,7 +59,8 @@ class CommonMachinePlatform(
     telemetryWindowCycles: Int = 50000,
     experimentalA1Runtime: Boolean = false,
     val a1Experimental: Option[CommonA1ExperimentalSelection] = None,
-    val peripheralConfig: CommonPeripheralConfig = CommonPeripheralConfig()
+    val peripheralConfig: CommonPeripheralConfig = CommonPeripheralConfig(),
+    val cpuSpec: Option[CommonA1CpuSpec] = None
 ) extends RawModule {
     peripheralConfig.validateRuntime(runtimeDebugAdmission)
     require(!experimentalA1Runtime || (profile == CommonCpuProfile.A1Boot50 &&
@@ -92,8 +93,7 @@ class CommonMachinePlatform(
     require(profile.clockProfile != "boot50-dynamic" || runtimeRateControl)
     private val boundary = if (runtimeDebugAdmission) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
-    CommonA1ExperimentalSelection.validate(profile, a1Experimental, boundary, experimentalA1Runtime)
-    val a1CpuConfig = CommonA1ExperimentalSelection.config(profile, a1Experimental)
+    val a1CpuConfig = CommonA1CpuSpec.resolve(profile, a1Experimental, cpuSpec, boundary, experimentalA1Runtime)
     val a1MemoryProfile = CommonA1ExperimentalSelection.memoryProfile(a1Experimental)
     require(independentDdrClock || profile.fabricHz == profile.ddrUiHz,
         "a fabric frequency different from fixed DDR UI requires the complete AXI boundary")
