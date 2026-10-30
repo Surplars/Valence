@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "base_sources": {
+    "src/main/scala/core/ooo/integration/IntegerBackend.scala": "c3d91fb33a4bc43a203c71fc5a3e23867e941d99b8c33641c61dde0bad9216f1",
+    "src/main/scala/core/ooo/retire/RenameRob.scala": "afd5c2b1ac041345cbe1f308cfc46281cbc46196c2a2a835f0409fb7f332c1e5",
+    "src/main/scala/core/ooo/retire/ParallelRecoveryAdmission.scala": "665cac2b73bee4e66c64b7a9a5aeaaf172e7a93ec27c3390286f7635e591961e"
+  },
+  "assets": {
+    "storage-backend.patch": "fa474c7a473119535e8dafeae51ef6beb7df5baa68ab4e3cd637ca5c31a93efb",
+    "query-ledger.patch": "c723b7cbe63e905052045f3672a912d46b4861eb94157ac0f8886def70ff5541",
+    "QueriedRecoveryAdmission.scala": "56ccd6d4e64c5fe7224fa2311cd774a2fd4e75dc66405688797cb1f8a3e6754c"
+  },
+  "expected_outputs": {
+    "storage/IntegerBackend.scala": "d9f9c2204e2d84291f1e257d38dc9abee010918be3d3532774c84479dc74763e",
+    "query/IntegerBackend.scala": "d9f9c2204e2d84291f1e257d38dc9abee010918be3d3532774c84479dc74763e",
+    "query/RenameRob.scala": "a1aee232a6dcd62ea365c63e019adb802f0dd74100580e1653aed701c4c776e5",
+    "query/QueriedRecoveryAdmission.scala": "56ccd6d4e64c5fe7224fa2311cd774a2fd4e75dc66405688797cb1f8a3e6754c"
+  }
+}

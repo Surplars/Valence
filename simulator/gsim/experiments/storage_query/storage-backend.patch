@@ -1,0 +1,19 @@
+--- production/IntegerBackend.scala
++++ storage-overlay/IntegerBackend.scala
+@@ -220,8 +220,15 @@
+         p.parallelRecoveryAdmission && p.fastHeadTrapRecovery && p.fastHeadSystemRecovery
+     require(!p.bankedRobCompletionData || !qualifiedBankedCompletionPayload,
+         "dual-owner completion-data storage does not enable the historical retirement-intent experiment")
++    // Test-only exact-source overlay: no OooParams/profile mutation.
++    require(!p.bankedRobCompletionData && !qualifiedBankedCompletionPayload &&
++        !p.retirementIntent && !p.retirementSlotIdentity && p.tagBits == 64 &&
++        p.renameWidth == 2 && p.completionWidth == 2 && p.commitWidth == 2 &&
++        ((p.robEntries == 16 && p.physicalRegs == 48) || (p.robEntries == 32 && p.physicalRegs == 64)),
++        "isolated storage CPU overlay accepts only the explicit generic 16/48 or 32/64 pair")
+     val ledger = Module(new RenameRob(p, retirementSlotIdentity = retirementSlotIdentity,
+-        bankedCompletionPayload = qualifiedBankedCompletionPayload))
++        bankedCompletionPayload = qualifiedBankedCompletionPayload,
++        experimentalCompletionDataStorage = true))
+     ledger.io.rawDestinations.foreach(_ := io.rawDestinations.get)
+     ledger.io.rawRequests.foreach(_ := io.rawRequests.get)
+     ledger.io.fetchFaultMask.foreach(_ := io.fetchFaultMask.get)
