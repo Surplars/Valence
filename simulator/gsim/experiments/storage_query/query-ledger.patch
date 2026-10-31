@@ -1,0 +1,30 @@
+--- immutable-storage/RenameRob.scala
++++ query-overlay/RenameRob.scala
+@@ -203,7 +203,7 @@
+         }
+     }
+     val headSystemKilled = VecInit((0 until p.robEntries).map(i => i.U =/= head)).asUInt
+-    val recoveryAdmission = if (p.parallelRecoveryAdmission) Some(Module(new ParallelRecoveryAdmission(p))) else None
++    val recoveryAdmission = if (p.parallelRecoveryAdmission) Some(Module(new QueriedRecoveryAdmission(p))) else None
+     recoveryAdmission.foreach { check =>
+         check.io.head := head
+         check.io.count := count
+@@ -212,6 +212,9 @@
+         check.io.keepCount := keepCount
+         check.io.external := io.recoveryProbe
+         check.io.local := io.parallelRecovery.get.local
++        for (lane <- 0 until p.completionWidth) {
++            check.queries.age(lane) := age(io.complete(lane).bits.token.index)
++        }
+         // Merge only at the consumers. In particular, a late automatic trap
+         // never traverses ordinary age arbitration or the per-slot boundary
+         // comparator before it cancels work. Ordinary token rules are intact.
+@@ -259,7 +262,7 @@
+         val duplicate  = (0 until lane)
+             .map(i => io.complete(i).valid && io.complete(i).bits.token.asUInt === completion.bits.token.asUInt)
+             .foldLeft(false.B)(_ || _)
+-        val ordinarySurvives = recoveryAdmission.map(_.io.survives(completion.bits.token.index))
++        val ordinarySurvives = recoveryAdmission.map(_.queries.survives(lane))
+             .getOrElse(!recoveryCycle || age(completion.bits.token.index) < activeKeep)
+         val completionLive = if (p.sharedLane1OwnerMatch && lane == 1)
+             age(completion.bits.token.index) < count && lane1OwnerMatch.get

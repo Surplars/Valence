@@ -22,8 +22,16 @@ class HeadSystemRecoveryPort(p: OooParams) extends Bundle {
   * until reset, which requires all external producers to have been reset/drained too.
   */
 class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Boolean = false,
-    val bankedCompletionPayload: Boolean = false) extends Module {
-    require(!(p.bankedRobCompletionData && bankedCompletionPayload),
+    val bankedCompletionPayload: Boolean = false, val experimentalCompletionDataStorage: Boolean = false) extends Module {
+    // Isolated storage experiment: no profile, admission, latency or credit change.
+    // Existing configured banking retains its original OooParams restrictions.
+    private val useCompletionData = p.bankedRobCompletionData || experimentalCompletionDataStorage
+    require(!experimentalCompletionDataStorage || (!p.bankedRobCompletionData && !bankedCompletionPayload),
+        "isolated completion storage must not combine with either historical banking option")
+    require(!useCompletionData || (p.completionWidth == 2 && p.commitWidth == 2 &&
+        p.robEntries >= 4 && isPow2(p.robEntries)),
+        "completion data storage requires two writers, two consecutive readers and a power-of-two ROB")
+    require(!(useCompletionData && bankedCompletionPayload),
         "full completion-data banking and the historical nextPc/tval topology are distinct")
     require(!bankedCompletionPayload || (p.completionWidth == 2 && p.commitWidth == 2 &&
         p.robEntries >= 4 && isPow2(p.robEntries)),
@@ -120,7 +128,7 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
 
     // Storage routing only. The unchanged ledger admission below is the sole
     // authority for every writer, including stale/duplicate/recovery decisions.
-    val completionData = if (p.bankedRobCompletionData)
+    val completionData = if (useCompletionData)
         Some(Module(new DualWriterRobCompletionData(p.robEntries))) else None
     completionData.foreach { payload =>
         payload.io.head := head
@@ -285,12 +293,12 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         }
         when(accepted) {
             entries(completion.bits.token.index).done      := true.B
-            if (!p.bankedRobCompletionData) entries(completion.bits.token.index).data := completion.bits.data
-            if (!bankedCompletionPayload && !p.bankedRobCompletionData)
+            if (!useCompletionData) entries(completion.bits.token.index).data := completion.bits.data
+            if (!bankedCompletionPayload && !useCompletionData)
                 entries(completion.bits.token.index).nextPc := completion.bits.nextPc
             entries(completion.bits.token.index).exception := completion.bits.exception
             entries(completion.bits.token.index).cause     := completion.bits.cause
-            if (!bankedCompletionPayload && !p.bankedRobCompletionData)
+            if (!bankedCompletionPayload && !useCompletionData)
                 entries(completion.bits.token.index).tval := completion.bits.tval
         }
     }
@@ -529,7 +537,7 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
         io.renamed(lane).bits.moveAlias      := alias
 
         when(accepted) {
-            if (p.bankedRobCompletionData) {
+            if (useCompletionData) {
                 for (writer <- 0 until p.completionWidth) {
                     assert(!io.completionAccepted(writer) || io.complete(writer).bits.token.index =/= index,
                         "accepted allocation cannot overwrite an accepted completion row")

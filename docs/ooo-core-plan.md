@@ -2115,3 +2115,11 @@ real CPU/fabric/IRQ/AMO/FP/DMA-probe checks are documented in
 [`a1-runtime-candidate.md`](a1-runtime-candidate.md).
 Production A1 defaults and the programmed baseline remain unchanged. Full-chain
 rate roundtrip is wall-budget incomplete, not a clock-transition or physical pass.
+
+## Isolated completion storage / recovery query
+
+See [storage-query-experiments.md](storage-query-experiments.md) for the default-off
+ROB storage constructor and test-only queried-recovery overlay. Existing generic
+CPU defaults remain unchanged. Matched finite CPU traces show no cycle regression;
+query shortens selected mapped control cones with additional LUT/MUXF cost, not a
+proven whole-CPU or physical-timing improvement.

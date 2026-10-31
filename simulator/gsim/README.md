@@ -2917,3 +2917,12 @@ real CPU/fabric/IRQ/AMO/FP/DMA-probe checks are documented in
 [`docs/a1-runtime-candidate.md`](../../docs/a1-runtime-candidate.md).
 Production A1 defaults and the programmed baseline remain unchanged. Full-chain
 rate roundtrip is wall-budget incomplete, not a clock-transition or physical pass.
+
+## Isolated ROB storage and recovery-query reproduction
+
+Default-off constructor storage and exact-source query overlays, with unchanged
+production CPU configuration, are documented in
+[`experiments/storage_query/README.md`](experiments/storage_query/README.md).
+See [`docs/storage-query-experiments.md`](../../docs/storage-query-experiments.md)
+for bounded CPU qualification, structural resource tradeoffs and unverified
+physical-timing scope. Generated models and tool installations are not committed.
