@@ -59,8 +59,16 @@ int main(int argc,char **argv) {try {
         uint64_t expected=hit&&look.control&&(!look.conditional||look.counter>=2)?look.target:
             fit(pc+(DUT_C&&hit&&look.compressed?2:4));
         if(mutation&&hit)expected^=4;
-        require(bool(d.get_io$$hit())==hit&&d.get_io$$nextPc()==expected,
-            "independent banked predictor full-PC/next-PC oracle mismatch");
+        if(bool(d.get_io$$hit())!=hit||d.get_io$$nextPc()!=expected) {
+            std::cerr<<"predictor check="<<std::dec<<checks<<" pc="<<std::hex<<pc
+                <<" expected="<<expected<<" actual="<<d.get_io$$nextPc()
+                <<" stored_pc="<<look.pc<<" target="<<look.target<<std::dec
+                <<" hit="<<hit<<" actual_hit="<<unsigned(d.get_io$$hit())
+                <<" counter="<<look.counter<<" control="<<look.control
+                <<" compressed="<<look.compressed<<" train="<<train
+                <<" train_pc="<<std::hex<<trainPc<<std::dec<<" invalidate="<<invalidate<<'\n';
+            throw std::runtime_error("independent banked predictor full-PC/next-PC oracle mismatch");
+        }
 #if DUT_TIMING
         std::vector<uint64_t> values{d.get_io$$candidateValues$$plusTwo(),d.get_io$$candidateValues$$plusFour(),
             d.get_io$$candidateValues$$target0()};
@@ -105,6 +113,18 @@ int main(int argc,char **argv) {try {
     cycle(0x80000000,0,false,false,false,false,false,0);
     cycle(0x80000000,0x80000000,true,true,false,true,false,0x80000100,true);
     cycle(0x80000000,0,false,false,false,false,false,0);
+    // Consecutive invalidations, an overlapping allocation, and allocation in
+    // the immediately following cycle must have the original visible epochs.
+    for(unsigned round=0;round<32;++round) {
+        const uint64_t pc=0x80000000+stride*(round%DUT_ENTRIES);
+        cycle(pc,pc,true,true,true,true,DUT_C,pc+64);
+        cycle(pc,pc,true,true,false,true,DUT_C,pc+96,true);
+        cycle(pc,pc,true,true,false,true,DUT_C,pc+128,true);
+        cycle(pc,pc,true,true,false,true,DUT_C,pc+160);
+        cycle(pc,0,false,false,false,false,false,0);
+        cycle(pc,pc,true,false,false,false,false,0);
+        cycle(pc,0,false,false,false,false,false,0);
+    }
     std::mt19937_64 random(0x42414e4b53504931ULL);
     for(unsigned i=0;i<18000;++i) {
         const uint64_t high=i%19==0?fit(random()&~uint64_t(DUT_ENTRIES*16-1)):0x80000000;

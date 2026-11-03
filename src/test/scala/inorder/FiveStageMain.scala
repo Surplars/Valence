@@ -75,7 +75,7 @@ object FiveStageMain extends App {
 object FiveStageRtlMain extends App {
     val p = FiveStageArguments.config(args)
     ChiselStage.emitSystemVerilogFile(new FiveStageCore(p), Array("--target-dir", args.head),
-        Array("--split-verilog", "--lowering-options=disallowLocalVariables,disallowPackedArrays"))
+        Array("--split-verilog", "--lower-memories", "--lowering-options=disallowLocalVariables,disallowPackedArrays"))
 }
 
 object FiveStageRegisterFileMain extends App {
@@ -103,7 +103,7 @@ object FiveStagePredictorMain extends App {
 object FiveStageCachedRtlMain extends App {
     val p = FiveStageArguments.config(args)
     ChiselStage.emitSystemVerilogFile(new FiveStageCachedCore(p), Array("--target-dir", args.head),
-        Array("--split-verilog", "--lowering-options=disallowLocalVariables,disallowPackedArrays"))
+        Array("--split-verilog", "--lower-memories", "--lowering-options=disallowLocalVariables,disallowPackedArrays"))
 }
 
 object FiveStageMulDivMain extends App {

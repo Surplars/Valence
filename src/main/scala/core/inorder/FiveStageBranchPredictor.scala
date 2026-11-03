@@ -60,9 +60,9 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     val entries = Seq.fill(bankCount)(Mem(bankRows, new Entry))
     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
         "ram_style = \"distributed\"")))
-    // Valid ownership and training feedback stay inside each physical RAM bank.
-    // Total valid bits and table capacity are unchanged; invalidate wins per bank.
-    val validBanks = Seq.fill(bankCount)(RegInit(0.U(bankRows.W)))
+    // Logical invalidation is immediate; raw bit clearing stays behind one
+    // local guard per bank, without a global reset/CE on every validity bit.
+    val validBanks = Seq.fill(bankCount)(Module(new I1BranchBankValid(bankRows)))
     // With C, old halfword indexing wasted half the RAM for aligned32 code.
     // Fold bit1 into the top index bit; KEEP bit1 in the tag so the mapping
     // remains injective across halfwords and aliases. Same RAM/tag width.
@@ -82,8 +82,13 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     def bank(i: UInt): UInt = if (bankCount == 1) 0.U else i(indexBits - 1, rowBits)
     val lookupIndex = index(io.pc)
     val lookups = entries.map(_.read(row(lookupIndex)))
+    validBanks.foreach { valid =>
+        valid.io.lookupRow := row(lookupIndex)
+        valid.io.trainingRow := row(index(io.train.bits.pc))
+        valid.io.invalidate := io.invalidate
+    }
     val hits = lookups.zipWithIndex.map { case (entry, b) =>
-        bank(lookupIndex) === b.U && validBanks(b)(row(lookupIndex)) &&
+        bank(lookupIndex) === b.U && validBanks(b).io.lookupValid &&
             (if (p.fpgaTimingCuts) I1TimingMath.equal(entry.tag, tag(io.pc)) else entry.tag === tag(io.pc))
     }
     io.hit := hits.reduce(_ || _)
@@ -134,25 +139,27 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
         val trainingEntry = memory.read(row(trainingIndex))
         val tagMatch = if (p.fpgaTimingCuts) I1TimingMath.equal(trainingEntry.tag, tag(io.train.bits.pc))
             else trainingEntry.tag === tag(io.train.bits.pc)
-        val oldHit = validBanks(b)(row(trainingIndex)) && tagMatch
+        val oldHit = validBanks(b).io.trainingValid && tagMatch
         val updated = Wire(new Entry)
         updated.tag := tag(io.train.bits.pc)
         updated.target := io.train.bits.target
         updated.conditional := io.train.bits.conditional
         updated.controlFlow := io.train.bits.controlFlow
         updated.compressed := p.withC.B && io.train.bits.compressed
-        updated.counter := Mux(!oldHit, Mux(io.train.bits.taken, 2.U, 1.U),
-            Mux(io.train.bits.taken, Mux(trainingEntry.counter === 3.U, 3.U, trainingEntry.counter + 1.U),
-                Mux(trainingEntry.counter === 0.U, 0.U, trainingEntry.counter - 1.U)))
-        val validMask = UIntToOH(row(trainingIndex), bankRows)
-        when(io.train.valid && bank(trainingIndex) === b.U) {
-            when(io.train.bits.controlFlow || p.withC.B) {
-                memory.write(row(trainingIndex), updated)
-                validBanks(b) := validBanks(b) | validMask
-            }.elsewhen(oldHit) {
-                validBanks(b) := validBanks(b) & ~validMask
-            }
-        }
-        when(io.invalidate) { validBanks(b) := 0.U }
+        // Each result bit is a bounded Boolean function, rather than a
+        // replicated increment/decrement/equality/priority-mux chain.
+        val high = trainingEntry.counter(1)
+        val low = trainingEntry.counter(0)
+        val taken = io.train.bits.taken
+        val saturated = Cat(Mux(taken, high || low, high && low),
+            Mux(taken, high || !low, high && !low))
+        updated.counter := Mux(oldHit, saturated, Cat(taken, !taken))
+        val selected = io.train.valid && bank(trainingIndex) === b.U
+        val allocate = selected && (io.train.bits.controlFlow || p.withC.B)
+        // An already-invalid row can also be cleared. Removing its valid
+        // read from this late tag-match feedback does not change any owner.
+        validBanks(b).io.allocate := allocate
+        validBanks(b).io.remove := selected && !io.train.bits.controlFlow && !p.withC.B && tagMatch
+        when(allocate) { memory.write(row(trainingIndex), updated) }
     }
 }

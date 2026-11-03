@@ -171,20 +171,38 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
     if (bytes > 0) {
         val sets = bytes / p.cacheLineBytes
         val indexBits = log2Ceil(sets)
-        val tagBits = p.xlen - lineBits - indexBits
+        // Every allocated line is inside the constant cacheable byte window.
+        // Its common high prefix cannot distinguish two legal cached lines.
+        // Keep all varying bits, including windows crossing a power-of-two boundary.
+        val varyingAddressBits = if (p.fpgaTimingCuts)
+            (p.cacheableBase ^ (p.cacheableBase + p.cacheableBytes - 1)).bitLength else p.xlen
+        val tagBits = math.max(1, varyingAddressBits - lineBits - indexBits)
         val ramAddressBits = log2Ceil(bytes / (p.xlen / 8))
         val data = SyncReadMem(bytes / (p.xlen / 8), Vec(p.xlen / 8, UInt(8.W)))
-        val tags = SyncReadMem(sets, UInt(tagBits.W))
+        val tags = if (!p.fpgaTimingCuts) Some(SyncReadMem(sets, UInt(tagBits.W))) else None
+        val bankedTags = if (p.fpgaTimingCuts) Some(Module(new I1CacheTags(sets, tagBits))) else None
         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
             "ram_style = \"block\"")))
         val valid = RegInit(0.U(sets.W))
         def set(address: UInt): UInt = address(lineBits + indexBits - 1, lineBits)
-        def tag(address: UInt): UInt = address(p.xlen - 1, lineBits + indexBits)
+        def tag(address: UInt): UInt = if (varyingAddressBits <= lineBits + indexBits) 0.U(tagBits.W)
+            else address(varyingAddressBits - 1, lineBits + indexBits)
         def word(address: UInt): UInt = address(ramAddressBits + offsetBits - 1, offsetBits)
         val readEnable = io.request.fire && cacheable
         ramWord := data.read(word(io.request.bits.address), readEnable).asUInt
-        val readTag = tags.read(set(io.request.bits.address), readEnable)
-        hit := valid(set(saved.address)) && readTag === tag(saved.address) && !io.invalidate
+        val install = io.memory.response.fire && savedCacheable && !saved.write &&
+            io.memory.response.bits.last && !failed && !io.memory.response.bits.error && !fillKilled && !io.invalidate
+        bankedTags.foreach { bank =>
+            bank.io.readValid := readEnable
+            bank.io.readSet := set(io.request.bits.address)
+            bank.io.expectedTag := tag(saved.address)
+            bank.io.writeValid := install
+            bank.io.writeSet := set(saved.address)
+            bank.io.writeTag := tag(saved.address)
+        }
+        val tagMatch = bankedTags.map(_.io.matches).getOrElse(
+            tags.get.read(set(io.request.bits.address), readEnable) === tag(saved.address))
+        hit := valid(set(saved.address)) && tagMatch && !io.invalidate
         val fill = io.memory.response.fire && savedCacheable && !saved.write
         val update = io.memory.response.fire && saved.write && writeHit && !io.memory.response.bits.error
         val fillWord = (word(saved.address) >> log2Ceil(wordsPerLine)) << log2Ceil(wordsPerLine) | beat
@@ -206,9 +224,8 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         } else when(fill || update) {
             data.write(writeAddress, writeData.asTypeOf(Vec(p.xlen / 8, UInt(8.W))), mask.asBools)
         }
-        when(fill && io.memory.response.bits.last && !failed && !io.memory.response.bits.error &&
-            !fillKilled && !io.invalidate) {
-            tags.write(set(saved.address), tag(saved.address))
+        when(install) {
+            tags.foreach(_.write(set(saved.address), tag(saved.address)))
             valid := valid | UIntToOH(set(saved.address), sets)
         }
         // Never expose the old tag after its payload has been partially overwritten by a failed refill.

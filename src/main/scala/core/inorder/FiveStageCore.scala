@@ -58,7 +58,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     private val quiescePrevious = if (externalQuiesce) RegNext(quiesceRequest, false.B) else false.B
     private val quiesceBlocking = quiesceRequest || quiescePrevious
     private val quiesceRelease = quiescePrevious && !quiesceRequest
-    private val ifValid = RegInit(false.B)
+    private val fetchQueue = if (p.fpgaTimingCuts) Some(Module(new I1FetchQueue(p))) else None
+    private val ifValid = fetchQueue.map(_.io.output.valid).getOrElse(RegInit(false.B))
     private val idValid = RegInit(false.B)
     private val exValid = RegInit(false.B)
     private val memValid = RegInit(false.B)
@@ -67,7 +68,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     private val rrValid = if (p.registerReadStage) RegInit(false.B) else false.B
     private val addrValid = if (p.addressStage) RegInit(false.B) else false.B
     private val cmpValid = if (p.completionStage) RegInit(false.B) else false.B
-    private val ifPacket = Reg(new FiveStageInstruction(p))
+    private val ifPacket = fetchQueue.map(_.io.output.bits).getOrElse(Reg(new FiveStageInstruction(p)))
     private val idPacket = Reg(new FiveStageInstruction(p))
     private val idSerial = if (p.fpgaTimingCuts) Some(Reg(Bool())) else None
     private val exPacket = Reg(new FiveStageExecutePacket(p))
@@ -386,6 +387,11 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         // Resolve in the existing ADDR stage: no new edge or redirect latency.
         addressPrepared.nextPc := Mux(addrPacket.branchTaken && !addrPacket.fault,
             addrPacket.branchTarget, addrPacket.nextPc)
+        // Only instruction-address-misaligned consumes this deferred target.
+        // Branch target and fault class are already owned by this ADDR packet.
+        when(addrPacket.fault && addrPacket.cause === 0.U) {
+            addressPrepared.tval := addrPacket.branchTarget
+        }
     }
     val addressMask = MuxLookup(addrPacket.control.funct3(1, 0), 0.U(3.W))(
         Seq(1.U -> 1.U, 2.U -> 3.U, 3.U -> 7.U))
@@ -541,7 +547,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         exPacket.instruction.pc + 2.U, exPacket.instruction.pc + 4.U)
         else exPacket.instruction.pc + Mux(p.withC.B && exPacket.instruction.compressed, 2.U, 4.U)
     def addressSum(left: UInt, right: UInt): UInt =
-        if (p.fpgaTimingCuts) I1TimingMath.add(left, right) else left + right
+        if (p.fpgaTimingCuts) I1TimingMath.add(left, right, chunkBits = 16) else left + right
     val target = Mux(c.jumpRegister, addressSum(rs1, c.immediate) &
         ((BigInt(1) << p.xlen) - 2).U(p.xlen.W), addressSum(exPacket.instruction.pc, c.immediate))
     val branchEqual = if (p.fpgaTimingCuts) I1TimingMath.equal(rs1, rs2) else rs1 === rs2
@@ -764,7 +770,9 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     executed.nextPc := (if (p.fpgaTimingCuts)
         Mux(c.mret, csr.io.returnPc, Mux(c.sret, csr.io.supervisorReturnPc, sequentialPc)) else exNextPc)
     executed.branchTaken := takeBranch; executed.branchTarget := target
-    executed.fault := exFault; executed.cause := exCause; executed.tval := exTval
+    executed.fault := exFault; executed.cause := exCause
+    executed.tval := (if (p.fpgaTimingCuts) Mux(exPacket.instruction.fetchError || c.ebreak,
+        fetchFaultPc, Mux(illegal, illegalValue, 0.U)) else exTval)
     executed.csrWrite := csrWrite
     executed.csrData := (if (p.withAia) Mux(I1Aia.indirect(c.csrAddress), csrSource, csrData) else csrData)
     val changesMap = c.csrAddress === "h180".U || p.pmpEntries.U =/= 0.U &&
@@ -777,9 +785,17 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         fp.data := fpResult
         fp.flags := Mux(c.fpExecute && !numericalFault, fpFlags, 0.U)
     }
+    if (p.fpgaTimingCuts) {
+        // Capture an unowned payload while ADDR is empty or releasing its owner.
+        // EX admission still controls valid; its late ready no longer gates this wide payload.
+        when(!addrValid || addressFire) { addrPacket := executed }
+    }
     when(exFire) {
         exValid := false.B; mulDivSent := false.B; operandHeld := false.B
-        if (p.addressStage) { addrValid := true.B; addrPacket := executed }
+        if (p.addressStage) {
+            addrValid := true.B
+            if (!p.fpgaTimingCuts) addrPacket := executed
+        }
         else { memValid := true.B; memSent := earlyRequest && io.dataRequest.fire; memPacket := executed }
         if (p.withF) { fpSent := false.B }
     }
@@ -829,11 +845,17 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         registers.io.rs2 := decoder.io.instruction(24, 20)
         registers.io.rs3 := decoder.io.instruction(31, 27)
     }
+    if (p.fpgaTimingCuts) when(!rrValid || rrFire) {
+        rrPacket.instruction := idPacket; rrPacket.control := decodedControl
+        captureExecutionMetadata(rrPacket)
+    }
     when(idFire) {
         if (p.registerReadStage) {
-            rrValid := true.B; rrPacket.instruction := idPacket; rrPacket.control := decodedControl
-            rrCaptured := false.B
-            captureExecutionMetadata(rrPacket)
+            rrValid := true.B; rrCaptured := false.B
+            if (!p.fpgaTimingCuts) {
+                rrPacket.instruction := idPacket; rrPacket.control := decodedControl
+                captureExecutionMetadata(rrPacket)
+            }
         } else {
             exValid := true.B; exPacket.instruction := idPacket; exPacket.control := decodedControl
             mulDivSent := false.B; operandHeld := false.B
@@ -847,13 +869,17 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         val readLeft = Mux(wbMatch(rc.rs1, rc.usesRs1), wbPacket.result, Mux(rrCaptured, rrLeft, rf.io.data1))
         val readRight = Mux(wbMatch(rc.rs2, rc.usesRs2), wbPacket.result, Mux(rrCaptured, rrRight, rf.io.data2))
         when(rrValid && !idFire) { rrLeft := readLeft; rrRight := readRight; rrCaptured := true.B }
+        if (p.fpgaTimingCuts) when(!exValid || exFire) {
+            exPacket := rrPacket
+            exLeft := Mux(rrPacket.operandEnable.get(0), readLeft, 0.U)
+            exRight := Mux(rrPacket.operandEnable.get(1), readRight, 0.U)
+            heldLeft := Mux(rrPacket.operandEnable.get(0), readLeft, 0.U)
+            heldRight := Mux(rrPacket.operandEnable.get(1), readRight, 0.U)
+        }
         when(rrFire) {
-            exValid := true.B; exPacket := rrPacket
-            exLeft := (if (p.fpgaTimingCuts) Mux(rrPacket.operandEnable.get(0), readLeft, 0.U) else readLeft)
-            exRight := (if (p.fpgaTimingCuts) Mux(rrPacket.operandEnable.get(1), readRight, 0.U) else readRight)
-            if (p.fpgaTimingCuts) {
-                heldLeft := Mux(rrPacket.operandEnable.get(0), readLeft, 0.U)
-                heldRight := Mux(rrPacket.operandEnable.get(1), readRight, 0.U)
+            exValid := true.B
+            if (!p.fpgaTimingCuts) {
+                exPacket := rrPacket; exLeft := readLeft; exRight := readRight
             }
             exFloatingOperands.foreach { captured =>
                 when(rc.floating) {
@@ -879,7 +905,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
                 def writes(control: FiveStageDecodeControl): Bool =
                     used && index =/= 0.U && control.writesRd && control.rd === index
                 val offers = Seq(
-                    Mux(exFire, writes(c), addrValid && !addressFire && writes(addrPacket.control)),
+                    // At an RF replacement edge, a live EX owner necessarily advances.
+                    Mux(exValid, writes(c), addrValid && !addressFire && writes(addrPacket.control)),
                     Mux(addressFire, writes(addrPacket.control),
                         memValid && !memFire && writes(memPacket.control)),
                     Mux(memFire, writes(memPacket.control),
@@ -890,13 +917,16 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             def aluSelection(mask: UInt, overrideEnable: Bool): UInt =
                 VecInit((0 until 4).map(i => mask(i) && !overrideEnable) ++
                     Seq(!mask.orR && !overrideEnable, overrideEnable)).asUInt
-            when(exValid && !exFire) {
+            // Departing EX metadata is unowned; advancing it is harmless. Avoid
+            // late backend ready in every retained-mask/ALU-select data mux.
+            when(exValid) {
                 leftProducer.get := advance(leftProducer.get)
                 rightProducer.get := advance(rightProducer.get)
                 leftAluSelect.get := aluSelection(advance(leftProducer.get), c.usePc)
                 rightAluSelect.get := aluSelection(advance(rightProducer.get), c.useImmediate)
             }
             when(rrFire) {
+                assert(!exValid || exFire, "RF replacement must release the live EX owner")
                 leftProducer.get := nextProducer(rc.rs1, rc.usesRs1)
                 rightProducer.get := nextProducer(rc.rs2, rc.usesRs2)
                 leftAluSelect.get := aluSelection(nextProducer(rc.rs1, rc.usesRs1), rc.usePc)
@@ -908,8 +938,11 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         else !idValid || idFire
     val frontendAccept = frontPermission && ifCapacity
     val ifFire = ifValid && frontendAccept
+    if (p.fpgaTimingCuts) when(!idValid || idFire) { idPacket := ifPacket }
     when(ifFire) {
-        idValid := true.B; idPacket := ifPacket; ifValid := false.B
+        idValid := true.B
+        if (!p.fpgaTimingCuts) idPacket := ifPacket
+        if (!p.fpgaTimingCuts) ifValid := false.B
         idSerial.foreach(_ := I1SerialPredecode(ifPacket.instruction, ifPacket.compressed, p))
     }
 
@@ -945,19 +978,36 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         if (p.fpgaTimingCuts) {
             predictionValues := VecInit(predictor.io.candidateValues.get.all)
             predictionMask := predictor.io.candidateMask.get
+            predictedNext := I1ExecuteDatapath.operand(predictionMask.asBools, predictionValues.toSeq)
         }
     }
     if (p.externalFenceICompletion) fenceIFetchDrained := !offerValid && !pending
-    val responseSpace = if (externalQuiesce)
-        pendingKilled || wbFenceI || quiesceBlocking || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
-        else pendingKilled || wbFenceI || !ifValid || (if (p.fpgaTimingCuts) frontendAccept else ifFire)
+    val responseSpace = if (p.fpgaTimingCuts)
+        pendingKilled || wbFenceI || quiesceBlocking || fetchQueue.get.io.input.ready
+        else if (externalQuiesce) pendingKilled || wbFenceI || quiesceBlocking || !ifValid || ifFire
+        else pendingKilled || wbFenceI || !ifValid || ifFire
+    fetchQueue.foreach { queue =>
+        queue.io.output.ready := frontendAccept
+        queue.io.input.valid := pending && io.instructionResponse.valid
+        queue.io.cancelInput := pendingKilled || flush || wbFenceI || quiesceBlocking
+        queue.io.flush := flush || wbFenceI || quiesceBlocking
+        queue.io.input.bits := 0.U.asTypeOf(queue.io.input.bits)
+        queue.io.input.bits.pc := pendingPc
+        queue.io.input.bits.instruction := io.instructionResponse.bits.instruction
+        queue.io.input.bits.fetchError := io.instructionResponse.bits.error
+        queue.io.input.bits.fetchPageFault := io.instructionResponse.bits.pageFault
+        queue.io.input.bits.compressed := p.withC.B && io.instructionResponse.bits.compressed
+        queue.io.input.bits.fetchSecondHalfFault := io.instructionResponse.bits.secondHalfFault
+        queue.io.input.bits.predictedNextPc :=
+            (if (p.branchPredictorEntries > 0 || p.withC) pendingPrediction else 0.U)
+    }
     io.instructionResponse.ready := pending && responseSpace
     io.instructionRequest.valid := offerValid && (if (p.fpgaTimingCuts)
         !pending || (io.instructionResponse.valid && responseSpace) else !pending || io.instructionResponse.fire)
     io.instructionRequest.bits := offerPc
     when(io.instructionResponse.fire) {
         pending := false.B
-        when(!pendingKilled && !flush && !wbFenceI && !quiesceBlocking) {
+        if (!p.fpgaTimingCuts) when(!pendingKilled && !flush && !wbFenceI && !quiesceBlocking) {
             ifValid := true.B; ifPacket.pc := pendingPc
             ifPacket.instruction := io.instructionResponse.bits.instruction
             ifPacket.fetchError := io.instructionResponse.bits.error
@@ -983,12 +1033,14 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     if (p.externalFenceICompletion) when(wbFenceI) {
         // Preserve every already-offered request until accepted, then drain its killed
         // reply even with full IF/ID. No new offer may keep PTW/cache maintenance alive.
-        ifValid := false.B; idValid := false.B
+        if (!p.fpgaTimingCuts) ifValid := false.B
+        idValid := false.B
         when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
         when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
     }
     when(flush) {
-        ifValid := false.B; idValid := false.B
+        if (!p.fpgaTimingCuts) ifValid := false.B
+        idValid := false.B
         if (!p.fpgaTimingCuts) desiredPc := redirectPc
         when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
         when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
@@ -1006,12 +1058,19 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         val resume = !flush && !wbFenceI && !quiesceBlocking && ((!offerValid && !csr.io.irqPending) ||
             (io.instructionRequest.fire && offerKilled))
         val redirect = flush && (!offerValid || io.instructionRequest.fire)
+        val replay = offerKilled || !offerValid
+        val choosePrediction = !flush && !replay
+        // Merge mutually exclusive bank candidates with recovery BEFORE
+        // selecting a wide PC. No resolved predictor word traverses two more muxes.
+        val offerMasks = Seq(flush, !flush && replay) ++
+            predictionMask.asBools.map(_ && choosePrediction)
+        val offerValues = Seq(redirectPc, desiredPc) ++ predictionValues.toSeq
         when(predict || resume || redirect) {
-            offerPc := Mux(flush, redirectPc,
-                Mux(offerKilled || !offerValid, desiredPc, predictedNext))
+            offerPc := I1ExecuteDatapath.operand(offerMasks, offerValues)
         }
         when(predict || flush) {
-            desiredPc := Mux(flush, redirectPc, predictedNext)
+            desiredPc := I1ExecuteDatapath.operand(Seq(flush) ++
+                predictionMask.asBools.map(_ && !flush), Seq(redirectPc) ++ predictionValues.toSeq)
         }
     }
     if (externalQuiesce) {
@@ -1019,7 +1078,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         // accepted fetch replies are consumed as killed, while every backend
         // owner continues to its original completion/retirement or recovery.
         when(quiesceBlocking) {
-            ifValid := false.B; idValid := false.B
+            if (!p.fpgaTimingCuts) ifValid := false.B
+            idValid := false.B
             when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
             when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
             when(!offerValid || io.instructionRequest.fire) { offerValid := false.B }
@@ -1074,10 +1134,14 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
                 "flattened EX capacity differs from exact owner transfer")
             assert(ifFire === (ifValid && (!idValid || idFire) && frontPermission),
                 "lookahead IF capacity differs from exact owner transfer")
-            assert(io.instructionResponse.ready === (pending && (if (externalQuiesce)
-                pendingKilled || wbFenceI || quiesceBlocking || !ifValid || ifFire
-                else pendingKilled || wbFenceI || !ifValid || ifFire)),
-                "lookahead fetch reply capacity mismatch")
+            assert(io.instructionResponse.ready === (pending &&
+                (pendingKilled || wbFenceI || quiesceBlocking || fetchQueue.get.io.input.ready)),
+                "registered IF reply credit mismatch")
+            assert(fetchQueue.get.io.output.fire === ifFire, "IF dequeue must match ID admission")
+            when(fetchQueue.get.io.input.fire && !fetchQueue.get.io.cancelInput) {
+                assert(io.instructionResponse.fire && !pendingKilled && !flush,
+                    "IF enqueue has no live fetch-response owner")
+            }
             assert(io.instructionRequest.valid === (offerValid && (!pending || io.instructionResponse.fire)),
                 "lookahead fetch request slot mismatch")
             when(exValid) {

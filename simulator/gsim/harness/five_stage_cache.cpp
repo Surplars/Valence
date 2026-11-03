@@ -5,6 +5,7 @@
 #include <optional>
 #include <random>
 #include <stdexcept>
+#include <string>
 #include <vector>
 #ifndef CACHE_BYTES
 #define CACHE_BYTES 512
@@ -13,7 +14,13 @@
 #define DUT_XLEN 64
 #endif
 static constexpr unsigned WORD = DUT_XLEN / 8, LINE = 64;
-static constexpr uint64_t BASE = 0x80000000, MASK = DUT_XLEN == 64 ? UINT64_MAX : UINT32_MAX;
+#ifndef CACHE_BASE
+#define CACHE_BASE 0x80000000ULL
+#endif
+#ifndef CACHE_WINDOW
+#define CACHE_WINDOW 0x10000000ULL
+#endif
+static constexpr uint64_t BASE = CACHE_BASE, MASK = DUT_XLEN == 64 ? UINT64_MAX : UINT32_MAX;
 static void need(bool v, const char *s) { if (!v) throw std::runtime_error(s); }
 struct Backend {
     uint64_t address, data; unsigned mask, beats, beat = 0; bool write;
@@ -29,7 +36,7 @@ struct Test {
     bool sideEffectOnError = false;
     bool responseReady = false;
     Test() {
-        for (unsigned j = 0; j < memory.size(); ++j) memory[j] = j * 73 + 19;
+        for (unsigned j = 0; j < memory.size(); ++j) memory[j] = (j * 73 + 19) ^ ((j >> 8) * 37) ^ ((j >> 13) * 11);
         d.set_reset(1); d.set_io$$request$$valid(0); d.set_io$$response$$ready(0);
         d.set_io$$memory$$request$$ready(0); d.set_io$$memory$$response$$valid(0);
         d.set_io$$invalidate(0); d.step(); d.step(); d.set_reset(0);
@@ -77,7 +84,8 @@ struct Test {
         }
     }
     std::array<uint64_t, 2> transact(uint64_t address, bool write = false, uint64_t data = 0,
-                                   unsigned mask = WORD == 8 ? 255 : 15, bool noAllocate = false) {
+                                   unsigned mask = WORD == 8 ? 255 : 15, bool noAllocate = false,
+                                   int invalidateCycle = -1) {
         d.set_io$$request$$valid(1); d.set_io$$request$$bits$$address(address);
         d.set_io$$request$$bits$$write(write); d.set_io$$request$$bits$$size(WORD == 8 ? 3 : 2);
         d.set_io$$request$$bits$$data(data); d.set_io$$request$$bits$$mask(mask);
@@ -87,7 +95,7 @@ struct Test {
         for (unsigned n = 0; n < 200; ++n) {
             if (accepted) d.set_io$$request$$valid(0);
             responseReady = accepted && cycle % 3 == 0; d.set_io$$response$$ready(responseReady);
-            step();
+            step(int(n) == invalidateCycle);
             bool response = d.get_io$$response$$valid() && responseReady;
             if (!accepted && d.get_io$$request$$ready()) accepted = true;
             if (response) {
@@ -99,18 +107,50 @@ struct Test {
     }
     void invalidate() { d.set_io$$request$$valid(0); d.set_io$$response$$ready(0); responseReady = false; step(true); }
 };
-int main() { try {
+int main(int argc, char **argv) { try {
+    const bool inject = argc > 1 && std::string(argv[1]) == "--inject";
     Test t;
-    auto checkRead = [&](uint64_t a) { auto r = t.transact(a); need(!r[1] && r[0] == t.load(a & ~(WORD - 1ULL)),
+    auto checkRead = [&](uint64_t a) { auto r = t.transact(a); need(!r[1] && r[0] == (t.load(a & ~(WORD - 1ULL)) ^ uint64_t(inject)),
         "cache independent byte-memory oracle mismatch"); };
     checkRead(BASE + 16); uint64_t reads = t.requests; checkRead(BASE + 16);
     need(t.requests == reads + (CACHE_BYTES ? 0 : 1), "cache hit/disabled mode did not match contract");
+    // A presence bit captured at admission must not outlive invalidation at
+    // that edge or the immediately following lookup edge. Change backing RAM
+    // so an accidentally retained hit cannot pass a payload-only comparison.
+    for (int edge : {0, 1}) {
+        checkRead(BASE + 16); reads = t.requests;
+        t.memory[16] ^= uint8_t(0x35 + edge);
+        auto invalidated = t.transact(BASE + 16, false, 0, WORD == 8 ? 255 : 15, false, edge);
+        need(!invalidated[1] && invalidated[0] == t.load(BASE + 16),
+            "admission/lookup invalidation exposed stale cached bytes");
+        need(t.requests == reads + 1, "admission/lookup invalidation retained old presence");
+    }
     // M-mode may have filled this line before a narrower PMP context forced a scalar uncached write.
     auto bypassWrite = t.transact(BASE + 16, true, 0x1111222233334444ULL & MASK, WORD == 8 ? 255 : 15, true);
     need(!bypassWrite[1] && t.load(BASE + 16) == (0x1111222233334444ULL & MASK),
         "PMP boundary bypass write did not wait for real memory ack");
     reads = t.requests; checkRead(BASE + 16);
     need(t.requests == reads + 1, "PMP boundary bypass write left an old cached line valid");
+    // Common high bits are omitted only AFTER the exact cacheable-window admission.
+    // Addresses differing solely in those bits must bypass and preserve the live line.
+    reads = t.requests;
+    uint64_t outside = BASE ^ (1ULL << (DUT_XLEN - 1));
+    checkRead(outside + 16); checkRead(outside + 16);
+    need(t.requests == reads + 2, "fixed-prefix alias was incorrectly cached");
+    reads = t.requests; checkRead(BASE + 16);
+    need(t.requests == reads + (CACHE_BYTES ? 0 : 1), "outside-window bypass damaged live cached line");
+    reads = t.requests;
+    checkRead(BASE + CACHE_WINDOW); checkRead(BASE + CACHE_WINDOW);
+    checkRead(BASE - WORD); checkRead(BASE - WORD);
+    need(t.requests == reads + 4, "exclusive cache-window boundary was cached");
+    checkRead(BASE + CACHE_WINDOW - WORD); reads = t.requests;
+    checkRead(BASE + CACHE_WINDOW - WORD);
+    need(t.requests == reads + (CACHE_BYTES ? 0 : 1), "last legal window line failed to cache");
+    if (CACHE_BYTES && CACHE_WINDOW > CACHE_BYTES + 16ULL) {
+        checkRead(BASE + 16); reads = t.requests;
+        checkRead(BASE + CACHE_BYTES + 16); checkRead(BASE + 16);
+        need(t.requests == reads + 2, "varying tag bits aliased two legal cache lines");
+    }
     auto r = t.transact(BASE + 16, true, 0xfedcba9876543210ULL & MASK, 5);
     need(!r[1], "successful partial write failed"); checkRead(BASE + 16);
     auto before = t.load(BASE + 16); t.errorBeat = 0;
@@ -136,18 +176,31 @@ int main() { try {
     reads = t.requests; checkRead(0x10000000); checkRead(0x10000000);
     need(t.requests == reads + 2, "MMIO was cached");
     checkRead(BASE + 16);
+
+    // Touch every real set/bank, then revisit in reverse. This checks the
+    // entire bank-selection space, independently of the DUT's tag encoding.
+    if (CACHE_BYTES && CACHE_WINDOW >= CACHE_BYTES) {
+        for (unsigned offset = 0; offset < CACHE_BYTES; offset += LINE) checkRead(BASE + offset + 16);
+        reads = t.requests;
+        for (unsigned offset = CACHE_BYTES; offset; offset -= LINE) checkRead(BASE + offset - LINE + 16);
+        need(t.requests == reads, "banked tag sweep lost or aliased an installed set");
+    }
 #ifdef CACHE_FLOW
     // A warmed IF bank must sustain one real accepted request/response per cycle, not a host hit oracle.
     unsigned admitted = 0, returned = 0, elapsed = 0;
+    std::vector<uint64_t> acceptedAddresses;
     reads = t.requests;
     t.responseReady = true; t.d.set_io$$response$$ready(1);
     for (; elapsed < 40 && returned < 16; ++elapsed) {
         bool valid = admitted < 16;
-        t.d.set_io$$request$$valid(valid); t.d.set_io$$request$$bits$$address(BASE + 16);
+        uint64_t address = BASE + ((uint64_t(admitted) * 0x1040) % CACHE_BYTES) + 16;
+        t.d.set_io$$request$$valid(valid); t.d.set_io$$request$$bits$$address(address);
         t.d.set_io$$request$$bits$$write(0); t.step();
-        if (valid && t.d.get_io$$request$$ready()) ++admitted;
+        if (valid && t.d.get_io$$request$$ready()) { acceptedAddresses.push_back(address); ++admitted; }
         if (t.d.get_io$$response$$valid()) {
-            need(!t.d.get_io$$response$$bits$$error() && t.d.get_io$$response$$bits$$data() == t.load(BASE + 16),
+            need(returned < acceptedAddresses.size(), "IF response has no independently accepted address");
+            need(!t.d.get_io$$response$$bits$$error() &&
+                t.d.get_io$$response$$bits$$data() == t.load(acceptedAddresses[returned]),
                 "pipelined IF hit data mismatch"); ++returned;
         }
     }
@@ -155,6 +208,22 @@ int main() { try {
         "IF cache inserted avoidable hit bubbles or duplicated an owner");
     t.d.set_io$$request$$valid(0); t.d.set_io$$response$$ready(0); t.responseReady = false;
 #endif
+    // Give adjacent sets different full-address tags, then require all hits.
+    // Correct data alone cannot hide a wrong-bank tag miss and refill.
+    if (CACHE_BYTES && CACHE_WINDOW >= 3ULL * CACHE_BYTES) {
+        std::vector<uint64_t> installed;
+        reads = t.requests; uint64_t expectedMisses = 0;
+        for (unsigned offset = 0; offset < CACHE_BYTES; offset += LINE) {
+            const uint64_t replacement = (offset / LINE) % 3ULL;
+            uint64_t address = BASE + offset + replacement * CACHE_BYTES;
+            expectedMisses += replacement != 0;
+            checkRead(address); installed.push_back(address);
+        }
+        need(t.requests == reads + expectedMisses, "different full-address tags were incorrectly accepted as hits");
+        reads = t.requests;
+        for (auto address = installed.rbegin(); address != installed.rend(); ++address) checkRead(*address);
+        need(t.requests == reads, "different full-address tags were lost across cache banks");
+    }
     t.d.set_reset(1); t.d.set_io$$request$$valid(0); t.d.set_io$$response$$ready(0); t.responseReady = false;
     t.d.set_io$$memory$$request$$ready(0); t.d.set_io$$memory$$response$$valid(0);
     t.d.step(); t.d.step(); t.d.set_reset(0);
@@ -170,6 +239,6 @@ int main() { try {
     }
     std::cout << "FIVE_STAGE_CACHE_PASS bytes=" << CACHE_BYTES << " xlen=" << DUT_XLEN
         << " requests=" << t.requests << " hits=" << t.hits << " misses=" << t.misses
-        << " partial_store_error_refill_error_stale_fill_mmio_backpressure_warm_reset=PASS\n";
+        << " partial_store_error_refill_error_stale_fill_mmio_backpressure_warm_reset_window_alias_admission_invalidate=PASS\n";
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }

@@ -30,15 +30,18 @@ class SynchronousRegisterFile(xlen: Int, storage: String = "block") extends Modu
     private val write = io.writeEnable && io.rd =/= 0.U
     when(write) { initialized := initialized | UIntToOH(io.rd, 32) }
     private val responseValid = RegNext(io.readEnable, false.B)
-    private val collisionData = RegEnable(io.writeData, io.readEnable && write)
+    // responseValid owns exactly the next-cycle result. Payload and metadata
+    // may advance on an unowned edge; held captures the previous valid result
+    // before they change. Keep late read admission off the wide collision-data CE.
+    private val collisionData = RegNext(io.writeData)
     for ((address, result) <- Seq(io.rs1 -> io.data1, io.rs2 -> io.data2)) {
         // Undefined RDW is safe because collisions are bypassed; also matches pinned GSIM syntax.
         val bank = SyncReadMem(32, UInt(xlen.W))
         when(write) { bank.write(io.rd, io.writeData) }
         val readData = bank.read(address, io.readEnable)
-        val collision = RegEnable(write && io.rd === address, false.B, io.readEnable)
-        val nonzero = RegEnable(address =/= 0.U, false.B, io.readEnable)
-        val defined = RegEnable(initialized(address) || (write && io.rd === address), false.B, io.readEnable)
+        val collision = RegNext(write && io.rd === address, false.B)
+        val nonzero = RegNext(address =/= 0.U, false.B)
+        val defined = RegNext(initialized(address) || (write && io.rd === address), false.B)
         val response = Mux(nonzero && defined, Mux(collision, collisionData, readData), 0.U)
         val held = Reg(UInt(xlen.W))
         when(responseValid) { held := response }

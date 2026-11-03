@@ -5,11 +5,35 @@
 #include <optional>
 #include <random>
 #include <stdexcept>
+#include <string>
 
-int main() { try {
+#ifndef DUT_XLEN
+#define DUT_XLEN 64
+#endif
+static constexpr uint64_t MASK = DUT_XLEN == 32 ? 0xffffffffULL : ~0ULL;
+int main(int argc, char **argv) { try {
+    const bool inject = argc > 1 && std::string(argv[1]) == "--inject";
     SSynchronousRegisterFile d;
     d.set_reset(1); d.set_io$$writeEnable(0); d.set_io$$readEnable(0); d.step(); d.step();
     d.set_reset(0);
+    // Keep the same nonzero read address through reset release and a real
+    // WB/read collision, then keep writing unrelated registers while read is disabled.
+    for (unsigned round = 0; round < 3; ++round) {
+        const uint64_t value = (0x123456789abcdef0ULL ^ round) & MASK;
+        d.set_reset(1); d.set_io$$readEnable(0); d.set_io$$writeEnable(0);
+        d.set_io$$rs1(5); d.set_io$$rs2(5); d.set_io$$rd(5); d.set_io$$writeData(value);
+        d.step(); d.step(); d.set_reset(0);
+        d.set_io$$readEnable(1); d.set_io$$writeEnable(1); d.step();
+        d.set_io$$readEnable(0); d.set_io$$writeEnable(0); d.step();
+        if (d.get_io$$data1() != value || d.get_io$$data2() != value)
+            throw std::runtime_error("independent synchronous RF constant-address reset collision mismatch");
+        for (unsigned other = 1; other <= 4; ++other) {
+            d.set_io$$writeEnable(1); d.set_io$$rd(other); d.set_io$$writeData((value + other) & MASK); d.step();
+            if (d.get_io$$data1() != value || d.get_io$$data2() != value)
+                throw std::runtime_error("independent synchronous RF retained collision mismatch");
+        }
+    }
+    d.set_reset(1); d.set_io$$readEnable(0); d.set_io$$writeEnable(0); d.step(); d.step(); d.set_reset(0);
     std::array<uint64_t, 32> registers{};
     std::optional<std::array<uint64_t, 2>> expected;
     std::mt19937_64 rng(0x1f00113);
@@ -17,10 +41,11 @@ int main() { try {
     for (unsigned step = 0; step < 12000; ++step) {
         bool read = rng() % 3 != 0, write = rng() % 3 != 0;
         unsigned a = rng() % 32, b = rng() % 32, rd = step % 5 ? rng() % 32 : a;
-        uint64_t value = rng();
+        uint64_t value = rng() & MASK;
         d.set_io$$readEnable(read); d.set_io$$writeEnable(write);
         d.set_io$$rs1(a); d.set_io$$rs2(b); d.set_io$$rd(rd); d.set_io$$writeData(value);
         d.step();
+        if (inject && step == 100 && expected) (*expected)[0] ^= 1;
         if (expected && (d.get_io$$data1() != (*expected)[0] || d.get_io$$data2() != (*expected)[1]))
             throw std::runtime_error("independent synchronous RF oracle mismatch");
         if (write && rd) registers[rd] = value;
@@ -34,6 +59,6 @@ int main() { try {
     }
     if (!collisions || !stalls || !zeroWrites) throw std::runtime_error("RF coverage incomplete");
     std::cout << "FIVE_STAGE_RF_PASS vectors=12000 collisions=" << collisions << " stalls=" << stalls
-        << " x0_writes=" << zeroWrites << " warm_reset=1\n";
+        << " x0_writes=" << zeroWrites << " warm_reset=1 constant_address_reset=3 held_collision_writes=12\n";
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }
