@@ -60,13 +60,22 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     val entries = Seq.fill(bankCount)(Mem(bankRows, new Entry))
     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
         "ram_style = \"distributed\"")))
-    val valid = RegInit(0.U(p.branchPredictorEntries.W))
+    // Valid ownership and training feedback stay inside each physical RAM bank.
+    // Total valid bits and table capacity are unchanged; invalidate wins per bank.
+    val validBanks = Seq.fill(bankCount)(RegInit(0.U(bankRows.W)))
     // With C, old halfword indexing wasted half the RAM for aligned32 code.
     // Fold bit1 into the top index bit; KEEP bit1 in the tag so the mapping
     // remains injective across halfwords and aliases. Same RAM/tag width.
-    def index(pc: UInt): UInt = if (p.withC && p.fpgaTimingCuts)
-        pc(indexBits + 1, 2) ^ Mux(pc(1), (BigInt(1) << (indexBits - 1)).U(indexBits.W), 0.U(indexBits.W))
-        else pc(indexBits + alignmentBits - 1, alignmentBits)
+    def index(pc: UInt): UInt = {
+        val base = if (p.withC && p.fpgaTimingCuts)
+            pc(indexBits + 1, 2) ^ Mux(pc(1), (BigInt(1) << (indexBits - 1)).U(indexBits.W), 0.U(indexBits.W))
+            else pc(indexBits + alignmentBits - 1, alignmentBits)
+        // The upper slice is already present in the exact tag. XORing it into
+        // the index is invertible for a given tag, so no tag bit is discarded.
+        // This changes conflicts, not capacity, RAM width, latency or ownership.
+        val shift = if (p.withC && p.fpgaTimingCuts) 2 else alignmentBits
+        if (p.hashedBranchIndex) base ^ pc(shift + 2 * indexBits - 1, shift + indexBits) else base
+    }
     def tag(pc: UInt): UInt = if (p.withC && p.fpgaTimingCuts)
         Cat(pc(p.xlen - 1, indexBits + 2), pc(1)) else pc(p.xlen - 1, indexBits + alignmentBits)
     def row(i: UInt): UInt = i(rowBits - 1, 0)
@@ -74,7 +83,7 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     val lookupIndex = index(io.pc)
     val lookups = entries.map(_.read(row(lookupIndex)))
     val hits = lookups.zipWithIndex.map { case (entry, b) =>
-        bank(lookupIndex) === b.U && valid((b + 1) * bankRows - 1, b * bankRows)(row(lookupIndex)) &&
+        bank(lookupIndex) === b.U && validBanks(b)(row(lookupIndex)) &&
             (if (p.fpgaTimingCuts) I1TimingMath.equal(entry.tag, tag(io.pc)) else entry.tag === tag(io.pc))
     }
     io.hit := hits.reduce(_ || _)
@@ -118,28 +127,32 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
         }
     } else io.nextPc := legacyNextPc
     val trainingIndex = index(io.train.bits.pc)
-    val trainingEntry = Mux1H(entries.zipWithIndex.map { case (memory, b) =>
-        (bank(trainingIndex) === b.U) -> memory.read(row(trainingIndex))
-    })
-    val oldHit = valid(index(io.train.bits.pc)) && trainingEntry.tag === tag(io.train.bits.pc)
-    val updated = Wire(new Entry)
-    updated.tag := tag(io.train.bits.pc)
-    updated.target := io.train.bits.target
-    updated.conditional := io.train.bits.conditional
-    updated.controlFlow := io.train.bits.controlFlow
-    updated.compressed := p.withC.B && io.train.bits.compressed
-    updated.counter := Mux(!oldHit, Mux(io.train.bits.taken, 2.U, 1.U),
-        Mux(io.train.bits.taken, Mux(trainingEntry.counter === 3.U, 3.U, trainingEntry.counter + 1.U),
-            Mux(trainingEntry.counter === 0.U, 0.U, trainingEntry.counter - 1.U)))
-    when(io.train.valid) {
-        when(io.train.bits.controlFlow || p.withC.B) {
-            for ((memory, b) <- entries.zipWithIndex) {
-                when(bank(trainingIndex) === b.U) { memory.write(row(trainingIndex), updated) }
+    for ((memory, b) <- entries.zipWithIndex) {
+        // Read, compare and update the direction counter locally. Selecting a
+        // wide shared training Entry before comparing its tag puts the bank
+        // mux on every write-feedback path and fans it back across all banks.
+        val trainingEntry = memory.read(row(trainingIndex))
+        val tagMatch = if (p.fpgaTimingCuts) I1TimingMath.equal(trainingEntry.tag, tag(io.train.bits.pc))
+            else trainingEntry.tag === tag(io.train.bits.pc)
+        val oldHit = validBanks(b)(row(trainingIndex)) && tagMatch
+        val updated = Wire(new Entry)
+        updated.tag := tag(io.train.bits.pc)
+        updated.target := io.train.bits.target
+        updated.conditional := io.train.bits.conditional
+        updated.controlFlow := io.train.bits.controlFlow
+        updated.compressed := p.withC.B && io.train.bits.compressed
+        updated.counter := Mux(!oldHit, Mux(io.train.bits.taken, 2.U, 1.U),
+            Mux(io.train.bits.taken, Mux(trainingEntry.counter === 3.U, 3.U, trainingEntry.counter + 1.U),
+                Mux(trainingEntry.counter === 0.U, 0.U, trainingEntry.counter - 1.U)))
+        val validMask = UIntToOH(row(trainingIndex), bankRows)
+        when(io.train.valid && bank(trainingIndex) === b.U) {
+            when(io.train.bits.controlFlow || p.withC.B) {
+                memory.write(row(trainingIndex), updated)
+                validBanks(b) := validBanks(b) | validMask
+            }.elsewhen(oldHit) {
+                validBanks(b) := validBanks(b) & ~validMask
             }
-            valid := valid | UIntToOH(index(io.train.bits.pc), p.branchPredictorEntries)
-        }.elsewhen(oldHit) {
-            valid := valid & ~UIntToOH(index(io.train.bits.pc), p.branchPredictorEntries)
         }
+        when(io.invalidate) { validBanks(b) := 0.U }
     }
-    when(io.invalidate) { valid := 0.U }
 }

@@ -341,5 +341,14 @@ class FiveStageConfigSpec extends AnyFlatSpec with Matchers {
         selected.isa shouldBe FiveStageConfig().isa
         intercept[IllegalArgumentException] { FiveStageConfig(withM = false, fastDivision = true) }
     }
+    it should "keep hashed branch indexing explicit with unchanged ISA and capacity" in {
+        FiveStageConfig().hashedBranchIndex shouldBe false
+        val selected = FiveStageArguments.config(Array("out", "64", "--predictor=128", "--hashed-branch-index"))
+        selected.hashedBranchIndex shouldBe true
+        selected.branchPredictorEntries shouldBe 128
+        selected.pipeline shouldBe FiveStageConfig().pipeline
+        selected.isa shouldBe FiveStageConfig().isa
+        intercept[IllegalArgumentException] { FiveStageConfig(hashedBranchIndex = true) }
+    }
 
 }

@@ -67,6 +67,7 @@ static std::map<std::string,std::vector<uint32_t>> programs() {
 }
 
 int main(int argc,char **argv) {try {
+    if(argc>1&&std::string(argv[1])=="--isa-smoke")return i1_independent_integer_main(argc-1,argv+1);
     const bool corrupt=argc==2 && std::string(argv[1])=="--inject-observation";
     const bool corruptOracle=argc==2 && std::string(argv[1])=="--inject-register-mismatch";
     for(const auto &[name,code]:programs())for(unsigned latency:{1U,7U}) {

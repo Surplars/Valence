@@ -52,9 +52,11 @@ case class FiveStageConfig(
     bankedTlbProofs: Boolean = false,
     withAia: Boolean = false,
     externalFenceICompletion: Boolean = false,
-    fastDivision: Boolean = false
+    fastDivision: Boolean = false,
+    hashedBranchIndex: Boolean = false
 ) {
     require(!fastDivision || withM, "division shortcuts require the M extension")
+    require(!hashedBranchIndex || branchPredictorEntries > 0, "hashed branch index requires a predictor")
     require(Set(32, 64).contains(xlen), "XLEN must be 32 or 64")
     require(Set(1, 2).contains(coherentCacheWays))
     require(!coherentControlCuts || (coherentCaches && fpgaTimingCuts),
