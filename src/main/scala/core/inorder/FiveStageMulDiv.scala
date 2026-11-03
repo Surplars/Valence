@@ -10,8 +10,12 @@ class FiveStageMulDivRequest(xlen: Int) extends Bundle {
     val word = Bool()
 }
 
-/** Blocking EX extension, not extra architectural pipeline stages. DSP multiplication has
-  * registered inputs/product/result; small profile uses shift-add. Division never uses `/` RTL.
+/** One owned EX transaction; no bypass acceptance or additional architectural stage.
+  * Request/response are backpressured, completion is registered, and kill wins at the edge.
+  * DSP multiplication registers inputs/product/result; iterative multiplication uses shift-add.
+  * Restoring division takes XLEN (or 32 W-operation) steps. Zero dividend/divisor and
+  * signed/unsigned unit divisor optionally complete through a short internal phase.
+  * The area/latency tradeoff is explicit and default-off via fastDivision. No `/` RTL.
   */
 class FiveStageMulDiv(p: FiveStageConfig) extends Module {
     private val n = p.xlen
@@ -22,7 +26,10 @@ class FiveStageMulDiv(p: FiveStageConfig) extends Module {
         // Registered completion status, NOT permission to consume during kill.
         val completed = Output(Bool())
     })
-    private val Seq(idle, multiply, combineProduct, selectProduct, iterateMultiply, divide, done) = Enum(7)
+    private val states = Enum(if (p.fastDivision) 8 else 7)
+    private val Seq(idle, multiply, combineProduct, selectProduct, iterateMultiply, divide) = states.take(6)
+    private val done = states.last
+    private val quickDivide = if (p.fastDivision) states(6) else done
     private val state = RegInit(idle)
     private val operation = Reg(UInt(3.W))
     private val word = Reg(Bool())
@@ -39,6 +46,14 @@ class FiveStageMulDiv(p: FiveStageConfig) extends Module {
     private val accumulator = Reg(UInt((n * 2).W))
     private val count = Reg(UInt(log2Ceil(n + 1).W))
     private val result = Reg(UInt(n.W))
+    // Unowned arithmetic payload may advance freely. Request.fire below alone
+    // initializes its live transaction. Removing the shared phase/accept CE
+    // keeps one high-fanout control net out of quotient/remainder/counter storage.
+    private val quotientAdvance = Wire(UInt(n.W))
+    private val remainderAdvance = Wire(UInt((n + 1).W))
+    quotient := quotientAdvance
+    remainder := remainderAdvance
+    count := count - 1.U
     def finishWord(value: UInt): UInt = if (n == 64)
         Mux(word, Cat(Fill(32, value(31)), value(31, 0)), value(n - 1, 0)) else value(31, 0)
     def selectMultiply(value: UInt): UInt =
@@ -67,7 +82,11 @@ class FiveStageMulDiv(p: FiveStageConfig) extends Module {
         quotient := Mux(division, initialDividend, absB)
         multiplicand := absA; accumulator := 0.U
         count := Mux((n == 64).B && r.word && division, 32.U, n.U)
-        state := Mux(division, divide, (if (p.multiplyMode != "iterative") multiply else iterateMultiply))
+        val divideState = if (p.fastDivision) {
+            val shortcut = a === 0.U || b === 0.U || b === 1.U || (signedDivision && b.andR)
+            Mux(shortcut, quickDivide, divide)
+        } else divide
+        state := Mux(division, divideState, (if (p.multiplyMode != "iterative") multiply else iterateMultiply))
     }
     if (p.multiplyMode == "dsp") {
         val product = Reg(SInt((2 * (n + 1)).W))
@@ -105,6 +124,13 @@ class FiveStageMulDiv(p: FiveStageConfig) extends Module {
                 unsignedLow := Cat(middle(31, 0), lowProduct(31, 0))
                 unsignedHigh := highProduct + middle(65, 32)
                 state := selectProduct
+                // MULW consumes only the already registered low 32 bits.
+                // It needs neither cross-term recombination nor high-half sign
+                // correction, so capture its precise sign-extended result now.
+                when(word && operation === 0.U) {
+                    result := Cat(Fill(32, lowProduct(31)), lowProduct(31, 0))
+                    state := done
+                }
             }
             when(state === selectProduct) {
                 val signedHigh = unsignedHigh - signCorrection
@@ -133,17 +159,28 @@ class FiveStageMulDiv(p: FiveStageConfig) extends Module {
             }
         }
     }
-    when(state === divide) {
-        val shifted = Cat(remainder(n - 1, 0), quotient(n - 1))
-        val subtract = shifted >= divisor
-        val nextRemainder = Mux(subtract, shifted - divisor, shifted)
-        val nextQuotient = Cat(quotient(n - 2, 0), subtract)
-        remainder := nextRemainder; quotient := nextQuotient; count := count - 1.U
-        when(count === 1.U) {
-            val q = Mux(zeroDivisor, Fill(n, 1.U(1.W)), Mux(quotientNegative, -nextQuotient, nextQuotient))
-            val rem = Mux(zeroDivisor, left, Mux(remainderNegative, -nextRemainder(n - 1, 0), nextRemainder(n - 1, 0)))
-            result := finishWord(Mux(operation(1), rem, q)); state := done
-        }
+    // One carry chain produces both the unsigned comparison and subtraction.
+    // This combinational module has no owner/state and adds no pipeline edge.
+    val divisionStep = Module(new I1RestoringDivideStep(n))
+    divisionStep.io.window := Cat(remainder(n - 1, 0), quotient(n - 1))
+    divisionStep.io.divisor := divisor
+    val nextRemainder = divisionStep.io.remainder
+    val nextQuotient = Cat(quotient(n - 2, 0), divisionStep.io.quotientBit)
+    quotientAdvance := nextQuotient
+    remainderAdvance := nextRemainder
+    val quotientMagnitude = if (p.fastDivision) {
+        val shortMagnitude = if (n == 64) Mux(word, quotient(63, 32).pad(64), quotient) else quotient
+        Mux(state === quickDivide, shortMagnitude, nextQuotient)
+    } else nextQuotient
+    val remainderMagnitude = if (p.fastDivision)
+        Mux(state === quickDivide, 0.U(n.W), nextRemainder(n - 1, 0)) else nextRemainder(n - 1, 0)
+    val q = Mux(zeroDivisor, Fill(n, 1.U(1.W)),
+        Mux(quotientNegative, -quotientMagnitude, quotientMagnitude))
+    val rem = Mux(zeroDivisor, left, Mux(remainderNegative, -remainderMagnitude, remainderMagnitude))
+    val finishDivision = state === divide && count === 1.U
+    val finishNumerical = if (p.fastDivision) finishDivision || state === quickDivide else finishDivision
+    when(finishNumerical) {
+        result := finishWord(Mux(operation(1), rem, q)); state := done
     }
     when(io.response.fire) { state := idle }
     when(io.kill) { state := idle }

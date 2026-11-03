@@ -51,8 +51,10 @@ case class FiveStageConfig(
     dataReplyHandoff: Boolean = false,
     bankedTlbProofs: Boolean = false,
     withAia: Boolean = false,
-    externalFenceICompletion: Boolean = false
+    externalFenceICompletion: Boolean = false,
+    fastDivision: Boolean = false
 ) {
+    require(!fastDivision || withM, "division shortcuts require the M extension")
     require(Set(32, 64).contains(xlen), "XLEN must be 32 or 64")
     require(Set(1, 2).contains(coherentCacheWays))
     require(!coherentControlCuts || (coherentCaches && fpgaTimingCuts),

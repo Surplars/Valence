@@ -655,30 +655,30 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             earlyBits.data := storeData; earlyBits.mask := storeMask
         }
     }
+    // Local completion is registered ownership, not cancellation-qualified VALID.
+    // Admission already carries older recovery. Keep redirect cancellation out of
+    // the completion -> EX capacity chain, including the compact/7-stage profiles.
+    val numericalCancel = if (p.fpgaTimingCuts) backendFlush else activeRecovery
     if (p.withM) {
         val mulDiv = Module(new FiveStageMulDiv(p))
-        mulDiv.io.kill := activeRecovery || (p.fpgaTimingCuts.B && exRedirect)
+        mulDiv.io.kill := numericalCancel
         mulDiv.io.request.valid := exValid && c.mulDiv && !numericalFault &&
-            !dependency && !mulDivSent && !activeRecovery && !completionFault &&
-            !(p.fpgaTimingCuts.B && exRedirect)
+            !dependency && !mulDivSent && !numericalCancel && !completionFault
         mulDiv.io.request.bits.left := rs1; mulDiv.io.request.bits.right := rs2
         mulDiv.io.request.bits.funct3 := c.funct3; mulDiv.io.request.bits.word := c.word
-        mulDiv.io.response.ready := (if (p.fpgaTimingCuts)
-            executeAdmission && !exRedirect && c.mulDiv && !numericalFault
-            else exFire && c.mulDiv && !instructionFault)
+        mulDiv.io.response.ready := executeAdmission && c.mulDiv && !numericalFault && !numericalCancel
         when(mulDiv.io.request.fire) { mulDivSent := true.B }
         mulResult := mulDiv.io.response.bits
-        mulComplete := (if (p.fpgaTimingCuts) mulDiv.io.completed else mulDiv.io.response.valid)
+        mulComplete := mulDiv.io.completed
         when(exFire && c.mulDiv && !numericalFault && !backendFlush) {
             assert(mulDiv.io.response.fire, "live MDU advance must consume its real response")
         }
     }
     if (p.withF) {
         val execute = Module(new I1FloatingPointExecute(p, p.floatingConfig))
-        execute.io.flush := activeRecovery || (p.fpgaTimingCuts.B && exRedirect)
+        execute.io.flush := numericalCancel
         execute.io.request.valid := exValid && c.fpExecute && !numericalFault &&
-            !dependency && !fpSent && !activeRecovery && !completionFault &&
-            !(p.fpgaTimingCuts.B && exRedirect)
+            !dependency && !fpSent && !numericalCancel && !completionFault
         execute.io.request.bits := 0.U.asTypeOf(new I1FloatingPointExecution(p))
         execute.io.request.bits.command.instruction := fpInstruction
         execute.io.request.bits.command.integerSource := rs1
@@ -687,17 +687,15 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             execute.io.request.bits.operands(index) :=
                 (if (p.withD) operand else I1FloatingPointBits.boxSingle(operand))
         }
-        execute.io.result.ready := (if (p.fpgaTimingCuts)
-            executeAdmission && !exRedirect && c.fpExecute && !numericalFault
-            else exFire && c.fpExecute && !instructionFault)
+        execute.io.result.ready := executeAdmission && c.fpExecute && !numericalFault && !numericalCancel
         fpResult := execute.io.result.bits.value
         fpFlags := execute.io.result.bits.flags
-        fpComplete := (if (p.fpgaTimingCuts) execute.io.completed else execute.io.result.valid)
+        fpComplete := execute.io.completed
         when(exFire && c.fpExecute && !numericalFault && !backendFlush) {
             assert(execute.io.result.fire, "live floating advance must consume its real response")
         }
         when(execute.io.request.fire) { fpSent := true.B }
-        when(execute.io.result.valid && !activeRecovery && !(p.fpgaTimingCuts.B && exRedirect)) {
+        when(execute.io.result.valid && !numericalCancel) {
             assert(exValid && c.fpExecute && fpSent && !execute.io.result.bits.exception,
                 "floating result must belong to the live legal EX owner")
         }
@@ -1135,5 +1133,20 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
                     "read handoff lost its existing ADDR/MEM ownership")
             }
         }
+    }
+
+    // Test subclasses can observe the actual owner-carried prediction without
+    // adding production ports, architectural state, counters or pipeline edges.
+    private def observedPrediction(instruction: FiveStageInstruction): UInt =
+        if (p.branchPredictorEntries > 0 || p.withC) instruction.predictedNextPc
+        else instruction.pc + 4.U // Disabled prediction has an implicit four-byte fall-through.
+    protected def observedRetirementPrediction: UInt = observedPrediction(wbPacket.instruction)
+    protected def observedBranchResolution: (Bool, UInt, UInt, UInt) = if (p.fpgaTimingCuts) {
+        val control = addrPacket.control
+        (addressFire && !addressPrepared.fault && (control.branch || control.jump),
+            addrPacket.instruction.pc, observedPrediction(addrPacket.instruction), addressPrepared.nextPc)
+    } else {
+        (exFire && !exFault && (c.branch || c.jump), exPacket.instruction.pc,
+            observedPrediction(exPacket.instruction), exNextPc)
     }
 }

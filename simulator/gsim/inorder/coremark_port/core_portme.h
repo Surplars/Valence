@@ -12,11 +12,15 @@
 #define MAIN_HAS_NOARGC 1
 #define MAIN_HAS_NORETURN 0
 #define MULTITHREAD 1
+#ifndef COMPILER_VERSION
 #define COMPILER_VERSION "riscv64-unknown-elf-gcc 13.2.0"
+#endif
 #ifndef COMPILER_FLAGS
 #define COMPILER_FLAGS "-O2 -march=rv64im_zicsr_zifencei -mabi=lp64"
 #endif
+#ifndef MEM_LOCATION
 #define MEM_LOCATION "identical ROM/RAM image; matched 2KiB I/D write-through caches"
+#endif
 typedef int16_t ee_s16;
 typedef uint16_t ee_u16;
 typedef int32_t ee_s32;

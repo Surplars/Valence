@@ -96,6 +96,38 @@ int main(int argc, char **) { try {
     d.set_reset(1); d.step(); d.set_reset(0); d.step();
     require(!d.get_io$$response$$valid(), "warm reset left an MDU owner");
     require(holdCycles && killed, "missing MDU hold/kill coverage");
+    // Fixed operands, always-ready service, and no RNG consumption: matched
+    // latency evidence stays independent of the randomized backpressure cases.
+    auto latency = [&](const char *name, uint64_t a, uint64_t b, unsigned op, bool word) {
+        bool sent = false, seen = false;
+        unsigned accepted = 0;
+        for (unsigned cycle = 0; cycle < 180 && !seen; ++cycle) {
+            d.set_io$$kill(0); d.set_io$$request$$valid(!sent); d.set_io$$response$$ready(1);
+            d.set_io$$request$$bits$$left(narrow(a)); d.set_io$$request$$bits$$right(narrow(b));
+            d.set_io$$request$$bits$$funct3(op); d.set_io$$request$$bits$$word(word); d.step();
+            if (!sent && d.get_io$$request$$ready()) { sent = true; accepted = cycle; }
+            if (d.get_io$$response$$valid()) {
+                require(sent && d.get_io$$response$$bits() == expected(a, b, op, word),
+                    "independent fixed-latency MDU oracle mismatch");
+                std::cout << "I1_DIV_LATENCY name=" << name << " cycles=" << cycle - accepted << '\n';
+                seen = true;
+            }
+        }
+        require(seen, "fixed-latency MDU case did not complete");
+        d.set_io$$request$$valid(0); d.set_io$$response$$ready(0); d.step();
+        require(!d.get_io$$completed(), "fixed-latency MDU result duplicated");
+    };
+    latency("divide_zero", 0x12345678, 0, 5, false);
+    latency("remainder_zero", 0x12345678, 0, 7, false);
+    latency("zero_dividend", 0, 37, 4, false);
+    latency("divide_one", 0x12345678, 1, 5, false);
+    latency("signed_minus_one", uint64_t(-99), UINT64_MAX, 4, false);
+    latency("signed_overflow", uint64_t(1) << (DUT_XLEN - 1), UINT64_MAX, 4, false);
+    latency("ordinary_divide", 0x12345678, 37, 5, false);
+    latency("multiply_low", 0x12345678, 37, 0, false);
+    latency("multiply_high", uint64_t(-99), 37, 1, false);
+    if (DUT_XLEN == 64) latency("multiply_word", 0x1234567880000000ULL, 7, 0, true);
+    if (DUT_XLEN == 64) latency("word_divide_one", 0x1234567880000000ULL, 1, 5, true);
     std::cout << "FIVE_STAGE_MDU_PASS xlen=" << DUT_XLEN << " transactions=" << transactions
         << " hold_cycles=" << holdCycles << " kills=" << killed << " cycles=" << cycles
         << " signed_unsigned_high_word_divzero_overflow_backpressure_kill_warm_reset=PASS late_completion_kills=8\n";

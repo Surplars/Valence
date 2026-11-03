@@ -57,7 +57,11 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val dataRequestAccepted = Output(Bool())
         val dataRequestOffered = Output(Bool())
     })
-    val core = Module(new FiveStageCore(p, externalQuiesce = externalQuiesce))
+    // An overridable construction boundary lets test tops observe the same
+    // CPU through its real caches; the production generator and I/O stay unchanged.
+    protected def instantiateCore(config: FiveStageConfig, quiesce: Boolean): FiveStageCore =
+        new FiveStageCore(config, externalQuiesce = quiesce)
+    val core = Module(instantiateCore(p, externalQuiesce))
     core.io.quiesceRequest.foreach(_ := io.quiesceRequest.get)
     io.architecturalStopped.foreach(_ := core.io.architecturalStopped.get)
     io.fenceIFlush.foreach(_ := core.io.fenceIFlush.get)

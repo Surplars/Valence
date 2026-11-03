@@ -2,11 +2,19 @@
 #include "InorderMatchedOooCoremark.h"
 using Model = SInorderMatchedOooCoremark;
 #else
+#ifdef I1_COREMARK_PREDICTION
+#include "I1PerformanceCachedCore.h"
+using Model = SI1PerformanceCachedCore;
+#else
 #include "FiveStageCachedCore.h"
 using Model = SFiveStageCachedCore;
 #endif
+#endif
 #define FIVE_STAGE_ORACLE_ONLY
 #include "five_stage.cpp"
+#ifdef I1_COREMARK_PREDICTION
+#include "i1_prediction_metrics.h"
+#endif
 #include <deque>
 #include <fstream>
 #include <iomanip>
@@ -94,6 +102,7 @@ int main(int argc, char **argv) { try {
     uint64_t errorsAddress = std::stoull(argv[2], nullptr, 0), ticksAddress = std::stoull(argv[3], nullptr, 0);
     uint64_t crcsAddress = std::stoull(argv[4], nullptr, 0); unsigned latency = std::stoul(argv[5]);
     bool smoke = crcsAddress == 0;
+    const bool injectRegister = argc == 7 && std::string(argv[6]) != "--inject-prediction-observer";
     Model d; Memory memory(d, image, latency); Oracle oracle(image);
     d.set_reset(1);
 #ifndef DUT_OOO
@@ -107,6 +116,18 @@ int main(int argc, char **argv) { try {
     uint64_t loadUseStalls = 0, memoryStalls = 0, mulDivStalls = 0, fetchStalls = 0, storeAckStalls = 0;
     uint64_t dataOffers = 0, dataAccepts = 0;
     unsigned timers = 0; bool finished = false;
+    uint64_t currentCycle = 0;
+#ifdef I1_COREMARK_PREDICTION
+    I1PredictionMetrics<Model> prediction;
+    prediction.injectObservation = argc == 7 && std::string(argv[6]) == "--inject-prediction-observer";
+    PredictionCounts roiPredictionStart, roiPrediction, roiWarmStart, roiWarm;
+    std::array<PredictionCounts, 4> roiKindsStart{}, roiKinds{};
+    std::map<uint64_t, PredictionCounts> roiPcStart, roiPc;
+    const auto difference = [](const PredictionCounts &a, const PredictionCounts &b) {
+        return PredictionCounts{a.count-b.count, a.correct-b.correct,
+            a.directionCount-b.directionCount, a.directionCorrect-b.directionCorrect};
+    };
+#endif
     auto retire = [&](uint64_t pc, uint32_t instruction, unsigned rd, bool writesRd, uint64_t value,
                       uint64_t nextPc, bool trap, uint64_t cause) {
         need(pc == oracle.pc && instruction == oracle.load(pc, 4), "CoreMark independent retired PC/instruction mismatch");
@@ -114,11 +135,28 @@ int main(int argc, char **argv) { try {
         if (op == 3 && oracle.r[a] + signExtend(instruction >> 20, 12) == 0x0200bff8) {
             need(!memory.timerValues.empty(), "unowned CoreMark timer sample");
             oracle.timerValue = memory.timerValues.front(); memory.timerValues.pop_front();
-            if (++timers == 1) roiStart = retired; else roiInstructions = retired - roiStart;
+            if (++timers == 1) {
+                roiStart = retired;
+#ifdef I1_COREMARK_PREDICTION
+                roiPredictionStart=prediction.total; roiWarmStart=prediction.warm;
+                roiKindsStart=prediction.kinds; roiPcStart=prediction.perPc;
+#endif
+            } else {
+                roiInstructions = retired - roiStart;
+#ifdef I1_COREMARK_PREDICTION
+                roiPrediction=difference(prediction.total,roiPredictionStart);
+                roiWarm=difference(prediction.warm,roiWarmStart);
+                for (unsigned kind=0;kind<4;++kind) roiKinds[kind]=difference(prediction.kinds[kind],roiKindsStart[kind]);
+                for (const auto &[pc,counts]:prediction.perPc) roiPc[pc]=difference(counts,roiPcStart[pc]);
+#endif
+            }
         }
         auto expected = oracle.evaluate(instruction, false, false);
-        if (argc == 7 && retired == 2) expected.value ^= 1;
+        if (injectRegister && retired == 2) expected.value ^= 1;
         need(trap == expected.trap && (!trap || cause == expected.cause), "CoreMark independent exception mismatch");
+#ifdef I1_COREMARK_PREDICTION
+        prediction.retire(d,currentCycle,pc,instruction,expected.next,trap);
+#endif
         if (trap) {
             need(instruction == 0x00100073 && cause == 3, "CoreMark terminated at an unexpected exception");
             need(oracle.r[10] == 0, "workload CRC/errors/smoke failed"); finished = true; return;
@@ -138,6 +176,10 @@ int main(int argc, char **argv) { try {
         d.set_io$$time(cycle);
 #endif
         d.step(); memory.outputs(cycle);
+        currentCycle=cycle;
+#ifdef I1_COREMARK_PREDICTION
+        prediction.cycle(d,cycle);
+#endif
         instructionHits += d.get_io$$instructionHit(); instructionMisses += d.get_io$$instructionMiss();
         dataHits += d.get_io$$dataHit(); dataMisses += d.get_io$$dataMiss();
 #ifdef DUT_OOO
@@ -189,6 +231,22 @@ int main(int argc, char **argv) { try {
         "CoreMark final RAM differs from independent ISA oracle");
     uint64_t ticks = memory.load(ticksAddress);
     need(ticks == oracle.r[11] && ticks > 0, "CoreMark timer return mismatch");
+#ifdef I1_COREMARK_PREDICTION
+    prediction.report("coremark",latency,cycle);
+    uint64_t pcBranches=0;
+    for (const auto &[pc,counts]:roiPc) if (counts.count) {
+        pcBranches+=counts.count;
+        std::cout << "I1_COREMARK_PC pc=" << pc << " count=" << counts.count << " correct=" << counts.correct << '\n';
+    }
+    need(pcBranches==roiPrediction.count,"CoreMark per-PC ROI branch denominator mismatch");
+    std::cout << "I1_COREMARK_PREDICTION {\"roi_branches\":" << roiPrediction.count
+        << ",\"roi_correct\":" << roiPrediction.correct
+        << ",\"roi_direction_queries\":" << roiPrediction.directionCount
+        << ",\"roi_direction_correct\":" << roiPrediction.directionCorrect
+        << ",\"roi_returns\":" << roiKinds[2].count << ",\"roi_returns_correct\":" << roiKinds[2].correct
+        << ",\"roi_indirect\":" << roiKinds[3].count << ",\"roi_indirect_correct\":" << roiKinds[3].correct
+        << ",\"roi_warm_branches\":" << roiWarm.count << ",\"roi_warm_correct\":" << roiWarm.correct << "}\n";
+#endif
     std::cout << "MATCHED_COREMARK_PASS {\"cycles\":" << cycle << ",\"roi_ticks\":" << ticks
         << ",\"roi_instructions\":" << roiInstructions << ",\"retired\":" << retired
         << ",\"trace_fnv64\":\"" << std::hex << trace << std::dec << "\",\"burst_requests\":" << memory.requests

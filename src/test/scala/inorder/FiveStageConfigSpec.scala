@@ -333,4 +333,13 @@ class FiveStageConfigSpec extends AnyFlatSpec with Matchers {
         FiveStageConfig(xlen = 32, withM = false, withC = true, withA = true).isa shouldBe
             "rv32iac_zicsr_zifencei"
     }
+    it should "keep division shortcuts explicit and reject a removed M unit" in {
+        FiveStageConfig().fastDivision shouldBe false
+        val selected = FiveStageArguments.config(Array("out", "64", "--fast-division"))
+        selected.fastDivision shouldBe true
+        selected.pipeline shouldBe FiveStageConfig().pipeline
+        selected.isa shouldBe FiveStageConfig().isa
+        intercept[IllegalArgumentException] { FiveStageConfig(withM = false, fastDivision = true) }
+    }
+
 }

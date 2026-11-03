@@ -15,7 +15,7 @@ object FiveStageArguments {
             "--coherent-control-cuts", "--coherent-bandwidth", "--coherent-whole-line", "--direct-fast-data-issue",
             "--cache-fetch-predecode", "--indexed-data-proofs", "--coherent-line-grants", "--coherent-miss-turnover",
             "--coherent-writeback-overlap", "--coherent-read-overlap", "--data-reply-handoff", "--banked-tlb-proofs", "--aia",
-            "--external-fence-i-completion")
+            "--external-fence-i-completion", "--fast-division")
         require(args.drop(2).forall(a => allowed(a) || a.matches("--(icache|dcache|line|predictor|pmp|tlb|coherent-ways)=[0-9]+") ||
             a.matches("--pipeline=(compact5|balanced7|fpga8)")),
             "unknown option")
@@ -38,6 +38,7 @@ object FiveStageArguments {
             withSupervisor = args.contains("--supervisor") || args.contains("--sv39"),
             withAia = args.contains("--aia"),
             externalFenceICompletion = args.contains("--external-fence-i-completion"),
+            fastDivision = args.contains("--fast-division"),
             withSv39 = args.contains("--sv39"), pmpEntries = value("--pmp", 0), tlbEntries = value("--tlb", 4),
             fastInstructionTranslation = !args.contains("--no-fast-instruction-translation"),
             withC = args.contains("--c"), withA = args.contains("--a"),

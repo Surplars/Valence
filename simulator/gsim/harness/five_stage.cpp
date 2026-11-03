@@ -1,5 +1,10 @@
 #ifndef FIVE_STAGE_ORACLE_ONLY
+#ifdef I1_PERFORMANCE_OBSERVER
+#include "I1PerformanceCore.h"
+using SFiveStageCore = SI1PerformanceCore;
+#else
 #include "FiveStageCore.h"
+#endif
 #endif
 #include <array>
 #include <cstdint>
@@ -213,10 +218,16 @@ struct Stats {
     uint64_t wrongPathMduBlocked = 0;
 };
 
+struct FiveStageObserver {
+    virtual ~FiveStageObserver() = default;
+    virtual void cycle(SFiveStageCore &, uint64_t) {}
+    virtual void retire(SFiveStageCore &, uint64_t, uint64_t, uint32_t, uint64_t, bool) {}
+};
+
 static Stats execute(const std::string &name, const std::vector<uint32_t> &code, unsigned latency,
                      std::optional<uint64_t> fetchError = {}, std::optional<uint64_t> dataError = {},
                      bool returnFromTrap = false, bool inject = false, bool interrupt = false, bool injectStore = false,
-                     unsigned extraDataDelay = 0) {
+                     unsigned extraDataDelay = 0, FiveStageObserver *observer = nullptr, bool fixedService = false) {
     std::vector<uint8_t> actual(65536);
     for (unsigned j = 0; j < actual.size(); ++j) actual[j] = uint8_t(j * 73 + 19);
     for (unsigned j = 0; j < code.size(); ++j) std::memcpy(actual.data() + 4 * j, &code[j], 4);
@@ -244,8 +255,8 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
     unsigned traps = 0;
     bool interruptInjected = false, interruptSeen = false;
     for (uint64_t cycle = 0; cycle < 150000; ++cycle) {
-        bool ir = latency == 1 || rng() % 4 != 0;
-        bool dr = latency == 1 || rng() % 3 != 0;
+        bool ir = fixedService || latency == 1 || rng() % 4 != 0;
+        bool dr = fixedService || latency == 1 || rng() % 3 != 0;
         bool fv = fetch && fetch->due <= cycle, dv = data && data->due <= cycle;
         d.set_io$$instructionRequest$$ready(ir); d.set_io$$dataRequest$$ready(dr);
         d.set_io$$instructionResponse$$valid(fv);
@@ -257,6 +268,7 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
             (DUT_HAS_M ? d.get_io$$stallMulDiv() : d.get_io$$stallMemory())) interruptInjected = true;
         d.set_io$$externalIrq(interruptInjected && !interruptSeen);
         d.step();
+        if (observer) observer->cycle(d, stats.cycles + 1);
         if (d.get_io$$trapTaken() && !d.get_io$$retire$$valid()) {
             need(unretiredStores.empty(), name + ": interrupt overtook an external store");
             uint64_t irqCause = uint64_t(1) << (N - 1) | 11;
@@ -327,6 +339,7 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
                 unretiredStores.pop_front();
             }
             if (expected.trap) need(unretiredStores.empty(), name + ": fault overtook a younger external store");
+            if (observer) observer->retire(d, stats.cycles, pc, ins, expected.next, expected.trap);
             oracle.commit(expected); ++stats.retires;
             // The real bus may write before WB. Compare EVERY byte each retirement after overlaying
             // its at-most-one unretired external intent; independently validate that intent against
@@ -385,7 +398,7 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
                     if (mask >> j & 1) actual[aligned - BASE + j] = v >> (8 * j);
             }
             for (unsigned j = 0; j < BYTES; ++j) value |= uint64_t(actual[aligned - BASE + j]) << (8 * j);
-            data = MemoryReply{cycle + latency + extraDataDelay + (latency == 1 ? 0 : rng() % 4), a, value, error,
+            data = MemoryReply{cycle + latency + extraDataDelay + (fixedService || latency == 1 ? 0 : rng() % 4), a, value, error,
                 bool(d.get_io$$dataRequest$$bits$$write())};
         }
     }

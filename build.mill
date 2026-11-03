@@ -112,7 +112,11 @@ object OrbitalI1 extends CommonNS {
         pwd / "src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala")
     override def scalacOptions = Seq("-language:reflectiveCalls", "-deprecation", "-feature")
     object test extends SbtTests with TestModule.ScalaTest {
-        override def sources = Task.Sources(pwd / "src/test/scala/inorder")
+        // Platform-profile fixtures remain in IonSoC.test; they require soc.platform,
+        // which is deliberately outside this independent CPU module.
+        private val platformFixtures = Set("I1ExternalQuiesceSpec.scala", "StoreClearAdmissionBatch.scala")
+        override def sources = Task.Sources(os.walk(pwd / "src/test/scala/inorder")
+            .filter(p => p.ext == "scala" && !platformFixtures(p.last))*)
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 }
