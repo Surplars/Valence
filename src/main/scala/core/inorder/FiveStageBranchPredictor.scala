@@ -18,7 +18,9 @@ class FiveStagePredictionValues(xlen: Int, banks: Int) extends Bundle {
     val plusFour = UInt(xlen.W)
     val target0 = UInt(xlen.W)
     val target1 = if (banks >= 2) Some(UInt(xlen.W)) else None
-    def all: Seq[UInt] = Seq(plusTwo, plusFour, target0) ++ target1.toSeq
+    val target2 = if (banks >= 3) Some(UInt(xlen.W)) else None
+    val target3 = if (banks >= 4) Some(UInt(xlen.W)) else None
+    def all: Seq[UInt] = Seq(plusTwo, plusFour, target0) ++ Seq(target1, target2, target3).flatten
 }
 
 /** Tagged BTB + saturating bimodal direction counter, explicitly small distributed RAM.
@@ -26,15 +28,9 @@ class FiveStagePredictionValues(xlen: Int, banks: Int) extends Bundle {
   * Lookup is combinational; the fetch owner captures its prediction at request acceptance.
   * A false BTB hit on modified code is repaired in EX; FENCE.I clears all valid metadata.
   */
-object FiveStageBranchPredictor {
-    // Two banks shorten the PC selection while retaining every indexed entry.
-    def bankCount(p: FiveStageConfig): Int =
-        if (p.fpgaTimingCuts) math.min(2, p.branchPredictorEntries / 2) else 1
-}
-
 class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
     require(p.branchPredictorEntries > 0)
-    val bankCount = FiveStageBranchPredictor.bankCount(p)
+    val bankCount = if (p.fpgaTimingCuts) math.min(4, p.branchPredictorEntries / 2) else 1
     val io = IO(new Bundle {
         val pc = Input(UInt(p.xlen.W))
         val nextPc = Output(UInt(p.xlen.W))
@@ -56,8 +52,9 @@ class FiveStageBranchPredictor(val p: FiveStageConfig) extends Module {
         val controlFlow = Bool()
         val compressed = Bool()
     }
-    // Same entries and RAM bits. Select two parallel 64-row banks after
-    // their local comparisons instead of four targets on the PC feedback path.
+    // Same entries and RAM bits. In FPGA mode the upper index selects four
+    // shallow banks AFTER their parallel reads, rather than steering a deep
+    // 128-row RAM mux before tag/length/direction and the PC feedback mux.
     val bankRows = p.branchPredictorEntries / bankCount
     val rowBits = log2Ceil(bankRows)
     val entries = Seq.fill(bankCount)(Mem(bankRows, new Entry))

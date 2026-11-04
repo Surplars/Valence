@@ -72,10 +72,10 @@ int main(int argc,char **argv) {try {
 #if DUT_TIMING
         std::vector<uint64_t> values{d.get_io$$candidateValues$$plusTwo(),d.get_io$$candidateValues$$plusFour(),
             d.get_io$$candidateValues$$target0()};
-#if DUT_BANKS >= 2
+#if DUT_ENTRIES >= 4
         values.push_back(d.get_io$$candidateValues$$target1());
 #endif
-#if DUT_BANKS >= 4
+#if DUT_ENTRIES >= 8
         values.push_back(d.get_io$$candidateValues$$target2());
         values.push_back(d.get_io$$candidateValues$$target3());
 #endif

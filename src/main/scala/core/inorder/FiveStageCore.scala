@@ -903,14 +903,16 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
                 mask(2) && completionAdvance && !completionFault)).asUInt
             def nextProducer(index: UInt, used: Bool): UInt = {
                 def writes(control: FiveStageDecodeControl): Bool =
-                    control.writesRd && control.rd === index
-                // Rank registered owners first; late FIRE only moves the winner.
-                val current = I1ExecuteDatapath.operandMasksWhen(used && index =/= 0.U, Seq(
-                    exValid && writes(c), addrValid && writes(addrPacket.control),
-                    memValid && writes(memPacket.control), cmpValid && writes(cmpPacket.completion.control)))
-                val older = VecInit(current.tail :+ false.B).asUInt
-                // A live EX owner advances whenever RF installs its replacement.
-                advance(older) | current.head.asUInt
+                    used && index =/= 0.U && control.writesRd && control.rd === index
+                val offers = Seq(
+                    // At an RF replacement edge, a live EX owner necessarily advances.
+                    Mux(exValid, writes(c), addrValid && !addressFire && writes(addrPacket.control)),
+                    Mux(addressFire, writes(addrPacket.control),
+                        memValid && !memFire && writes(memPacket.control)),
+                    Mux(memFire, writes(memPacket.control),
+                        cmpValid && !completionAdvance && writes(cmpPacket.completion.control)),
+                    completionAdvance && !completionFault && writes(cmpPacket.completion.control))
+                VecInit(I1ExecuteDatapath.operandMasksWhen(true.B, offers)).asUInt
             }
             def aluSelection(mask: UInt, overrideEnable: Bool): UInt =
                 VecInit((0 until 4).map(i => mask(i) && !overrideEnable) ++
@@ -957,7 +959,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     val predictedNext = WireDefault(if (p.fpgaTimingCuts)
         I1TimingMath.incrementPowerOfTwo(offerPc, 2) else offerPc + 4.U)
     val predictionCount = if (p.fpgaTimingCuts && p.branchPredictorEntries > 0)
-        FiveStageBranchPredictor.bankCount(p) + 2 else 1
+        math.min(4, p.branchPredictorEntries / 2) + 2 else 1
     val predictionValues = WireDefault(VecInit(Seq.fill(predictionCount)(0.U(p.xlen.W))))
     val predictionMask = WireDefault(1.U(predictionCount.W))
     predictionValues(0) := predictedNext
@@ -1066,10 +1068,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         when(predict || resume || redirect) {
             offerPc := I1ExecuteDatapath.operand(offerMasks, offerValues)
         }
-        // Prepare the next PC while its offer waits; only offerPc owns the request.
-        // Killed offers retain their recovery PC, and flush still has priority.
-        val preparePrediction = offerValid && !offerKilled && !wbFenceI && !quiesceBlocking
-        when(preparePrediction || flush) {
+        when(predict || flush) {
             desiredPc := I1ExecuteDatapath.operand(Seq(flush) ++
                 predictionMask.asBools.map(_ && !flush), Seq(redirectPc) ++ predictionValues.toSeq)
         }

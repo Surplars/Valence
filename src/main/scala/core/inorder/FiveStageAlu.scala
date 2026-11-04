@@ -14,9 +14,7 @@ class FiveStageAlu(xlen: Int, timingCuts: Boolean = false) extends Module {
         val result = Output(UInt(xlen.W))
     })
     val sub = io.operation === FiveStageAluOp.subtract
-    // Keep the W sign bit on a native 32-bit carry chain. The upper half
-    // selects its carry in parallel; no 16-bit boundary mux precedes bit 31.
-    val sum = if (timingCuts) I1TimingMath.add(io.left, io.right, sub)
+    val sum = if (timingCuts) I1TimingMath.add(io.left, io.right, sub, chunkBits = 16)
         else io.left + Mux(sub, ~io.right, io.right) + sub
     if (timingCuts) {
         val leftward = io.operation === FiveStageAluOp.shiftLeft
@@ -67,11 +65,8 @@ class FiveStageAlu(xlen: Int, timingCuts: Boolean = false) extends Module {
             val high = Mux1H(choices.map { case (select, full, _) =>
                 (select && !io.word) -> full(63, 32)
             })
-            // Qualify W ownership before reducing late arithmetic/shift data.
-            val wordSign = choices.map { case (select, _, word) =>
-                select && io.word && word(31)
-            }.reduce(_ || _)
-            io.result := Cat(high | Fill(32, wordSign), low)
+            val wordSign = choices.map { case (select, _, word) => select && word(31) }.reduce(_ || _)
+            io.result := Cat(high | Fill(32, io.word && wordSign), low)
         } else {
             io.result := Mux1H(choices.map { case (select, full, _) => select -> full })
         }

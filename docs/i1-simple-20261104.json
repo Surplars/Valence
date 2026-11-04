@@ -1,8 +1,8 @@
 {
-  "status": "AREA_CANDIDATE_QUALIFIED_FASTER_R5_SELECTED_FOR_DEFAULT",
+  "status": "RESTORED_BEST_R5_PER_USER_INSTRUCTION",
   "base_commit": "ccc68f9c79db3cd428a55f381cde8e341ce81cd1",
-  "candidate_commit": "recorded after candidate commit",
-  "selection": "Preserve complete R4 candidate in git history; default RTL returns to byte-identical R5 because 300MHz remains open and R5 is faster.",
+  "candidate_commit": "1bf3ea0571403afc9d5a455d707aebbab0f5ecc1",
+  "selection": "User chose the original best version. Default hardware and test code restored to ccc68f9; all22 fresh SV files byte-identical to implemented R5. Coding principle and experimental records retained.",
   "coding_principle": "Simple, readable, intent/contract comments and high performance; avoid redundant defensive layers. Recorded project-wide in AGENTS.md.",
   "configuration": "RV64IM single issue,32KiB I/D cache, FPU off, no SoC interconnect/monitor/peripherals; full-port-capture OOC context",
   "baseline": {
@@ -354,5 +354,10 @@
   "quiesce_cases": 271,
   "new_xsim": false,
   "formal_coremark_score": false,
-  "board_qualified": false
+  "board_qualified": false,
+  "restored_default_source_commit": "ccc68f9c79db3cd428a55f381cde8e341ce81cd1",
+  "restoration_evidence": {
+    "path": "/home/openion/Valence-InOrder/build/i1-simple-20261104-r4/restored-best.json",
+    "sha256": "61acd773553a41c2b2da6312b8adec3fb7aa1ea9be57fb65a8ce39a7192a6c96"
+  }
 }

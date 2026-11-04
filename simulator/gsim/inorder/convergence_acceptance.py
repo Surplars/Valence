@@ -139,7 +139,6 @@ def main():
             # These modules are outside the IF/BP component dependency closure.
             # Whole-CPU/real-program gates still rerun; cache has its own raw gate.
             allowed = {'src/main/scala/core/inorder/FiveStageCore.scala',
-                       'src/main/scala/core/inorder/FiveStageAlu.scala',
                        'src/main/scala/core/inorder/SynchronousRegisterFile.scala',
                        'src/main/scala/core/inorder/FiveStageWordCache.scala',
                        'src/main/scala/core/inorder/I1CacheTags.scala',
@@ -184,8 +183,7 @@ def main():
                 if hashed:
                     flags += ['--hashed-branch-index']
                 defines = [f'-DDUT_ENTRIES={entries}', f'-DDUT_XLEN={width}', f'-DDUT_C={int(compressed)}',
-                           f'-DDUT_TIMING={int(timing)}', f'-DDUT_HASHED={int(hashed)}',
-                           f'-DDUT_BANKS={min(4 if role == "reference" else 2, entries // 2) if timing else 1}']
+                           f'-DDUT_TIMING={int(timing)}', f'-DDUT_HASHED={int(hashed)}']
                 folder = model(role, name, 'FiveStagePredictorMain', 'FiveStageBranchPredictor', flags,
                                'i1_predictor_banks.cpp', defines)
                 text = run([folder / 'run'], folder, 'positive.log')
