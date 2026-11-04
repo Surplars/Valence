@@ -202,7 +202,12 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         }
         val tagMatch = bankedTags.map(_.io.matches).getOrElse(
             tags.get.read(set(io.request.bits.address), readEnable) === tag(saved.address))
-        hit := valid(set(saved.address)) && tagMatch && !io.invalidate
+        // Presence belongs to the same admitted lookup as the tag read.
+        // Invalidate cancels both admission and the current lookup result.
+        val present = if (p.fpgaTimingCuts) RegEnable(
+            valid(set(io.request.bits.address)) && !io.invalidate, readEnable)
+            else valid(set(saved.address))
+        hit := present && tagMatch && !io.invalidate
         val fill = io.memory.response.fire && savedCacheable && !saved.write
         val update = io.memory.response.fire && saved.write && writeHit && !io.memory.response.bits.error
         val fillWord = (word(saved.address) >> log2Ceil(wordsPerLine)) << log2Ceil(wordsPerLine) | beat

@@ -1,0 +1,358 @@
+{
+  "status": "AREA_CANDIDATE_QUALIFIED_FASTER_R5_SELECTED_FOR_DEFAULT",
+  "base_commit": "ccc68f9c79db3cd428a55f381cde8e341ce81cd1",
+  "candidate_commit": "recorded after candidate commit",
+  "selection": "Preserve complete R4 candidate in git history; default RTL returns to byte-identical R5 because 300MHz remains open and R5 is faster.",
+  "coding_principle": "Simple, readable, intent/contract comments and high performance; avoid redundant defensive layers. Recorded project-wide in AGENTS.md.",
+  "configuration": "RV64IM single issue,32KiB I/D cache, FPU off, no SoC interconnect/monitor/peripherals; full-port-capture OOC context",
+  "baseline": {
+    "lut": 9747,
+    "ff": 7789,
+    "clb": 1942,
+    "bram36_tiles": 16,
+    "dsp": 16,
+    "setup_ns": -0.03,
+    "hold_ns": 0.012,
+    "estimated_fmax_mhz": 297.32408325074334
+  },
+  "trials": {
+    "r1": {
+      "scope": "FULL_RV64IM_CACHED_CPU_WITH_ALL_PORT_CAPTURE_REGISTERS",
+      "target_hz": 300000000,
+      "setup_slack_ns": -0.099,
+      "hold_slack_ns": 0.012,
+      "external_clock_site": "BUFGCE_X0Y48",
+      "top_level_pad_timing_qualified": false,
+      "board_qualified": false,
+      "lut": 9659,
+      "ff": 7907,
+      "clb": 2120,
+      "bram36_tiles": 16,
+      "dsp": 16,
+      "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical",
+      "evidence": {
+        "result.json": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/result.json",
+          "sha256": "31a182ee5d5493d9f0efc234fa93078e6baad3afda23d4d5669a76731f399144"
+        },
+        "utilization_routed.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/utilization_routed.rpt",
+          "sha256": "a40b49b438a6b997f090cf0dcbef9e53734988430def9040a5f36684b24c0dbd"
+        },
+        "synchronous_setup.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/synchronous_setup.rpt",
+          "sha256": "35118c70eef93c3143315d5349c2d87cdfa131d1716cba0669827c0b5365b2b3"
+        },
+        "synchronous_hold.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/synchronous_hold.rpt",
+          "sha256": "b7246a30572d1cc47acea3b92f043244b39cae0892c56c13272edc6dc8ca19bd"
+        },
+        "route_status.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/route_status.rpt",
+          "sha256": "760278bc027ef2716f281f4b490cc51a253d79432379372e9bfe6a7244b106b4"
+        },
+        "check_timing.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/check_timing.rpt",
+          "sha256": "4129988565bce2faa2146665d73efe3408a267eda95a1f9aa8a33e6cbddb53a6"
+        },
+        "exceptions.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r1/physical/exceptions.rpt",
+          "sha256": "6072fdedf25f47eafb1a456f12b1d48234848845770d19fe30e1732b7bbc7e61"
+        }
+      }
+    },
+    "r2": {
+      "scope": "FULL_RV64IM_CACHED_CPU_WITH_ALL_PORT_CAPTURE_REGISTERS",
+      "target_hz": 300000000,
+      "setup_slack_ns": -0.171,
+      "hold_slack_ns": 0.011,
+      "external_clock_site": "BUFGCE_X0Y48",
+      "top_level_pad_timing_qualified": false,
+      "board_qualified": false,
+      "lut": 9521,
+      "ff": 7826,
+      "clb": 1984,
+      "bram36_tiles": 16,
+      "dsp": 16,
+      "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical",
+      "evidence": {
+        "result.json": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/result.json",
+          "sha256": "641cebfc84f20c0e567f057230932bd267b75ba7c2bb6bf8d1d86c58b897238d"
+        },
+        "utilization_routed.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/utilization_routed.rpt",
+          "sha256": "a0eb250564e48e5dceebef7c041282f2a32f73072fe107d2937a1d947a755495"
+        },
+        "synchronous_setup.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/synchronous_setup.rpt",
+          "sha256": "f9564b18ba0eebc437fad3ae6181567fd44076647d9ac234cbe8882720396482"
+        },
+        "synchronous_hold.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/synchronous_hold.rpt",
+          "sha256": "819c1aa55497bb0fcd1ff21f6929d13eaaf4f377cb7780b3836e00a90ffb5dad"
+        },
+        "route_status.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/route_status.rpt",
+          "sha256": "267fc6e4ecbc109af8700e5fb978724feb4192f1325f2d7fad86dc242e4c9a28"
+        },
+        "check_timing.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/check_timing.rpt",
+          "sha256": "ef7fec7a1ba96035b138119356ae5a02fd426af29605e4c8d287de2dbc235866"
+        },
+        "exceptions.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r2/physical/exceptions.rpt",
+          "sha256": "92914eab75bfe62c9418679386e8504433bf56ff621790e695548ae9c558b517"
+        }
+      }
+    },
+    "r3": {
+      "scope": "FULL_RV64IM_CACHED_CPU_WITH_ALL_PORT_CAPTURE_REGISTERS",
+      "target_hz": 300000000,
+      "setup_slack_ns": -0.18,
+      "hold_slack_ns": 0.011,
+      "external_clock_site": "BUFGCE_X0Y48",
+      "top_level_pad_timing_qualified": false,
+      "board_qualified": false,
+      "lut": 9539,
+      "ff": 7926,
+      "clb": 1998,
+      "bram36_tiles": 16,
+      "dsp": 16,
+      "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical",
+      "evidence": {
+        "result.json": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/result.json",
+          "sha256": "268656a6ed1565c009a20c8b6598c92e409f0855c213dd38188e4458a2b31709"
+        },
+        "utilization_routed.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/utilization_routed.rpt",
+          "sha256": "b3ce2f245df043b86e85e8a03bae38488ff392de0c3274b78471c07de0c7c333"
+        },
+        "synchronous_setup.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/synchronous_setup.rpt",
+          "sha256": "53b3a3836acf4a47e50aba151be30697a931a15edf6be48d330db48ff68ffc70"
+        },
+        "synchronous_hold.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/synchronous_hold.rpt",
+          "sha256": "11491a0341baefa33fc789bfcfba1c76109630c256a377488d3b7570ae3a1350"
+        },
+        "route_status.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/route_status.rpt",
+          "sha256": "d25ba85eb8bec3cfbf829deb539012b7845d2c3e2bd6ef7f5072b6a06d3735c3"
+        },
+        "check_timing.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/check_timing.rpt",
+          "sha256": "c005176b143ead5401c6391894350c90510090e09a5bc977d5acf72484aa112a"
+        },
+        "exceptions.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r3/physical/exceptions.rpt",
+          "sha256": "7b51f2916bb97ec77f2037ec4fa0002dd9c8491a05fe3338b4cd2f6204ec947c"
+        }
+      }
+    },
+    "r4": {
+      "scope": "FULL_RV64IM_CACHED_CPU_WITH_ALL_PORT_CAPTURE_REGISTERS",
+      "target_hz": 300000000,
+      "setup_slack_ns": -0.09,
+      "hold_slack_ns": 0.011,
+      "external_clock_site": "BUFGCE_X0Y48",
+      "top_level_pad_timing_qualified": false,
+      "board_qualified": false,
+      "lut": 9610,
+      "ff": 8000,
+      "clb": 1866,
+      "bram36_tiles": 16,
+      "dsp": 16,
+      "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical",
+      "evidence": {
+        "result.json": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/result.json",
+          "sha256": "0254ad72005fbb1571917e3ffc9aa2c68e7e5ff8c3c208f6ad4e7448dbd027e2"
+        },
+        "utilization_routed.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/utilization_routed.rpt",
+          "sha256": "4c181b4abe37de5e49ab0076551ea68cf50a732d8f5fd0df3e42388254c60cb5"
+        },
+        "synchronous_setup.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/synchronous_setup.rpt",
+          "sha256": "a5d140a966026fcaa6396d5a11d407003833d854d8fb373e2d2bdb543ea35180"
+        },
+        "synchronous_hold.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/synchronous_hold.rpt",
+          "sha256": "046c27bbf4418ebb54b58c4ebcead4bb2c9364ea9a5930981826d2b51ff619bc"
+        },
+        "route_status.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/route_status.rpt",
+          "sha256": "166f098cb82380c4c042e7f61f225b088a42ab67156813c653b8dd541fe7b880"
+        },
+        "check_timing.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/check_timing.rpt",
+          "sha256": "1c9176327e9ba6728a03da5b774b9b39a1400c793e9bedd4aa2dbe4b9d78a802"
+        },
+        "exceptions.rpt": {
+          "path": "/mnt/e/VM/Share/Valence-rtl/Valence-InOrder/simple-20261104-r4/physical/exceptions.rpt",
+          "sha256": "21a88671c97c6575ef31e5f332b09a09c1c3a1037c61eaf2adfc0420a9837b43"
+        }
+      }
+    }
+  },
+  "evidence": {
+    "r4_full_cpu_gsim": {
+      "path": "/home/openion/Valence-InOrder/build/i1-simple-20261104-r4/acceptance/receipt.json",
+      "sha256": "7fc3750b799427d048354699a45924a59c359bc5deb3d47d1576cc0241fb1891"
+    },
+    "r4_quiesce": {
+      "path": "/home/openion/Valence-InOrder/build/gsim/i1-external-quiesce-simple-20261104-r4/receipt.json",
+      "sha256": "04cc6b1de903bbecdd30b925c2a59a621d34972f6d7faee4033d2713934bba47"
+    },
+    "r2_predictor_and_core": {
+      "path": "/home/openion/Valence-InOrder/build/i1-simple-20261104-r2/acceptance/receipt.json",
+      "sha256": "a0d573a290383867f3e5bc253b0bfb8b53f9c88ebe67e5062e4f7bcb54822c9a"
+    },
+    "r3_raw_cache": {
+      "path": "/home/openion/Valence-InOrder/build/i1-simple-20261104-r3/cache/receipt.json",
+      "sha256": "44914f9f3de92a93157abe284ca00868a328d976d0dd2493e0d8e38918944735"
+    },
+    "r1_alu": {
+      "path": "/home/openion/Valence-InOrder/build/i1-simple-20261104-r1/alu/receipt.json",
+      "sha256": "a44cf55c4d546a1f1b5e212ab33f9930a9722eb37917fdab86f1181bb3285498"
+    },
+    "flow": {
+      "path": "/home/openion/Valence-InOrder/fpga/inorder/core300_ooc.tcl",
+      "sha256": "fbcfa8ba8ee29a4cef80b1790af4fe8eb55b5fbbb9f8d19c9b94b3571685ec94"
+    }
+  },
+  "candidate_source_sha256": {
+    "build.mill": "d06404b88f908e4570626e8c8c4ed9cc08197af76b60e856d06105d49248f167",
+    "simulator/gsim/inorder/convergence_acceptance.py": "6b7599cbd2ce45637dce577740a220082fcb117a943d34d33c88e20fc97ff2b4",
+    "simulator/gsim/run.py": "1481e17af9083cdacb64f395f50abdd5848269503e4f6c3bd84789feee7f5355",
+    "src/main/scala/core/inorder/FiveStageAddressTranslation.scala": "c6528637ad571701f40f10d69876476eff52bf940dea0bd081f5da06a2b51b4b",
+    "src/main/scala/core/inorder/FiveStageAlu.scala": "e9edc64fde60f4ffa6ca98f31097d691cf6d0220a0a66a9cfa48466f3f69d3ec",
+    "src/main/scala/core/inorder/FiveStageAtomicMemory.scala": "ef336b110c915ccc0cdda3321015cb86a786f40a0d8de72f3d097a3b35c9f6bc",
+    "src/main/scala/core/inorder/FiveStageBoot.scala": "a3af76cc4e42a53822f50c784f78664d9a7a9785ba92ace4b3452446893abe3e",
+    "src/main/scala/core/inorder/FiveStageBranchPredictor.scala": "cae1d1e0ed0a60fd043ee2cccbef749ff3888d53aa504c5c0573740fcafa6cc1",
+    "src/main/scala/core/inorder/FiveStageCachedCore.scala": "de02d427ec4ce25b4cb1b63754b777015e52871ad36cf7c0e70865bcf6bfa3e2",
+    "src/main/scala/core/inorder/FiveStageCompressed.scala": "1a717828eda36dfbedbc37a5a62ae6ccd4e2d2de9cfe214e80a9fc213f011f62",
+    "src/main/scala/core/inorder/FiveStageConfig.scala": "da0d51e53c4ac6420302019e4955e78c51d66e5aca930f60ee37404200776f58",
+    "src/main/scala/core/inorder/FiveStageCore.scala": "622848b1712eb540862a13533c6daa6930dcca26039a4805ba8be47bbb75c587",
+    "src/main/scala/core/inorder/FiveStageDecode.scala": "c5c027a0db2c6eae400d04c16486b46b04d0afa1e99a32b353f0f4ba6eb23bf8",
+    "src/main/scala/core/inorder/FiveStageFetchAligner.scala": "2b468f40a5845d7007bb4328bd8e0e525cca35e4b936bc570d71b9b1ee1ca21e",
+    "src/main/scala/core/inorder/FiveStageFetchWordCuts.scala": "4b0c3bea29a6e23fdb116ceaacffbf82d8cf1ae658ade38b7932c6bcdda7046e",
+    "src/main/scala/core/inorder/FiveStageFpgaShell.scala": "b5c2cbaf01c94b86502eb0fdf8260c45b112aba0ef21f4c8c035c7475ef35dc3",
+    "src/main/scala/core/inorder/FiveStageMachineState.scala": "11ef9d85db3043b70940cb5f1362220b1e4ca9f63d5c3bfc7c57c6032c9a27d0",
+    "src/main/scala/core/inorder/FiveStageMulDiv.scala": "7f54c15dcf4f40875ddaf052c7c1673cfb041fd0d1cbc2abc3727729fcfecec2",
+    "src/main/scala/core/inorder/FiveStagePmp.scala": "9d2e86db8e14f925a644a2abee63c6b0b53c8888995430d8fe3ab465b8cfd186",
+    "src/main/scala/core/inorder/FiveStageSoc.scala": "706084ff28aec1f2474ad7006666e4c0acb6dfa80f7c5340ac253f6d3f74f3c4",
+    "src/main/scala/core/inorder/FiveStageTileLink.scala": "a1dec858738ca44cf8b6e023ed4b856d44407172a25168d521d2869cc7473f6c",
+    "src/main/scala/core/inorder/FiveStageTypes.scala": "e01ae0e96524bec75e0604ed9c7c220d9ccd123385de4e54e986c4ac19710a09",
+    "src/main/scala/core/inorder/FiveStageWordCache.scala": "6dd52612ceb07cba27c65a250549670f5082920dd6b9301389569b169c29f435",
+    "src/main/scala/core/inorder/I1AddressWindow.scala": "c7113c87fbe2cf495812d16933ecaf0983996f91f77a0742ca3f1cce84e64bc5",
+    "src/main/scala/core/inorder/I1Aia.scala": "56918a65d14d45e69f77f46013c5faa47332e5ec3f5cbc928a8c99b2b01a7797",
+    "src/main/scala/core/inorder/I1AtomicDataMemory.scala": "68a9a0feb1696cc3921fdaab1b00d8cb05a239d78ccc273c3af664e665e560dc",
+    "src/main/scala/core/inorder/I1AxiPreflight.scala": "4d1c0a48295fdadc0f27f5acc389414810ab4b41bfc3d65ee8f7a4dc6f14b102",
+    "src/main/scala/core/inorder/I1BranchBankValid.scala": "bba4451f909e1f048d6bed3a5ea1228141ebea723b68a965291ffdf7c42bd31b",
+    "src/main/scala/core/inorder/I1BscanRamTransport.scala": "f121ad268bf882e2197cb842fb12ee16afe11a3669182b5a5ceacb8954ea49c4",
+    "src/main/scala/core/inorder/I1CacheTags.scala": "f9fee1811dea7169462c7d7e057dc1a155a1e9afff2a26d68dc7fe356dafce13",
+    "src/main/scala/core/inorder/I1CoherentDeviceFrontEnd.scala": "c41316abaec349df82294bf238c6af8f6010e3c9ec7d5e635ec34452e0654c6c",
+    "src/main/scala/core/inorder/I1CoherentFabric.scala": "1f6243fd755e1b5f75bb85a7e85a57a0fdd32616e474e81d85b9d9e59115e707",
+    "src/main/scala/core/inorder/I1CoherentInterfaces.scala": "8d68c5c77042f43c2eecfc16a6d162c8d5930b0601ef4570567557ca4277683d",
+    "src/main/scala/core/inorder/I1CoherentLineCache.scala": "d622c6ef8d72f918185da8e358173ba6e7f3623ff222f7823223fbced81df97a",
+    "src/main/scala/core/inorder/I1CoherentLineHome.scala": "72dc77b170c29a4f2fac6fa6ed88377c0ac9ecc3a61a0e11ad9567280f03afb1",
+    "src/main/scala/core/inorder/I1DmaRegisterDataAdapter.scala": "a8ba05d13f17277f2f8ebda65deb17a5d7b46ecce7ff33920fc145b67ec61188",
+    "src/main/scala/core/inorder/I1ExecuteDatapath.scala": "603fdef1e29601a545a412d4c91128e64481c69df150cb33d674c8afce243dba",
+    "src/main/scala/core/inorder/I1FetchQueue.scala": "23b1a53b2c86ac3ff32c40d4e5655e7cefc247d988bf52229bbd1790c8c08d7c",
+    "src/main/scala/core/inorder/I1FloatingPointArithmetic.scala": "f64c2b81d98414d953edd5e9aaf93c920ac9b19bb42cb5777fc286ff0862d9c3",
+    "src/main/scala/core/inorder/I1FloatingPointConfig.scala": "7789ffeb36ad001c21611aee888a749d010362f696099639e42801580a704da3",
+    "src/main/scala/core/inorder/I1FloatingPointDecode.scala": "56fdf91335efa187d7491231972d9550cf09684e75b1ce8a7336be961fcf2062",
+    "src/main/scala/core/inorder/I1FloatingPointExecute.scala": "078cb3731a4f6d36e344bdca814230ac3046c8cbdc59a51e8730347b4098494e",
+    "src/main/scala/core/inorder/I1FloatingPointNarrowRoundCuts.scala": "b3bd7929f18c8340a5da5eaf12f47be6be332d66f4e05258788588ad16ad47ff",
+    "src/main/scala/core/inorder/I1FloatingPointPostMulCuts.scala": "8c5be680f2a83fdca8e05e295645082876c8a1d8658028d7ef051c9e32606f36",
+    "src/main/scala/core/inorder/I1FloatingPointPredecodedRecoder.scala": "37188515c3f48e969b780c1e76078b0e97b65d05fa40fa85a1879b6945e5f396",
+    "src/main/scala/core/inorder/I1FloatingPointRawAddCuts.scala": "5d6fac0c44bd09269bf9ad621c74a764531382d1a90092f02715e24fa1dd9e15",
+    "src/main/scala/core/inorder/I1FloatingPointRawMultiplyFused.scala": "1b46c597410ebfdd1e27041613c4798df011ac87e5ec87371eda357893973cee",
+    "src/main/scala/core/inorder/I1FloatingPointRawMultiplyFusedCuts.scala": "fb754d5004b270428f488d92196b1f2a6a9cd5c601821e5736ac27e0a7370070",
+    "src/main/scala/core/inorder/I1FloatingPointResourceConfig.scala": "6429a761e3b68808725c12c5aca866847adc46ab1aea2eadc883aed3ad4f36b1",
+    "src/main/scala/core/inorder/I1FloatingPointRoundCuts.scala": "5679fcc395b52a77de8f1cbbcd456c26ccd61bad7fcc45558142c4b357dc13cf",
+    "src/main/scala/core/inorder/I1FloatingPointSharedArithmetic.scala": "5cdeca898a565dfb5b88a975e48a1f4f53d5a9ca0ba0bab2ca9bbbdf4be0fde2",
+    "src/main/scala/core/inorder/I1FloatingPointToIntegerCuts.scala": "527ed2ab759653359e85c06f4fa6bdc7a2a00d8126b48cc515725cc3f7b77aa4",
+    "src/main/scala/core/inorder/I1FloatingPointTypes.scala": "576aa254317e5e84fffdf4adcb940a7a7308c47d9d2bebad07af2e28faa7b4ac",
+    "src/main/scala/core/inorder/I1FlowResponseQueue.scala": "540778c75b4b35ce0f274a042e860d36c2d7069c6d060c3d00e060e990ac82c2",
+    "src/main/scala/core/inorder/I1IndependentClockSoc.scala": "51f7e7577b8c040d8c28fef69f3f44df41437238c8732526c8a4140e75325f0d",
+    "src/main/scala/core/inorder/I1InstructionPredecode.scala": "69c1e19fbd01f6f3ae21774af93a390efa5f9f60a24bc62e58640ccb6d835f97",
+    "src/main/scala/core/inorder/I1JtagRamLoader.scala": "07c77472ab9ddd0faaf9a89ef892fc2e1107c8317761cc9c9e6c8a9d3ba262fa",
+    "src/main/scala/core/inorder/I1NetworkFpgaShell.scala": "2d5575564a628fbef521cee5358c5eeccc7689c2ca815c9c99024602ee47c058",
+    "src/main/scala/core/inorder/I1OrderedTileLinkBridge.scala": "1e637fe2d99c7250013a9f1cfad665d4a140169d362a7ee0234eaeaa3dacf6ad",
+    "src/main/scala/core/inorder/I1PeripheralFpgaShell.scala": "ec4d0911fb30e05fb2a707f3b5274ee34cc62a82b061c8c26a0bdd2eb94ea538",
+    "src/main/scala/core/inorder/I1PreparedMetadataQueue.scala": "42453e9175ab7f967902fbc69678ac260c688759d69d65837ef50c151af96733",
+    "src/main/scala/core/inorder/I1PreparedRegisterQueue.scala": "41afa4b2b2668ef38cdad1593191fb9abcd309ff6a16a85d78bfdf85b306766b",
+    "src/main/scala/core/inorder/I1RestoringDivideStep.scala": "0c5af4fcaa4ac11750026fd6e6f2096a6568a2ec3bbd0b91e0839fae7d541be5",
+    "src/main/scala/core/inorder/I1SerialPredecode.scala": "bcfca8228d067b939131bc13bf4d9b367793b0edcfb701ca4b95b519d99c247d",
+    "src/main/scala/core/inorder/I1SharedDataArbiter.scala": "5ddf8676e45f88660ba497b085c79286bd4366405662f3364dca1867b448f3aa",
+    "src/main/scala/core/inorder/I1TileLinkAxi4BurstBridge.scala": "bbef2cce491d860a0c872878a22ef5a573774d20dc337ea73ef39357f715c091",
+    "src/main/scala/core/inorder/I1TileLinkAxi4OutstandingBridge.scala": "e64db3c1871268773e1bc0a64ab39afe0c37b82e3ce05757e6fcf4d4cd95ab1e",
+    "src/main/scala/core/inorder/I1TileLinkTransferBeatCount.scala": "c9884ccc315642cc0fd532cef6fd5178db433d628cc120bc6147a0fbe4214f91",
+    "src/main/scala/core/inorder/I1TimingMath.scala": "a3c5754d58e201b82909ccf4683e51e6f8296f9f40badc5008ca5c96651bf18c",
+    "src/main/scala/core/inorder/SynchronousFloatingRegisterFile.scala": "1c50f228afef374e7b2782c618a0b5dce5a80926e182517979f1d02e66717d2d",
+    "src/main/scala/core/inorder/SynchronousRegisterFile.scala": "c8917452e05efa00e5f50d78b06f84819bf58ef7a0f0ac4229f28079c5fa20e1",
+    "src/test/scala/inorder/FiveStageBackendControlMain.scala": "56cd68a3dd07155fc9074a3c63434b7c0b8a0381070d1304d738aae00f46ea53",
+    "src/test/scala/inorder/FiveStageCAMain.scala": "accad6ae839afc511781a3754dfae8138f57e91605417e190f5521dc6465cfc9",
+    "src/test/scala/inorder/FiveStageConfigSpec.scala": "b17ffb6781fbbf12dbd7223945bba56638172638079558e0b91575ee6f72a990",
+    "src/test/scala/inorder/FiveStageMain.scala": "1db984382ef8b3d43a46aa7d8bde02a2c1601accaac948e594458499cd106f25",
+    "src/test/scala/inorder/FiveStagePreparedQueueMain.scala": "6f491750fa76e526b8b063a4a68ac060a538cfff1ec0ed4319e6f8668f99cbd9",
+    "src/test/scala/inorder/FiveStagePrivilegeMain.scala": "84d323ba4ff2b2bf0523fa01da3f373e9f8998298a567c2512bf3d7193f2c102",
+    "src/test/scala/inorder/FiveStageSerialClassMain.scala": "fa9bcefdbd436715506d40af6f2837d4ae3b5abfb0b0c986b862e71010359400",
+    "src/test/scala/inorder/FiveStageSocMain.scala": "72bba706514d9c8f3d4abb7e090b1d4624fc42c5b37ff01121357152c065df9f",
+    "src/test/scala/inorder/I1AddressWindowMain.scala": "2071d671f392c038b1b15d6e878591f44120a4e54b7a0e4bc9dc7036bad16481",
+    "src/test/scala/inorder/I1AiaCommitMain.scala": "463925370113e2e7dcce3c3e42ce571a30227f4d101dc427269c0c32c7261102",
+    "src/test/scala/inorder/I1BusTimingMain.scala": "178cb0e9400f44c9628b114eebecc0120875091154c11be66e42f3b058a581ce",
+    "src/test/scala/inorder/I1CacheQuiescenceMain.scala": "118f7bc6bc2db4a63d97a124613ef6cf20403433fb5011506d643dd0684fb3a8",
+    "src/test/scala/inorder/I1CacheQuiescenceSpec.scala": "31dee26574671ade7db2e2b55677faa4c472712babf5874bef73041f33a3ae74",
+    "src/test/scala/inorder/I1CoherentPairGsim.scala": "50dd89acc733d95fe2b690cbada61a8981cf20d3052427b30fbb08148258f224",
+    "src/test/scala/inorder/I1Core300Main.scala": "dc01773962972f90df517f2f997575d539b3a9db2b219155666e43bcde2d4c4d",
+    "src/test/scala/inorder/I1DataCacheCommitMain.scala": "0b3e0dcc9bdb4192737682c02b81e03ab5398c81d8f36263709e1952dc6d368b",
+    "src/test/scala/inorder/I1DeviceFrontEndMain.scala": "349584dfdf2847f8c8656d0530eb9adfcfcc0b8bf7eb6da22a3c320a6ef80664",
+    "src/test/scala/inorder/I1ExternalQuiesceMain.scala": "f9ff2551ac4f9f3ae71a4e48ae602db498321d5cac245e9ec132701ffe432da2",
+    "src/test/scala/inorder/I1ExternalQuiesceSpec.scala": "7b354858944f8ae4683723012033c59d168ea79ccdb4d26f7022a77cd329acd6",
+    "src/test/scala/inorder/I1FetchParcelTimingMain.scala": "b4a5dc3c1093b5630b1efc22a5cbbca97008610d3b239b2193ab1917155a6591",
+    "src/test/scala/inorder/I1FloatingPointMain.scala": "3690e2037dc9642ed353aa7206a3d9e5ea84b573fb61b104445b463683ba892e",
+    "src/test/scala/inorder/I1FlowResponseQueueMain.scala": "0db160dfa085bce66a46c8db7618aca71ba54c17423a8d2bdf6824cc7fe4ea3f",
+    "src/test/scala/inorder/I1HomeReadPairMain.scala": "c57fcc0c227de2921ab4cd1e4656ac97ca683d7ec3b1354c18c98e63281657cd",
+    "src/test/scala/inorder/I1IncrementTimingMain.scala": "1763354e697100e0fb8a2423664ab224111a4888303829c9521047cd4a348dfa",
+    "src/test/scala/inorder/I1IndependentClockSocMain.scala": "54c0cae9e45a42b56c95cb3841f7dcc1ad788c1208f7b027e23bddb90dc9e085",
+    "src/test/scala/inorder/I1IndependentClockSocSpec.scala": "36ce09a402582c911832990c208684a059eb0b44effb6543b3c82e1bfb639685",
+    "src/test/scala/inorder/I1InstructionCachePmaMain.scala": "ef4ae0e3d030d84b9a65eb66d440b7a1e6215b2d0a81685b769b6898fa60ae0c",
+    "src/test/scala/inorder/I1JtagTimingMain.scala": "ec68ef080f4275c363c52fd98fd3af5a5d2436c721e04298aab52302d94b1006",
+    "src/test/scala/inorder/I1LineGrantTransportMain.scala": "5f1962abd4b09b1cc57377fdaecb3fa2e6ab16840df69c99dd9bc62c569da01d",
+    "src/test/scala/inorder/I1LineReadChannelMain.scala": "f041a6e3c8725788e849b6800cebc1636fd6ff15b2f032d9a1f4277a61e513f1",
+    "src/test/scala/inorder/I1ManagedClockCdcTop.scala": "40f3034b16d45768000ac3709131926f742e54af1892395dece1dadcafcdd96e",
+    "src/test/scala/inorder/I1NumericalTimingMain.scala": "5ee4d8f43fff672b2af60183412c5589fbdd792b9c721feb20f3e042bc8c84b0",
+    "src/test/scala/inorder/I1OperandSingletonMain.scala": "9cd9b9fed09c680d6c55d5119dd6d609f081c35a5ab93f025d46b2f6362543c5",
+    "src/test/scala/inorder/I1PacketDmaMain.scala": "0064a3c96606af7e5adbf7746cd3711f38e4aa150d946e8168da49f20debd5b9",
+    "src/test/scala/inorder/I1PerformanceCoreMain.scala": "6218bb101cbb317b458125685b7b1610014f483a079f149ec16ac718d89e1121",
+    "src/test/scala/inorder/I1PeripheralDecodeMain.scala": "d1796ac5a389ff3c8c102b33ac0b3f8be55c714a9fece271da806c3fde3651fc",
+    "src/test/scala/inorder/I1PmpTimingMain.scala": "7c7fc2fa4af187dd3a96220686d6aa9097db442b5727d53e1b2c704b01aed058",
+    "src/test/scala/inorder/I1PredictionTimingMain.scala": "d19a38ae1f8bb43a85f7e4ef820966d8399c13de93ce3e10a53d079535d2596b",
+    "src/test/scala/inorder/I1PreparedMetadataMain.scala": "0b03d8d265a1560a1166a667dbd883ca77e1f59cb199ae3a0e0f46fc2a1cd184",
+    "src/test/scala/inorder/I1PreparedRegisterQueueMain.scala": "f04504f31a4c0999c4b50b794c525bb72639f19dff260e6f2ca1a64bacf3290d",
+    "src/test/scala/inorder/I1TestRamAdapter.scala": "d5e1dec758aa2f794a82846995c1def98b9f986a1d2748c5963135d273ceec62",
+    "src/test/scala/inorder/I1TlbCapacityMain.scala": "dac5ad3c05391afaff4a3e39bbd1376d5507556ea714459cea193af102228bf8",
+    "src/test/scala/inorder/I1VivadoMain.scala": "da0cc8e113b77fa2a5462b2a093d9d7fa6d5e774a0c004032a19191329e854fe",
+    "src/test/scala/inorder/StoreClearAdmissionBatch.scala": "8d3c49cdaf7c3ffa0b46908a5da78bb76975571a6b387aed35aaf7717cdf23ca",
+    "simulator/gsim/harness/i1_fetch_queue.cpp": "c017b1256c4bb9f93ad771e3a1638e2691c15d6f9edd54492a798c51f847928a",
+    "simulator/gsim/harness/i1_predictor_banks.cpp": "9ada25d1e805b8e1815291f8ffe502513dac479bdf29686432f97a8019ffc4b4",
+    "simulator/gsim/harness/i1_performance.cpp": "f63fe390e003f76267c5a54159f9b0dce4e879de9f3503d1e409e75fc1be85e7",
+    "simulator/gsim/harness/i1_prediction_metrics.h": "7dbbbfae994e1f547b2fc87e2eaa4a293e0c2cd641ef30901e4f7de1b36b8bd6",
+    "simulator/gsim/harness/five_stage.cpp": "9e53c640b577e39e4d7f90baaf38a49247f53f5f9c8bd59bc24ab347cf42ac2e",
+    "simulator/gsim/harness/five_stage_coremark.cpp": "52d968312f032ebb63fd98125e2ce07897d8eddb838ee6cf1eea1a4b87672421"
+  },
+  "metrics_identical_to_r5": true,
+  "ipc_samples": 54,
+  "coremark_samples": 6,
+  "alu_checks_per_width": 44128,
+  "raw_cache_geometries": 9,
+  "quiesce_cases": 271,
+  "new_xsim": false,
+  "formal_coremark_score": false,
+  "board_qualified": false
+}

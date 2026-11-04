@@ -145,7 +145,8 @@ def main():
             if hashed:
                 flags += ['--hashed-branch-index']
             defines = [f'-DDUT_ENTRIES={entries}', f'-DDUT_XLEN={width}', f'-DDUT_C={int(compressed)}',
-                       f'-DDUT_TIMING={int(timing)}', f'-DDUT_HASHED={int(hashed)}']
+                       f'-DDUT_TIMING={int(timing)}', f'-DDUT_HASHED={int(hashed)}',
+                       f'-DDUT_BANKS={min(4 if role == "reference" else 2, entries // 2) if timing else 1}']
             folder = model(role, name, 'FiveStagePredictorMain', 'FiveStageBranchPredictor', flags,
                            'i1_predictor_banks.cpp', defines)
             text = run([folder / 'run'], folder, 'positive.log')

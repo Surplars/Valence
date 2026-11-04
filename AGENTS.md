@@ -33,6 +33,8 @@ Dependencies are documented in `simulator/gsim/README.md`. Verilator is retired:
 
 ## Coding Style & Naming Conventions
 
+Project programming principle (explicit user instruction, 2026-11-04): keep all code simple, readable, commented where intent or a hardware contract needs explanation, and high performance. Avoid defensive programming: redundant guards, silent fallbacks, speculative compatibility layers, and wrappers without a concrete need. Express supported inputs and ownership contracts directly; retain necessary architectural checks and independent verification. Judge optimizations by measured end-to-end performance, timing and resources.
+
 Use Scalafmt-compatible formatting before submitting changes. `.scalafmt.conf` sets the Scala 2.13 dialect, 4-space indentation, 120-column limit, and aligned declarations. Use package names that match the existing subsystem directories. Name hardware modules and Bundles in `PascalCase` (`IonSoC`, `UartTx`, `CSRFile`), values and methods in `camelCase`, and constants in the local style already present in the file.
 
 ## Testing Guidelines
