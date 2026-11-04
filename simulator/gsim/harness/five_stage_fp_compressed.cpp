@@ -3,8 +3,10 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 static void check(bool value,const char* why) {if(!value) throw std::runtime_error(why);}
-int main() {try {
+int main(int argc, char **argv) {try {
+    const bool inject = argc > 1 && std::string(argv[1]) == "--wrong-expansion";
     SI1FloatingPointCompressedGsim d;unsigned count=0;
     for(unsigned inst=0;inst<65536;++inst) {
         unsigned q=inst&3, f3=inst>>13;
@@ -20,7 +22,7 @@ int main() {try {
             (offset<<20)|(address<<15)|(3<<12)|(target<<7)|7;
         d.set_io$$instruction(inst);d.step();
         check(d.get_io$$legal()&&!d.get_io$$disabledLegal(),"compressed FP enable/disable");
-        check(d.get_io$$expanded()==expected,"independent compressed immediate/register expansion");
+        check(d.get_io$$expanded()==(expected ^ unsigned(inject)),"independent compressed immediate/register expansion");
         ++count;
     }
     check(count==8192,"exhaustive compressed count");

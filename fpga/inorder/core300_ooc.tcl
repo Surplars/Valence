@@ -69,7 +69,7 @@ set setup [get_timing_paths -from $states -to $states -delay_type max -max_paths
 set hold [get_timing_paths -from $states -to $states -delay_type min -max_paths 1]
 if {![llength $setup] || ![llength $hold]} {error "missing complete synchronous paths"}
 set fd [open [file join $output result.json] w]
-puts $fd [format {{"scope":"FULL_RV64IM_CACHED_CPU_WITH_ALL_PORT_CAPTURE_REGISTERS","target_hz":300000000,"setup_slack_ns":%s,"hold_slack_ns":%s,"external_clock_site":"%s","top_level_pad_timing_qualified":false,"board_qualified":false}} \
+puts $fd [format {{"scope":"FULL_CACHED_CPU_WITH_ALL_PORT_CAPTURE_REGISTERS","target_hz":300000000,"setup_slack_ns":%s,"hold_slack_ns":%s,"external_clock_site":"%s","top_level_pad_timing_qualified":false,"board_qualified":false}} \
     [get_property SLACK [lindex $setup 0]] [get_property SLACK [lindex $hold 0]] $source]
 close $fd
 puts "I1_FULL_CORE300_IMPLEMENTATION_DONE NO_BIT"

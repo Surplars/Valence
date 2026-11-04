@@ -12,6 +12,9 @@ using Model = SFiveStageCachedCore;
 #endif
 #define FIVE_STAGE_ORACLE_ONLY
 #include "five_stage.cpp"
+#ifdef I1_COREMARK_COMPRESSED
+#include "i1_compressed_reference.h"
+#endif
 #ifdef I1_COREMARK_PREDICTION
 #include "i1_prediction_metrics.h"
 #endif
@@ -94,6 +97,7 @@ struct Memory {
     }
 };
 
+#ifndef I1_COREMARK_MEMORY_ONLY
 int main(int argc, char **argv) { try {
     need(argc == 6 || argc == 7, "image, errors/ticks/CRCs addresses and latency required; optional --inject");
     std::ifstream file(argv[1], std::ios::binary); need(bool(file), "missing benchmark binary");
@@ -107,6 +111,9 @@ int main(int argc, char **argv) { try {
     d.set_reset(1);
 #ifndef DUT_OOO
     d.set_io$$time(0); d.set_io$$externalIrq(0); d.set_io$$timerIrq(0); d.set_io$$softwareIrq(0);
+#ifdef I1_WITH_A
+    d.set_io$$invalidateReservation(0);
+#endif
 #else
     d.set_io$$inspectRegister(0);
 #endif
@@ -130,9 +137,19 @@ int main(int argc, char **argv) { try {
 #endif
     auto retire = [&](uint64_t pc, uint32_t instruction, unsigned rd, bool writesRd, uint64_t value,
                       uint64_t nextPc, bool trap, uint64_t cause) {
-        need(pc == oracle.pc && instruction == oracle.load(pc, 4), "CoreMark independent retired PC/instruction mismatch");
-        unsigned op = instruction & 127, a = instruction >> 15 & 31;
-        if (op == 3 && oracle.r[a] + signExtend(instruction >> 20, 12) == 0x0200bff8) {
+        unsigned instructionBytes = 4;
+        uint32_t expanded = instruction;
+#ifdef I1_COREMARK_COMPRESSED
+        instructionBytes = (instruction & 3) == 3 ? 4 : 2;
+        if (instructionBytes == 2) {
+            auto decoded = I1CompressedReference::decode(instruction);
+            need(decoded.legal, "CoreMark independent compressed expansion legality");
+            expanded = decoded.value;
+        }
+#endif
+        need(pc == oracle.pc && instruction == oracle.load(pc, instructionBytes), "CoreMark independent retired PC/instruction mismatch");
+        unsigned op = expanded & 127, a = expanded >> 15 & 31;
+        if (op == 3 && oracle.r[a] + signExtend(expanded >> 20, 12) == 0x0200bff8) {
             need(!memory.timerValues.empty(), "unowned CoreMark timer sample");
             oracle.timerValue = memory.timerValues.front(); memory.timerValues.pop_front();
             if (++timers == 1) {
@@ -151,14 +168,14 @@ int main(int argc, char **argv) { try {
 #endif
             }
         }
-        auto expected = oracle.evaluate(instruction, false, false);
+        auto expected = oracle.evaluate(expanded, false, false, instructionBytes);
         if (injectRegister && retired == 2) expected.value ^= 1;
         need(trap == expected.trap && (!trap || cause == expected.cause), "CoreMark independent exception mismatch");
 #ifdef I1_COREMARK_PREDICTION
-        prediction.retire(d,currentCycle,pc,instruction,expected.next,trap);
+        prediction.retire(d,currentCycle,pc,expanded,expected.next,trap,instructionBytes);
 #endif
         if (trap) {
-            need(instruction == 0x00100073 && cause == 3, "CoreMark terminated at an unexpected exception");
+            need(expanded == 0x00100073 && cause == 3, "CoreMark terminated at an unexpected exception");
             need(oracle.r[10] == 0, "workload CRC/errors/smoke failed"); finished = true; return;
         }
         need((writesRd && rd != 0) == expected.write, "CoreMark independent register write-enable mismatch");
@@ -262,3 +279,5 @@ int main(int argc, char **argv) { try {
         << ",\"formal_score\":false}\n";
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }
+
+#endif // I1_COREMARK_MEMORY_ONLY

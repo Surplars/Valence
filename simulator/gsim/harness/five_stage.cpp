@@ -23,6 +23,9 @@ using SFiveStageCore = SI1PerformanceCore;
 #ifndef DUT_HAS_M
 #define DUT_HAS_M 1
 #endif
+#ifndef DUT_HAS_C
+#define DUT_HAS_C 0
+#endif
 #ifndef DUT_MEM_BYPASS
 #define DUT_MEM_BYPASS 1
 #endif
@@ -79,11 +82,11 @@ struct Oracle {
         return v;
     }
     struct Result { uint64_t next, value = 0, cause = 0, tval = 0; unsigned rd = 0; bool write = false, trap = false; };
-    Result evaluate(uint32_t ins, bool fetchError, bool dataError) {
+    Result evaluate(uint32_t ins, bool fetchError, bool dataError, unsigned instructionBytes = 4) {
         unsigned op = ins & 127, rd = ins >> 7 & 31, f = ins >> 12 & 7;
         unsigned a = ins >> 15 & 31, b = ins >> 20 & 31, hi = ins >> 25;
         uint64_t x = r[a], y = r[b], imm = signExtend(ins >> 20, 12);
-        Result out{fit(pc + 4)};
+        Result out{fit(pc + instructionBytes)};
         auto trap = [&](unsigned c, uint64_t v) { out.trap = true; out.cause = c; out.tval = v; out.write = false; out.next = mtvec & ~3ULL; };
         auto write = [&](uint64_t v) { out.write = rd != 0; out.rd = rd; out.value = fit(v); };
         if (fetchError) { trap(1, pc); return out; }
@@ -166,9 +169,9 @@ struct Oracle {
                 if (f != 0) { trap(2, ins); return out; }
                 target = fit(x + imm) & ~uint64_t(1);
             }
-            if (taken && (target & 3)) { trap(0, target); return out; }
+            if (taken && (target & (DUT_HAS_C ? 1 : 3))) { trap(0, target); return out; }
             if (taken) out.next = target;
-            if (op != 0x63) write(pc + 4);
+            if (op != 0x63) write(pc + instructionBytes);
         } else if (op == 0x73 && f != 0 && f != 4) {
             unsigned address = ins >> 20;
             uint64_t source = f & 4 ? a : x;

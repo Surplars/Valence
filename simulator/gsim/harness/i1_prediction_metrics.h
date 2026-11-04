@@ -12,7 +12,8 @@
 struct Resolution { uint64_t pc, predicted, next, cycle; };
 struct PredictionCounts { uint64_t count=0, correct=0, directionCount=0, directionCorrect=0; };
 template <class Model> struct I1PredictionMetrics {
-    std::deque<Resolution> resolved;
+    std::deque<Resolution> resolved, lengthResolved;
+    uint64_t lengthRepairs=0;
     std::map<uint64_t, unsigned> visits, pcKinds;
     std::map<uint64_t, PredictionCounts> perPc, perPcWarm;
     std::optional<Resolution> recovery;
@@ -38,10 +39,15 @@ template <class Model> struct I1PredictionMetrics {
             need(bool(d.get_io$$branchMispredict()) == (row.predicted != row.next),
                 "prediction observation mismatch: resolved redirect");
             resolved.push_back(row);
-        } else need(!d.get_io$$branchMispredict(), "prediction observation mismatch: unclassified redirect");
+        } else if (d.get_io$$branchMispredict()) {
+            // C sequential length misses use the same real ADDR repair edge.
+            // Reconcile their owners independently at retirement, outside branch accuracy.
+            lengthResolved.push_back({d.get_observation$$resolvePc(), d.get_observation$$resolvePrediction(),
+                d.get_observation$$resolveNextPc(), cycle});
+        }
     }
     void retire(Model &d, uint64_t cycle, uint64_t pc, uint32_t instruction,
-                uint64_t next, bool trap) {
+                uint64_t next, bool trap, unsigned instructionBytes=4) {
         if (recovery) {
             need(pc == recovery->next, "prediction observation mismatch: recovery retirement PC");
             const uint64_t delay=cycle-recovery->cycle;
@@ -51,7 +57,18 @@ template <class Model> struct I1PredictionMetrics {
         if (!instructions) first=cycle;
         last=cycle; ++instructions;
         const unsigned opcode=instruction&127;
-        if (opcode!=0x63 && opcode!=0x6f && opcode!=0x67) return;
+        if (opcode!=0x63 && opcode!=0x6f && opcode!=0x67) {
+            if (d.get_observation$$retiredPrediction()!=next) {
+                need(!lengthResolved.empty(), "prediction observation mismatch: missing length repair owner");
+                const auto row=lengthResolved.front(); lengthResolved.pop_front();
+                need(row.pc==pc && row.next==next && next==pc+instructionBytes &&
+                    row.predicted==d.get_observation$$retiredPrediction() &&
+                    (row.predicted==pc+2 || row.predicted==pc+4),
+                    "prediction observation mismatch: independent sequential length repair oracle");
+                ++lengthRepairs;
+            }
+            return;
+        }
         need(!resolved.empty(), "prediction observation mismatch: missing resolved owner");
         Resolution row=resolved.front(); resolved.pop_front();
         need(row.pc==pc && row.next==next && row.predicted==d.get_observation$$retiredPrediction(),
@@ -68,9 +85,9 @@ template <class Model> struct I1PredictionMetrics {
         if (conditional) {
             const uint32_t encoded=((instruction>>31)<<12)|(((instruction>>7)&1)<<11)|
                 (((instruction>>25)&63)<<5)|(((instruction>>8)&15)<<1);
-            if (signExtend(encoded,13)!=4) {
+            if (signExtend(encoded,13)!=instructionBytes) {
                 ++total.directionCount; ++kinds[0].directionCount;
-                const bool direction=(row.predicted!=pc+4)==(next!=pc+4);
+                const bool direction=(row.predicted!=pc+instructionBytes)==(next!=pc+instructionBytes);
                 total.directionCorrect+=direction; kinds[0].directionCorrect+=direction;
             }
         }
@@ -80,7 +97,7 @@ template <class Model> struct I1PredictionMetrics {
         if (!correct) recovery=row;
     }
     void report(const std::string &name,unsigned latency,uint64_t totalCycles) {
-        need(resolved.empty() && !recovery, "prediction observation mismatch: unfinished owner ledger");
+        need(resolved.empty() && lengthResolved.empty() && !recovery, "prediction observation mismatch: unfinished owner ledger");
         need(instructions>100 && last>=first, "performance ROI did not complete");
         std::cout << "I1_PERF name=" << name << " latency=" << latency
             << " retired=" << instructions << " cycles=" << totalCycles << " retirement_window=" << last-first+1
@@ -91,11 +108,11 @@ template <class Model> struct I1PredictionMetrics {
             << " returns=" << kinds[2].count << " returns_correct=" << kinds[2].correct
             << " indirect=" << kinds[3].count << " indirect_correct=" << kinds[3].correct
             << " warm_branches=" << warm.count << " warm_correct=" << warm.correct
-            << " redirects=" << redirects << " retired_misses=" << total.count-total.correct
+            << " redirects=" << redirects << " length_repairs=" << lengthRepairs << " retired_misses=" << total.count-total.correct
             << " recovery_count=" << recoveryCount << " recovery_sum=" << recoverySum << " recovery_max=" << recoveryMax
             << " fetch_stalls=" << fetchStalls << " memory_stalls=" << memoryStalls
             << " load_use_stalls=" << loadStalls << " mdu_stalls=" << mduStalls << " data_requests=" << requests << '\n';
-        need(redirects==total.count-total.correct && recoveryCount==redirects,
+        need(redirects==total.count-total.correct+lengthRepairs && recoveryCount==total.count-total.correct,
             "prediction observation mismatch: redirect/retirement reconciliation");
         uint64_t reconciled=0;
         for (const auto &[pc,counts]:perPc) {
