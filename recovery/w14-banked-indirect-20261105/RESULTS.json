@@ -1,0 +1,307 @@
+{
+  "component": {
+    "declared_payload_bits": 4096,
+    "effective_entries": 16,
+    "metadata_bits": 32,
+    "negative_cases": {
+      "bank-stale-hit-negative": {
+        "exit": 1,
+        "marker": "banked indirect table hit mismatch",
+        "status": "PASS_EXPECTED_ORACLE_FAILURE"
+      },
+      "branch-negative": {
+        "exit": 1,
+        "marker": "prediction training oracle mismatch",
+        "status": "PASS_EXPECTED_ORACLE_FAILURE"
+      },
+      "table-hit-negative": {
+        "exit": 1,
+        "marker": "directed indirect table hit mismatch",
+        "status": "PASS_EXPECTED_ORACLE_FAILURE"
+      },
+      "table-target-high-negative": {
+        "exit": 1,
+        "marker": "directed indirect table target mismatch",
+        "status": "PASS_EXPECTED_ORACLE_FAILURE"
+      }
+    },
+    "positive": {
+      "banked_directed": {
+        "continuous": 6,
+        "cycles": 81,
+        "hits": 97,
+        "misses": 65,
+        "owner0Rows": 65535,
+        "owner1Rows": 65535,
+        "ownerFlip": 4,
+        "parallelSameParity": 1,
+        "queries": 162,
+        "resetCancelled": 1,
+        "rows": 65535,
+        "sameIndex": 1,
+        "samePc": 2,
+        "staleMiss": 3
+      },
+      "original_directed": {
+        "cAdd": 1,
+        "cEbreak": 1,
+        "cMv": 1,
+        "cycles": 123,
+        "distinctTagCollision": 1,
+        "full64Tag": 2,
+        "hits": 52,
+        "illegalFunct3": 7,
+        "latencyTriplets": 1,
+        "legalCompressed": 4,
+        "legalJalr": 4,
+        "misses": 194,
+        "queries": 246,
+        "resetCancelled": 1,
+        "targetHigh": 1,
+        "validHoles": 2
+      },
+      "random": {
+        "branches": 27743,
+        "collisions": 1951,
+        "compressed": 36426,
+        "delayed": 1,
+        "indirect": 27437,
+        "resetCancelled": 2,
+        "width": 2,
+        "wrapped": 127
+      },
+      "random_cycles": 40004
+    },
+    "status": "PASS_QUALIFIED_W14_BANKED_INDIRECT_COMPONENT"
+  },
+  "cpu": {
+    "coverage": "Original three mains; independent ISA/CRC/full architecture/full64 owner/physical/store/debt/terminal/MLC/CIM checks passed. Whole CPU executed through observer FIR; ordinary RTL was mapped, not separately whole-CPU simulated.",
+    "directed": {
+      "cycles": 834,
+      "retired": 81
+    },
+    "gcc": {
+      "cycle_delta_vs_W13": 0,
+      "cycles": 320327,
+      "retired": 360526,
+      "retired_ipc": 1.125493636190518
+    },
+    "limits": [
+      "One unchanged cold iteration per compiler, NOT_COMPLIANT_TIMING; no official CoreMark score.",
+      "All 19 timed artifacts were strict byte-exact in addition to independent ISA/CRC/full architecture/full64 owner/physical/store/debt/terminal/MLC/CIM checks.",
+      "No whole-core FPGA implementation, routed timing, Fmax, area or bandwidth saturation claim.",
+      "Four-bank storage has 4128 declared bits versus 2064; effective table capacity remains 16.",
+      "No ordinary-SV whole-CPU simulation or additional table-shadow instrumentation."
+    ],
+    "llvm": {
+      "cycle_delta_vs_W13": 0,
+      "cycles": 389222,
+      "retired": 407538,
+      "retired_ipc": 1.0470579771955337
+    },
+    "nineteen_artifacts": {
+      "execution/coremark-output/commands/gcc.stdout": {
+        "byte_exact_vs_W13": true,
+        "bytes": 803,
+        "sha256": "dbd4f9b2f4907e4cb6ac19a9ebf88e2fbe620d37d5697b7fd7aabdab4af4495d"
+      },
+      "execution/coremark-output/commands/llvm.stdout": {
+        "byte_exact_vs_W13": true,
+        "bytes": 691,
+        "sha256": "48c595079cc077d7da991b636d5bbaaf45e5adc2dfa32e69f4471823496d6d93"
+      },
+      "execution/coremark-output/gcc-retirement.bin": {
+        "byte_exact_vs_W13": true,
+        "bytes": 27671760,
+        "sha256": "cea38404d0e60d9bbbcb97d8ece4cf7225ef686436980dac4907f25c983b2eba"
+      },
+      "execution/coremark-output/gcc-retirement.bin.cim.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 241,
+        "sha256": "a13a28ca63aa292a392aa92ea47d9cfafbc09a7c9394c0ee06f5c7041748a4f0"
+      },
+      "execution/coremark-output/gcc-retirement.bin.frontend.bin": {
+        "byte_exact_vs_W13": true,
+        "bytes": 8215896,
+        "sha256": "4cad3dc68f058e0f0c6c7b8a88c9408385dd69d58389a294726bc8b1cbae1eca"
+      },
+      "execution/coremark-output/gcc-retirement.bin.instruction-owner.bin": {
+        "byte_exact_vs_W13": true,
+        "bytes": 7041920,
+        "sha256": "f80db16cc5216eda0d4f4740c5e60e353534510ea3fb42585a31a1febfa56796"
+      },
+      "execution/coremark-output/gcc-retirement.bin.instruction-owner.bin.json": {
+        "byte_exact_vs_W13": true,
+        "bytes": 176,
+        "sha256": "2f948070b031c18d446a3c71ab12362f062bf26ba9b3182d51388c4ad713335f"
+      },
+      "execution/coremark-output/gcc-retirement.bin.mlc.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 1947844,
+        "sha256": "32f1b3125de328694f8a27d106f8bef32f7ea206dc564e7dc7b4445bb6c84b19"
+      },
+      "execution/coremark-output/llvm-retirement.bin": {
+        "byte_exact_vs_W13": true,
+        "bytes": 32160168,
+        "sha256": "02df08ec10768781ae208c5eff7ddbf28f1c7cde27824620c7f0d2e73b853e58"
+      },
+      "execution/coremark-output/llvm-retirement.bin.cim.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 239,
+        "sha256": "da28099ed078b59967e5be29c22e0ca16eeb769400278a682f740d3b6bfd8893"
+      },
+      "execution/coremark-output/llvm-retirement.bin.instruction-owner.bin": {
+        "byte_exact_vs_W13": true,
+        "bytes": 11008640,
+        "sha256": "7a7777549dfa948f4e8a1175e6ae01ed7c70085bc7a55208f96735cb5533739a"
+      },
+      "execution/coremark-output/llvm-retirement.bin.instruction-owner.bin.json": {
+        "byte_exact_vs_W13": true,
+        "bytes": 176,
+        "sha256": "89b953094a7392bc41f4cb8c5f504fb55212f54234b19dc72c26d2f6131c0b61"
+      },
+      "execution/coremark-output/llvm-retirement.bin.mlc.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 1953577,
+        "sha256": "0af6c8903a0e933a558e1eebdfd46d5fe9a27e3cca47618d106a544204ce50be"
+      },
+      "execution/directed-output/guest.stdout": {
+        "byte_exact_vs_W13": true,
+        "bytes": 344,
+        "sha256": "f1549e09373916a6e4a3d62927dbe2aefe03108fd6ce04777cdb8cfce869fc85"
+      },
+      "execution/directed-output/trace.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 7806457,
+        "sha256": "cb759d663d330d63214bef54581e4ef2ee1b278519073d7c9a3f5c665bfd4408"
+      },
+      "execution/directed-output/trace.jsonl.a.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 7882,
+        "sha256": "6d6b0f4ec093fecd82180756ca26c222cbdaf8d75ca771efc985d47de9d18a1d"
+      },
+      "execution/directed-output/trace.jsonl.cim.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 199,
+        "sha256": "1a55b04447d6312efb9827f24852ca2834c7a7084ac042d4a7d3815ce6fbafa0"
+      },
+      "execution/directed-output/trace.jsonl.mlc.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 132,
+        "sha256": "9cca15e1aa2668f7b446380338b5a5abc25b0e64b0bd500f05b606a832384725"
+      },
+      "execution/directed-output/trace.jsonl.terminal.jsonl": {
+        "byte_exact_vs_W13": true,
+        "bytes": 2382225,
+        "sha256": "d55fce9767adc8e24d5c442561759fd72b842b49ab79c29b3719babae8331754"
+      }
+    },
+    "status": "PASS_INDEPENDENT_W14_FULL_CPU_RESULTS"
+  },
+  "evidence_sha256": {
+    "component_result": "c52806ff8697ef1f96a2f52a1fd829e8bfa58ea340a2fa20c865b6cb1b81e882",
+    "component_review": "ca33af258b22831c7718b830e6c8b337dfabddf48f830d924466ffe898636f8a",
+    "cpu_result": "7d86e97dd8cbc00031a2ec1db532a6ae95d633d0a7cd297a8e3743b613fed665",
+    "cpu_review": "c3da47fb3d431b05e3e8be6b2889538ee54e30f3047a1cb84237858e73ac8b56",
+    "resource_result": "93db1006ab82dd67eb42784c0a6763cafebcfa7a4f46e3485f55315c038d8b83",
+    "resource_review": "ef277b646d778566a0550b5ad539208a0d121cafa986c0f69fe43c66a829b17e",
+    "source_graft_review": "79df0b51616137debc96e8e6e43afcd5beac81bcc85c6739875fc4e040966ad8",
+    "source_package": "ba3545987d37fca7ff87eff99f1b0f462568f2a9736af37ae78855e7d329b1db"
+  },
+  "mapping": {
+    "command": "sv2v -DSYNTHESIS <173 ordinary RTL files>; Yosys synth_xilinx -family xcup -top CommonA1CpuTile",
+    "deltas_vs_W13": {
+      "CARRY": 0,
+      "DSP": 0,
+      "FF": -2032,
+      "LUT": -2008,
+      "MUX": -168,
+      "RAM": 40
+    },
+    "finite_comparisons_vs_W13": {
+      "IMPROVEMENT": 19,
+      "NO_NUMERIC_DELTA": 92,
+      "REGRESSION": 67,
+      "SAME": 59
+    },
+    "finite_statuses": {
+      "CONSTANT_ENDPOINT": 58,
+      "NO_KNOWN_PATH": 6,
+      "PASS_SUPPORTED_PATHS": 145,
+      "UNKNOWN_MISSING_OR_WIDTH_CHANGED": 28
+    },
+    "five_group_depths": {
+      "ALL_FF_Q_AND_PRIMARY_INPUTS -> io_nextFetchPc": {
+        "baseline": 63,
+        "candidate": 63,
+        "delta": 0
+      },
+      "ALL_FF_Q_AND_PRIMARY_INPUTS -> io_windowQueryPc": {
+        "baseline": 33,
+        "candidate": 35,
+        "delta": 2
+      },
+      "ALL_FF_Q_AND_PRIMARY_INPUTS -> prepared_stage.D": {
+        "baseline": 67,
+        "candidate": 68,
+        "delta": 1
+      },
+      "ALL_FF_Q_AND_PRIMARY_INPUTS -> window_payload.D": {
+        "baseline": 51,
+        "candidate": 52,
+        "delta": 1
+      },
+      "ALL_FF_Q_AND_PRIMARY_INPUTS -> window_present.D": {
+        "baseline": 50,
+        "candidate": 51,
+        "delta": 1
+      }
+    },
+    "late_statuses": {
+      "CUT_NO_COMBINATIONAL_PATH": 220,
+      "UNKNOWN_UNRESOLVED_GROUP": 333
+    },
+    "limits": [
+      "The old query/root selection rule is unchanged, but the actual FF-Q launch population changes when payload FFs migrate to RAM. These are not identical logical-state timing domains.",
+      "RAM internal storage clock-to-DO is NOT_MEASURED; RAM-output and public-output CUT timing are NOT_MEASURED. Memory state does not become absent or zero because it is no longer an FF-Q root.",
+      "All 237 finite, 553 late and 3 global original records, UNKNOWN/constant/no-path statuses and complete existing witnesses are preserved. The 279591 inherited omitted rows remain NOT_MEASURED.",
+      "Weighted saved witnesses and actual aliases/pins/weights were independently checked against one current graph. Negative reachability/taint conclusions are retained frozen-engine outputs, not rerun or independently recomputed DP.",
+      "Hierarchy recurrence was independently recomputed from captured compact hierarchy and cross-checked to stat per-module counts and actual current flat cells. The 439 MB original hierarchy was not reparsed.",
+      "Whole-table actual 481 LUT/178 MUX/32 FF/40 RAM32M16 differs from standalone component 485/179. Hierarchical recursive modules overlap and must not be summed; cross-module mapping effects are not isolated RTL attribution.",
+      "Global physical timing remains UNKNOWN, DSP48E2 unsupported. This review establishes structural mapped depth under the saved model, not STA/Fmax or same-path speedup."
+    ],
+    "primitive_counts": {
+      "BUFG": 1,
+      "CARRY4": 6935,
+      "DSP48E2": 30,
+      "FDRE": 62010,
+      "FDSE": 525,
+      "IBUF": 2126,
+      "INV": 1864,
+      "LUT1": 9813,
+      "LUT2": 38868,
+      "LUT3": 29632,
+      "LUT4": 29085,
+      "LUT5": 30433,
+      "LUT6": 120101,
+      "MUXF7": 51286,
+      "MUXF8": 20675,
+      "MUXF9": 5063,
+      "OBUF": 2359,
+      "RAM32M16": 365,
+      "RAM64M8": 1992
+    },
+    "resource_groups": {
+      "CARRY": 6935,
+      "DSP": 30,
+      "FF": 62535,
+      "LUT": 257932,
+      "MUX": 77024,
+      "RAM32M16": 365,
+      "RAM64M8": 1992
+    },
+    "status": "PASS_W14_RESOURCE_FINITE_INDEPENDENT_REVIEW_WITH_SCOPE_LIMITS",
+    "top": "CommonA1CpuTile"
+  },
+  "scope": "Derived concise results; full local evidence reports and raw traces are intentionally not published. These results were not rerun for this backup."
+}

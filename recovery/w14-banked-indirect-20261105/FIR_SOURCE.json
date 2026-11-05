@@ -1,0 +1,15 @@
+{
+  "compressed_bytes": 816984,
+  "compressed_path": "fir/CommonA1CapacityGsim.fir.xz",
+  "compressed_sha256": "ec7cea02cf84d2a92cb4e51d7c00402ca376a70a129ede4b0fb1e8be9a1a49e8",
+  "compression": "xz",
+  "compression_parameters": {
+    "format": "xz",
+    "preset": 3
+  },
+  "decompressed_bytes": 29527903,
+  "decompressed_filename": "CommonA1CapacityGsim.fir",
+  "decompressed_sha256": "1cb205fe15805611feaf23b5dd01b7486d866e649a39367aa58eca6c6ef475de",
+  "logical_source_path": "fir/CommonA1CapacityGsim.fir",
+  "scope": "Deterministic lossless packaging of the already reviewed source-location-normalized FIR. Full text remains in original local snapshot commit 6339c31bcf913f5f058cb495a4b678d1b879df44."
+}
