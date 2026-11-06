@@ -8,7 +8,9 @@ p.add_argument('--rv-image-dir', type=Path, required=True)
 p.add_argument('--sdk', type=Path, required=True)
 p.add_argument('--compiler', type=Path, required=True)
 p.add_argument('--output', type=Path, required=True)
-p.add_argument('--ddr-only', action='store_true')
+mode = p.add_mutually_exclusive_group()
+mode.add_argument('--ddr-only', action='store_true')
+mode.add_argument('--load-only', action='store_true', help='release firmware; do not expect the old RV selftest mailbox')
 a = p.parse_args()
 root = Path(__file__).resolve().parents[2]
 bsp, image, sdk, cc, out = (x.resolve() for x in (a.bsp, a.rv_image_dir, a.sdk, a.compiler, a.output))
@@ -33,9 +35,11 @@ try:
         '-O2', '-g', '-ffreestanding', '-Wall', '-Wextra', '-Werror', '-std=c11',
         '-I' + str(bsp / 'include'), '-I' + str(image), '-I' + str(root / 'software/ps-rpu')]
     if a.ddr_only: flags.append('-DI1_RPU_DDR_ONLY=1')
+    if a.load_only: flags.append('-DI1_RPU_LOAD_ONLY=1')
     sources = [root / 'software/ps-rpu' / f for f in ['main.c', 'i1_ps_loader.c']]
     for src in sources: run([*flags, '-c', src, '-o', out / (src.stem + '.o')], src.stem + '-compile.log')
-    elf = out / ('i1-rpu-ddr-test.elf' if a.ddr_only else 'i1-rpu-handoff.elf')
+    elf = out / ('i1-rpu-ddr-test.elf' if a.ddr_only else
+                 'i1-rpu-firmware.elf' if a.load_only else 'i1-rpu-handoff.elf')
     run([*flags, '-specs=' + str(bsp / 'Xilinx.spec'), '-T', out / 'link.ld',
         '-Wl,-u,_boot,--build-id=none,-Map=' + str(out / 'i1-rpu-handoff.map'),
         *[out / (src.stem + '.o') for src in sources], '-L' + str(bsp / 'lib'),
@@ -49,7 +53,7 @@ try:
     assert symbols['__undef_stack'] < 0x14000000
     run([str(cc).removesuffix('gcc') + 'readelf', '-h', '-l', elf], 'elf-layout.log')
     record.update(status='PASS_BOARD_XSA_DERIVED_RPU_ELF_LINKED_NOT_BOARD_TESTED',
-        ddr_only=a.ddr_only, report_address=hex(symbols['g_i1_rpu_report']), entry=hex(symbols['_boot']),
+        ddr_only=a.ddr_only, load_only=a.load_only, report_address=hex(symbols['g_i1_rpu_report']), entry=hex(symbols['_boot']),
         sources_sha256={str(f.relative_to(root)): sha(f) for f in [*sources, root / 'software/ps-rpu/i1_boot_protocol.h', root / 'software/ps-rpu/i1_ps_loader.h', Path(__file__)]},
         bsp_sha256={str(f.relative_to(bsp)): sha(f) for f in sorted(bsp.rglob('*')) if f.is_file()},
         linker_template_sha256=sha(template), rv_image_receipt_sha256=sha(image / 'receipt.json'),

@@ -1,0 +1,12 @@
+{
+  "opensbi": {
+    "repository": "https://github.com/riscv-software-src/opensbi",
+    "release": "v1.9",
+    "commit": "cbf9f6734dd85a982c63e3cb5db7ffe09da839ca"
+  },
+  "linux": {
+    "path": "/home/openion/linux",
+    "commit": "f66469d9905b39d2c260a15d7d6db450f4db67c1"
+  },
+  "hardware_checkpoint": "94c4fac446afef73ddfcbe8784b2518f669718c8"
+}

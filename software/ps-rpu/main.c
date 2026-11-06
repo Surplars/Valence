@@ -77,6 +77,12 @@ int main(void)
     g_i1_rpu_report.phase = 3;
     status = I1PsLoadAndStart(&gpio, i1_rv_image, I1_RV_IMAGE_BYTES);
     if (status != XST_SUCCESS) goto failed;
+    #ifdef I1_RPU_LOAD_ONLY
+    /* This acknowledges image publication and release only. OpenSBI/Linux
+     * completion is observed separately through UART or their own probe.
+     */
+    g_i1_rpu_report.phase = 7;
+    #else
     g_i1_rpu_report.phase = 4;
     XTime begin, now;
     XTime_GetTime(&begin);
@@ -88,6 +94,7 @@ int main(void)
     if (status != XST_DEVICE_BUSY) g_i1_rpu_report.rv = report;
     if (status != XST_SUCCESS) goto failed;
     g_i1_rpu_report.phase = 5;
+    #endif
     #else
     g_i1_rpu_report.phase = 6;
     #endif
