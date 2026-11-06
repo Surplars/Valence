@@ -150,40 +150,47 @@ class UartConsole(base: BigInt = BigInt("10000000", 16), clockHz: Int = 40000000
     // retained bytes, replies, interrupts and forced break before ACKing drain.
     io.idle := txCount === 0.U && txRemaining === 0.U && rxCount === 0.U && rxState === 0.U &&
         responses.io.count === 0.U && !io.mmio.request.valid && !io.irq && !lcr(6)
-    val addressLegal = request.address >= base.U && request.address < (base + 8).U(65.W)
+    // Eight aligned byte registers form one exact tag; no range carry chain.
+    val addressLegal = request.address(63, 3) === (base >> 3).U(61.W)
     val legal = addressLegal && request.size === 0.U && request.byteEnable === 1.U
     val divisorWrite = request.write && dlab && offset <= 1.U
+    val divisorIdle = txCount === 0.U && txRemaining === 0.U && rxState === 0.U
     val txAvailable = txCount < capacity || (txCount =/= 0.U && txRemaining === 0.U)
     val blocked = legal && request.write && (
         (!dlab && offset === 0.U && !txAvailable) ||
-        (divisorWrite && (txCount =/= 0.U || txRemaining =/= 0.U || rxState =/= 0.U)))
+        (divisorWrite && !divisorIdle))
     io.mmio.request.ready := responses.io.enq.ready && !blocked
     responses.io.enq.valid := io.mmio.request.valid && !blocked
     io.mmio.response <> responses.io.deq
     responses.io.enq.bits.error := !legal
-    val fire = io.mmio.request.fire && legal
-    val readRbr = fire && !request.write && offset === 0.U && !dlab
-    val readLsr = fire && !request.write && offset === 5.U
-    val fcrWrite = fire && request.write && offset === 2.U
+    // Reads and FCR/configuration writes never block on the transmitter.
+    // Keep their local strobes independent of TX/divisor backpressure; only
+    // THR and DLL/DLM writes need those operation-specific credits.
+    val accepted = io.mmio.request.valid && responses.io.enq.ready && legal
+    val readAccepted = accepted && !request.write
+    val readRbr = readAccepted && offset === 0.U && !dlab
+    val readLsr = readAccepted && offset === 5.U
+    val fcrWrite = accepted && request.write && offset === 2.U
     val modeChange = fcrWrite && data(0) =/= fifoEnabled
     val clearRx = fcrWrite && (data(1) || modeChange)
     val clearTx = fcrWrite && (data(2) || modeChange)
     val rxPop = readRbr && rxCount =/= 0.U
     val rxPush = received && !clearRx && (rxCount < capacity || rxPop)
     val txPop = txCount =/= 0.U && txRemaining === 0.U && !clearTx
-    val txPush = fire && request.write && offset === 0.U && !dlab
+    val txPush = accepted && request.write && offset === 0.U && !dlab && txAvailable
     responses.io.enq.bits.data := Mux(legal && !request.write,
         MuxLookup(offset, 0.U)(Seq(
             0.U -> Mux(dlab, divisor(7, 0), Mux(rxCount =/= 0.U, rxHead(7, 0), 0.U)),
             1.U -> Mux(dlab, divisor(15, 8), ier),
             2.U -> iir, 3.U -> lcr, 4.U -> mcr, 5.U -> lsr,
             6.U -> Cat(modem, modemDelta), 7.U -> scratch)), 0.U)
-    when(fire && request.write) {
+    when(accepted && request.write) {
         switch(offset) {
-            is(0.U) { when(dlab) { divisor := Cat(divisor(15, 8), data); divider := 0.U } }
+            is(0.U) { when(dlab && divisorIdle) { divisor := Cat(divisor(15, 8), data); divider := 0.U } }
             is(1.U) {
-                when(dlab) { divisor := Cat(data, divisor(7, 0)); divider := 0.U }
-                    .otherwise {
+                when(dlab) {
+                    when(divisorIdle) { divisor := Cat(data, divisor(7, 0)); divider := 0.U }
+                }.otherwise {
                         ier := data(3, 0)
                         when(!ier(1) && data(1) && txCount === 0.U) { txPending := true.B }
                     }
@@ -194,10 +201,10 @@ class UartConsole(base: BigInt = BigInt("10000000", 16), clockHz: Int = 40000000
             is(7.U) { scratch := data }
         }
     }
-    when(fire && !request.write && offset === 2.U && interruptId === 2.U) { txPending := false.B }
-    when(fire && !request.write && offset === 6.U) { modemDelta := 0.U }
+    when(readAccepted && offset === 2.U && interruptId === 2.U) { txPending := false.B }
+    when(readAccepted && offset === 6.U) { modemDelta := 0.U }
     when(modemChanged.orR) {
-        modemDelta := Mux(fire && !request.write && offset === 6.U, 0.U, modemDelta) | modemChanged
+        modemDelta := Mux(readAccepted && offset === 6.U, 0.U, modemDelta) | modemChanged
     }
 
     when(txRemaining =/= 0.U && baudTick) {

@@ -12,7 +12,7 @@ foreach path [list $rtl $output] {
 if {[file exists $output]} { error "fresh evidence root required" }
 if {![string is double -strict $period] || $period <= 0.333} { error "explicit positive clock period required" }
 file mkdir $output
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 source [file join [file dirname [info script]] numerical_timing.tcl]
 foreach role $roles {
     set folder [file join $output $role]

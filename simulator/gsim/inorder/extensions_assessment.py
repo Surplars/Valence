@@ -37,6 +37,7 @@ def main():
         ap.error("source .local-dev/env.sh")
     output.mkdir(parents=True)
     gsim, cxx = common.setup(False)
+    subprocess.run(["mill", "-i", "OrbitalI1.test.runClasspath"], cwd=ROOT, check=True)
     paths = [Path(v.split(":", 3)[3]) for v in
              json.loads((ROOT / "out/OrbitalI1/test/runClasspath.json").read_text())["value"]]
     runtime = os.pathsep.join(str(p) for p in paths if p.exists())
@@ -54,7 +55,11 @@ def main():
         defines += ["-DI1_COREMARK_COMPRESSED=1", "-DDUT_HAS_C=1"]
     receipt = {"status": "RUNNING", "profile": args.profile, "flags": flags,
                "baseline_commit": "fbcb215d0441917b691792badc83c56cb815cef5",
-               "source_sha256": frozen, "gsim_sha256": sha(gsim), "commands": [],
+               "source_sha256": frozen,
+               "compiled_class_sha256": {str(p.relative_to(ROOT)): sha(p)
+                   for module in ["OrbitalI1", "OrbitalI1/test"]
+                   for p in (ROOT / "out" / module / "compile.dest/classes").rglob("*.class")},
+               "gsim_sha256": sha(gsim), "commands": [],
                "scope": "single-issue R5 cached CPU; no SoC/peripherals; short functional gates",
                "physical_qualified": False, "coremark": []}
 

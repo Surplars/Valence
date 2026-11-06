@@ -1,0 +1,60 @@
+--- a/src/cppEmitter.cpp
++++ b/src/cppEmitter.cpp
+@@ -328,7 +328,11 @@
+ #endif
+ 
+ void graph::genNodeDef(FILE* fp, Node* node) {
+-  if (node->type == NODE_SPECIAL || node->type == NODE_REG_RESET || (node->status != VALID_NODE)) return;
++  // Constant D still needs storage: reset may override it before the edge commits.
++  const bool constantCandidate = explicitClockEdges && node->type == NODE_REG_DST &&
++      node->status == CONSTANT_NODE && node->getSrc()->status == VALID_NODE;
++  if (node->type == NODE_SPECIAL || node->type == NODE_REG_RESET ||
++      (node->status != VALID_NODE && !constantCandidate)) return;
+   if (node->type == NODE_REG_DST && !node->regSplit) return;
+   if (node->type == NODE_WRITER) return;
+   if (node->isLocal()) return;
+@@ -676,7 +680,7 @@
+         } else {
+           emitBodyLock(indent, "_gsim_reset_changed |= (%s != %s);\n", current.c_str(), resetValue.c_str());
+           emitBodyLock(indent, "%s = %s;\n", current.c_str(), resetValue.c_str());
+-          if (reg->getDst()->status == VALID_NODE)
++          if (definedNode.count(reg->getDst()))
+             emitBodyLock(indent, "%s = %s;\n", next.c_str(), resetValue.c_str());
+         }
+       }
+@@ -767,7 +771,24 @@
+     emitFuncDecl(0, "void S%s::evaluateClockCombinational() {\n", name.c_str());
+     // Conditional candidates must start at the current source on EVERY eval.
+     // Otherwise an enable pulse before an edge would leave a stale candidate.
+-    for (Node* reg : liveRegs) copy(reg->getDst(), reg, 1);
++    for (Node* reg : liveRegs) {
++      Node* next = reg->getDst();
++      if (next->status != CONSTANT_NODE) { copy(next, reg, 1); continue; }
++      // The optimizer removes constant assignments from the evaluation graph.
++      // Rebuild that D value for each evaluation, then let reset override it.
++      for (size_t index = 0; index < (next->isArray() ? next->arrayEntryNum() : 1); ++index) {
++        std::string suffix;
++        size_t remaining = index;
++        for (size_t dim = next->dimension.size(); dim > 0; --dim) {
++          const size_t extent = next->dimension[dim - 1];
++          suffix = "[" + std::to_string(remaining % extent) + "]" + suffix;
++          remaining /= extent;
++        }
++        valInfo* value = next->computeInfo;
++        if (next->isArray() && value->getMemberInfo(index)) value = value->getMemberInfo(index);
++        emitBodyLock(1, "%s%s = %s;\n", next->name.c_str(), suffix.c_str(), value->valStr.c_str());
++      }
++    }
+     for (Node* reg : liveRegs) if (reg->isReset())
+       emitBodyLock(1, "%s = %s;\n", RESET_NAME(reg).c_str(), reg->name.c_str());
+     emitBodyLock(1, "activateAll();\n");
+@@ -988,6 +1009,9 @@
+       for (size_t i = 1; i < super->member.size(); i ++) genNodeDef(header, super->member[i]);
+     }
+   }
++  // Constant candidates may no longer belong to a live supernode.
++  if (explicitClockEdges) for (Node* reg : regsrc)
++    if (reg->status == VALID_NODE && definedNode.count(reg)) genNodeDef(header, reg->getDst());
+   /* memory definition */
+   for (Node* mem : memory) genNodeDef(header, mem);
+   fprintf(header, "uint32_t _var_end;\n");

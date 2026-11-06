@@ -26,6 +26,9 @@ using SFiveStageCore = SI1PerformanceCore;
 #ifndef DUT_HAS_C
 #define DUT_HAS_C 0
 #endif
+#if DUT_HAS_C
+#include "i1_compressed_reference.h"
+#endif
 #ifndef DUT_MEM_BYPASS
 #define DUT_MEM_BYPASS 1
 #endif
@@ -191,7 +194,7 @@ struct Oracle {
             if (change && address == 0x304) mie = value & 0x888;
             if (change && address == 0x305) mtvec = (fit(value) & ~3ULL) | ((value & 3) == 1);
             if (change && address == 0x340) scratch = fit(value);
-            if (change && address == 0x341) epc = fit(value) & ~uint64_t(3);
+            if (change && address == 0x341) epc = fit(value) & ~uint64_t(DUT_HAS_C ? 1 : 3);
             if (change && address == 0x342) cause = fit(value);
             if (change && address == 0x343) tval = fit(value);
             write(old);
@@ -218,19 +221,28 @@ struct StoreIntent { uint64_t address, data; unsigned size, mask; bool error, ac
 struct Stats {
     uint64_t cycles = 0, retires = 0, stalls = 0, loadStalls = 0, branches = 0;
     uint64_t aluRetires = 0, aluFirst = 0, aluLast = 0, aluMaxGap = 0;
-    uint64_t wrongPathMduBlocked = 0;
+    uint64_t wrongPathMduBlocked = 0, compressedRetires = 0;
+    uint64_t synchronizedReplyFlushReady = 0, synchronizedReplyFlushBlocked = 0;
 };
 
+// Optional external service control. Existing observers leave every input
+// unchanged; directed recovery tests schedule only public bus/IRQ inputs.
+struct FiveStageService {
+    bool fetchReady, dataReady, fetchValid, dataValid, externalIrq;
+};
 struct FiveStageObserver {
     virtual ~FiveStageObserver() = default;
+    virtual void service(uint64_t, const std::optional<MemoryReply> &,
+                         const std::optional<MemoryReply> &, FiveStageService &) {}
     virtual void cycle(SFiveStageCore &, uint64_t) {}
-    virtual void retire(SFiveStageCore &, uint64_t, uint64_t, uint32_t, uint64_t, bool) {}
+    virtual void retire(SFiveStageCore &, uint64_t, uint64_t, uint32_t, uint64_t, bool, unsigned instructionBytes=4) {}
 };
 
 static Stats execute(const std::string &name, const std::vector<uint32_t> &code, unsigned latency,
                      std::optional<uint64_t> fetchError = {}, std::optional<uint64_t> dataError = {},
                      bool returnFromTrap = false, bool inject = false, bool interrupt = false, bool injectStore = false,
-                     unsigned extraDataDelay = 0, FiveStageObserver *observer = nullptr, bool fixedService = false) {
+                     unsigned extraDataDelay = 0, FiveStageObserver *observer = nullptr, bool fixedService = false,
+                     std::optional<uint64_t> synchronizedFetchPc = {}) {
     std::vector<uint8_t> actual(65536);
     for (unsigned j = 0; j < actual.size(); ++j) actual[j] = uint8_t(j * 73 + 19);
     for (unsigned j = 0; j < code.size(); ++j) std::memcpy(actual.data() + 4 * j, &code[j], 4);
@@ -257,20 +269,39 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
     Stats stats;
     unsigned traps = 0;
     bool interruptInjected = false, interruptSeen = false;
+    bool synchronizedReplyReleased = false;
     for (uint64_t cycle = 0; cycle < 150000; ++cycle) {
         bool ir = fixedService || latency == 1 || rng() % 4 != 0;
         bool dr = fixedService || latency == 1 || rng() % 3 != 0;
         bool fv = fetch && fetch->due <= cycle, dv = data && data->due <= cycle;
+        // Optional external service schedule: release this fetch with the old
+        // data reply, then hold VALID through stalls even after data drains.
+        if (synchronizedFetchPc && fetch && fetch->address == *synchronizedFetchPc) {
+            synchronizedReplyReleased |= dv;
+            fv &= synchronizedReplyReleased;
+        }
+        if (interrupt && !interruptInjected && oracle.count >= (DUT_HAS_M ? 6U : 5U) &&
+            (DUT_HAS_M ? d.get_io$$stallMulDiv() : d.get_io$$stallMemory())) interruptInjected = true;
+        FiveStageService service{ir, dr, fv, dv, interruptInjected && !interruptSeen};
+        if (observer) observer->service(cycle, fetch, data, service);
+        ir = service.fetchReady; dr = service.dataReady;
+        fv = service.fetchValid; dv = service.dataValid;
         d.set_io$$instructionRequest$$ready(ir); d.set_io$$dataRequest$$ready(dr);
         d.set_io$$instructionResponse$$valid(fv);
         d.set_io$$instructionResponse$$bits$$instruction(fetch ? fetch->data : 0xf0f0f0f0U);
         d.set_io$$instructionResponse$$bits$$error(fetch && fetch->error);
+        d.set_io$$instructionResponse$$bits$$compressed(DUT_HAS_C && fetch && !fetch->error && (fetch->data & 3) != 3);
+        d.set_io$$instructionResponse$$bits$$pageFault(0);
+        d.set_io$$instructionResponse$$bits$$secondHalfFault(0);
         d.set_io$$dataResponse$$valid(dv); d.set_io$$dataResponse$$bits$$data(data ? data->data : 0xabcdU);
         d.set_io$$dataResponse$$bits$$error(data && data->error); d.set_io$$time(cycle);
-        if (interrupt && !interruptInjected && oracle.count >= (DUT_HAS_M ? 6U : 5U) &&
-            (DUT_HAS_M ? d.get_io$$stallMulDiv() : d.get_io$$stallMemory())) interruptInjected = true;
-        d.set_io$$externalIrq(interruptInjected && !interruptSeen);
+        d.set_io$$externalIrq(service.externalIrq);
         d.step();
+        if (synchronizedFetchPc && fetch && fetch->address == *synchronizedFetchPc && fv &&
+            d.get_io$$branchMispredict()) {
+            if (d.get_io$$instructionResponse$$ready()) ++stats.synchronizedReplyFlushReady;
+            else ++stats.synchronizedReplyFlushBlocked;
+        }
         if (observer) observer->cycle(d, stats.cycles + 1);
         if (d.get_io$$trapTaken() && !d.get_io$$retire$$valid()) {
             need(unretiredStores.empty(), name + ": interrupt overtook an external store");
@@ -301,15 +332,28 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
         if (d.get_io$$retire$$valid()) {
             uint64_t pc = d.get_io$$retire$$bits$$pc();
             need(pc == oracle.pc, name + ": retired wrong PC expected=" + std::to_string(oracle.pc) + " got=" + std::to_string(pc));
-            uint32_t ins = uint32_t(oracle.load(pc, 4));
-            need(ins == d.get_io$$retire$$bits$$instruction(), name + ": retired wrong instruction");
+            const unsigned instructionBytes = DUT_HAS_C && (oracle.load(pc, 2) & 3) != 3 ? 2 : 4;
+            const uint32_t raw = uint32_t(oracle.load(pc, instructionBytes));
+            uint32_t ins = raw;
+#if DUT_HAS_C
+            if (instructionBytes == 2) {
+                const auto expansion = I1CompressedReference::decode(raw);
+                ins = expansion.legal ? expansion.value : 0x0000007b;
+            }
+#endif
+            need(raw == d.get_io$$retire$$bits$$instruction(), name + ": retired wrong instruction");
+            stats.compressedRetires += instructionBytes == 2;
             const bool isStore = (ins & 127) == 0x23;
             const unsigned storeSize = 1U << (ins >> 12 & 7);
             const uint64_t storeImmediate = signExtend((ins >> 25 << 5) | (ins >> 7 & 31), 12);
             const uint64_t storeAddress = fit(oracle.r[ins >> 15 & 31] + storeImmediate);
             const uint64_t storeValue = oracle.r[ins >> 20 & 31];
             auto expected = oracle.evaluate(ins, fetchError && *fetchError == pc,
-                dataError && (ins & 127) == 0x03 ? true : dataError && (ins & 127) == 0x23);
+                dataError && (ins & 127) == 0x03 ? true : dataError && (ins & 127) == 0x23, instructionBytes);
+            // C illegal-instruction payload is the original halfword. The CPU
+            // rejects unsupported >32-bit prefixes without claiming uncaptured bits.
+            if (DUT_HAS_C && expected.trap && expected.cause == 2)
+                expected.tval = instructionBytes == 2 ? raw : ((raw & 31) == 31 ? 0 : raw);
             if (name.starts_with("alu-stream") && !expected.trap) {
                 if (!stats.aluRetires) stats.aluFirst = stats.cycles;
                 else stats.aluMaxGap = std::max(stats.aluMaxGap, stats.cycles - stats.aluLast);
@@ -342,7 +386,7 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
                 unretiredStores.pop_front();
             }
             if (expected.trap) need(unretiredStores.empty(), name + ": fault overtook a younger external store");
-            if (observer) observer->retire(d, stats.cycles, pc, ins, expected.next, expected.trap);
+            if (observer) observer->retire(d, stats.cycles, pc, ins, expected.next, expected.trap, instructionBytes);
             oracle.commit(expected); ++stats.retires;
             // The real bus may write before WB. Compare EVERY byte each retirement after overlaying
             // its at-most-one unretired external intent; independently validate that intent against
@@ -379,8 +423,9 @@ static Stats execute(const std::string &name, const std::vector<uint32_t> &code,
         if (d.get_io$$instructionRequest$$valid() && ir) {
             need(!fetch, name + ": duplicate fetch owner");
             uint64_t a = d.get_io$$instructionRequest$$bits();
-            need(a >= BASE && a + 4 <= BASE + actual.size() && !(a & 3), name + ": fetch range/alignment");
+            need(a >= BASE && a + 4 <= BASE + actual.size() && !(a & (DUT_HAS_C ? 1 : 3)), name + ": fetch range/alignment");
             uint32_t value; std::memcpy(&value, actual.data() + a - BASE, 4);
+            if (DUT_HAS_C && (value & 3) != 3) value &= 65535;
             fetch = MemoryReply{cycle + latency, a, value, fetchError && *fetchError == a};
         }
         if (d.get_io$$dataRequest$$valid() && dr) {
@@ -501,11 +546,12 @@ int main(int argc, char **argv) { try {
     irqProgram.push_back(ri(0x13, 31, 0, 0, 77)); irqProgram.push_back(0x00100073);
     execute("interrupt-during-busy", irqProgram, 7, {}, {}, true, false, true);
     std::vector<std::pair<std::string, uint32_t>> faults{
-        {"illegal", 0xffffffff}, {"unaligned-jump", jal(1, 2)},
+        {"illegal", 0xffffffff},
         {"unaligned-load", ri(0x03, 3, 2, 20, 1)}, {"unaligned-store", st(2, 20, 1, 1)},
         {"readonly-csr", ri(0x73, 1, 1, 1, 0xc02)}, {"reserved-shift", ri(0x13, 1, 1, 2, 0x200)},
         {"ecall-return", 0x00000073}
     };
+    if (!DUT_HAS_C) faults.insert(faults.begin() + 1, {"unaligned-jump", jal(1, 2)});
     if (!DUT_HAS_M) faults.push_back({"disabled-m", rr(0x33, 3, 0, 1, 2, 1)});
     for (const auto &[name, ins] : faults) {
         std::vector<uint32_t> p{0x00002a17, ri(0x13, 1, 0, 0, 3), ins,

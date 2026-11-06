@@ -10,7 +10,7 @@ foreach path [list $root $output] {
 }
 if {[file exists $output]} {error "fresh reports required"}
 file mkdir $output
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 foreach role $roles {
     if {$role ni {ima imc imf imfd imafdc}} {error "unknown ISA assessment role"}
     open_checkpoint [file join $root physical $role routed.dcp]

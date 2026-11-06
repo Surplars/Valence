@@ -80,7 +80,18 @@ class ClockManagementUnit(config: CmuParams, runtimeObservation: Boolean = false
     val known = (globalOffsets ++ metadataOffsets).map(n => offset === n.U).reduce(_ || _)
     val writable = Seq(0x20, 0x50, 0x58, 0x60, 0x68, 0x70).map(n => offset === n.U).reduce(_ || _)
     val range = request.address >= config.base.U && request.address < (config.base + 4096).U(65.W)
-    val reservedLegal = (writeData & ~config.gateableMask.U(64.W)) === 0.U
+    // Shift the small CONSTANT permission mask into the right-justified
+    // RegisterPort lanes, instead of shifting 64 data bits before reduction.
+    // Natural alignment and byteEnable legality prevent any word overflow.
+    val allowedWriteBits = MuxLookup(request.address(2, 0), 0.U(64.W))((0 until 8).map { byte =>
+        byte.U -> (config.gateableMask >> (8 * byte)).U(64.W)
+    })
+    val reservedLegal = ((request.data & bytes) & ~allowedWriteBits) === 0.U
+    when(!reset.asBool && io.registers.request.valid && request.write &&
+        request.size <= 3.U && aligned && maskLegal) {
+        assert(reservedLegal === ((writeData & ~config.gateableMask.U(64.W)) === 0.U),
+            "CMU constant-mask preflight changed the byte-lane permission")
+    }
     val legal = range && request.size <= 3.U && aligned && maskLegal && known &&
         (!request.write || (writable && reservedLegal))
     val accepted = io.registers.request.fire && legal && request.write

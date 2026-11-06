@@ -7,7 +7,7 @@ foreach path [list $input $output] {
 }
 if {[file exists $output]} { error "fresh audit output required" }
 file mkdir $output
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 foreach role {reference local hashed} {
     set folder [file join $output $role]
     file mkdir $folder

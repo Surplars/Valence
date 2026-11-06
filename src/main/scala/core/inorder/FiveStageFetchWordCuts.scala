@@ -3,8 +3,8 @@ package soc.core.inorder
 import chisel3._
 import chisel3.util._
 
-/** Optional FPGA IF boundary: one parcel owner and one registered instruction
-  * response, never a second outstanding request. An already-authorized word
+/** Optional FPGA IF boundary: one parcel owner, with same-edge response/request
+  * turnover and a registered response when stalled. An already-authorized word
   * may supply more parcels in the SAME privilege/translation context. This
   * saves redundant cache/IT accesses; fetchSpan, not adjacency, is the proof.
   * Any context transition/FENCE.I kills reuse, including an in-flight fill.
@@ -13,10 +13,11 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     require(p.withC && p.fpgaTimingCuts)
     val io = IO(new Bundle {
         val request = Flipped(Decoupled(UInt(p.xlen.W)))
-        val response = Decoupled(new FiveStageFetchResponse)
+        val response = Decoupled(new FiveStageFetchResponse(p))
         val memoryRequest = Decoupled(new FiveStageDataRequest(p))
         val memoryResponse = Flipped(Decoupled(new FiveStageDataResponse(p)))
         val invalidate = Input(Bool())
+        val bareTurnover = if (p.withH) Some(Input(Bool())) else None
         val addressCandidates = Output(Vec(2, UInt(p.xlen.W)))
         val candidateSecond = Output(Bool())
     })
@@ -29,7 +30,10 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     val pc = Reg(UInt(p.xlen.W))
     val secondPc = Reg(UInt(p.xlen.W))
     val firstHalf = Reg(UInt(16.W))
-    val result = Reg(new FiveStageFetchResponse)
+    val result = Reg(new FiveStageFetchResponse(p))
+    // Reuse is already fault-free. Clear its published guest metadata with one
+    // owner bit instead of sending late parcel admission to every payload FF.
+    val resultFromReuse = if (p.withH) Some(Reg(Bool())) else None
     val word = Reg(UInt(p.xlen.W))
     val wordClasses = if (p.cacheFetchPredecode) Some(Reg(UInt(8.W))) else None
     val wordAddress = Reg(UInt((p.xlen - log2Ceil(p.xlen / 8)).W))
@@ -38,11 +42,31 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     val offsetBits = log2Ceil(p.xlen / 8)
     val lanesPerWord = p.xlen / 16
     val pcLane = Reg(UInt(lanesPerWord.W))
-    val slot = in(idle) || (in(reply) && io.response.ready)
-    val reuse = wordValid && !io.invalidate &&
-        wordAddress === io.request.bits(p.xlen - 1, offsetBits)
-    io.request.ready := slot && (reuse || io.memoryRequest.ready)
-    io.memoryRequest.valid := in(secondSend) || (slot && io.request.valid && !reuse)
+    val waiting = in(firstWait) || in(secondWait)
+    val directReply = Wire(Bool())
+    val slot = in(idle) || ((in(reply) || directReply) && io.response.ready)
+    // The owner phase selects payload independently of cache VALID/tag timing.
+    // A completing return may supply the next parcel before word captures it.
+    val reusableWord = Mux(waiting, io.memoryResponse.bits.data, word)
+    val reusableClasses = Mux(waiting, io.memoryResponse.bits.parcelClasses.getOrElse(0.U(8.W)),
+        wordClasses.getOrElse(0.U(8.W)))
+    val returnedAddress = Mux(in(secondWait), secondPc, pc)(p.xlen - 1, offsetBits)
+    val reusableAddress = Mux(waiting, returnedAddress, wordAddress)
+    val reuseAuthorized = Mux(waiting,
+        io.memoryResponse.bits.fetchSpan && !io.memoryResponse.bits.error &&
+            !io.memoryResponse.bits.pageFault && !stale,
+        wordValid)
+    // While waiting, slot already proves the old response really completes.
+    // Invalid/stale/partially-authorized returns never authorize fresh reuse.
+    val reuse = reuseAuthorized && !io.invalidate &&
+        reusableAddress === io.request.bits(p.xlen - 1, offsetBits)
+    // A registered translation owner cannot admit the next memory request
+    // while returning the previous word. Word reuse still turns over locally;
+    // a different word holds its offer until that translation owner retires.
+    val holdMemoryOffer = (p.fastInstructionTranslation && (p.withSv39 || p.pmpEntries > 0)).B &&
+        waiting && !io.bareTurnover.getOrElse(false.B)
+    io.request.ready := slot && (reuse || (!holdMemoryOffer && io.memoryRequest.ready))
+    io.memoryRequest.valid := in(secondSend) || (slot && !holdMemoryOffer && io.request.valid && !reuse)
     io.memoryRequest.bits := 0.U.asTypeOf(new FiveStageDataRequest(p))
     io.memoryRequest.bits.address := Mux(in(secondSend), secondPc, io.request.bits)
     io.addressCandidates(0) := io.request.bits
@@ -50,11 +74,13 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     io.candidateSecond := in(secondSend)
     io.memoryRequest.bits.size := 1.U
     io.memoryResponse.ready := in(firstWait) || in(secondWait)
-    io.response.valid := in(reply)
+    io.response.valid := in(reply) || directReply
     io.response.bits := result
+    resultFromReuse.foreach(reused => io.response.bits.guest.get :=
+        Mux(reused, 0.U.asTypeOf(new I1GuestFault), result.guest.get))
 
-    // No response-valid/parcel classification/RAW cache data reaches a new
-    // request's admission in this profile. Only registered reply/word state.
+    // Classification determines whether the old parcel is complete. It never
+    // selects a wide data source; source ownership above is registered phase.
     def standardWords(data: UInt): UInt = VecInit((0 until p.xlen / 8 by 2).map { offset =>
         // Standard32 means low2=11 AND next3!=111. Do not decode long then
         // feed a second compressed/long priority tree after the word mux.
@@ -70,7 +96,8 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     val returnedClasses = io.memoryResponse.bits.parcelClasses.getOrElse(0.U(8.W))
     val memorySplit = needsSecond(io.memoryResponse.bits.data, returnedClasses, pcLane,
         io.memoryResponse.bits.fetchSpan, io.memoryResponse.bits.error)
-    val reuseSplit = needsSecond(word, wordClasses.getOrElse(0.U(8.W)), reuseLane, true.B, false.B)
+    val reuseSplit = needsSecond(reusableWord, reusableClasses, reuseLane, true.B, false.B)
+    directReply := io.memoryResponse.valid && (in(secondWait) || (in(firstWait) && !memorySplit))
     def firstParcel(data: UInt, classes: UInt, selectedLane: UInt): (UInt, Bool, UInt) = {
         // Decode fixed halfword windows BEFORE selecting the parcel. Avoid
         // SRAM -> 64-bit byte barrel -> length decode -> instruction mux.
@@ -88,15 +115,15 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
         val upper = Mux1H(lanes.map(v => (v._1 && v._2) -> v._5))
         (Cat(upper, lower), compressed, lower)
     }
-    def secondParcel(data: UInt): UInt = {
+    def secondParcel(data: UInt, enable: Bool = true.B): UInt = {
         val nextLane = Cat(pcLane(lanesPerWord - 2, 0), pcLane(lanesPerWord - 1))
         Mux1H((0 until p.xlen / 8 by 2).map { offset =>
-            nextLane(offset / 2) -> data(8 * offset + 15, 8 * offset)
+            (nextLane(offset / 2) && enable) -> data(8 * offset + 15, 8 * offset)
         })
     }
     def acceptFirst(data: UInt, classes: UInt, selectedLane: UInt, error: Bool, pageFault: Bool): Unit = {
         val (instruction, compressed, _) = firstParcel(data, classes, selectedLane)
-        // Retained as a cycle-by-cycle oracle. Synthesis drops this shadow
+        // Retained as a held-reply oracle. Synthesis drops this shadow
         // instruction register, not the actual response/permission registers.
         result.instruction := instruction
         result.compressed := compressed && !error
@@ -104,32 +131,44 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
         result.pageFault := pageFault
         result.secondHalfFault := false.B
     }
-    // Re-time alignment across the EXISTING word register. BRAM returns now
-    // capture raw data first; the same next-cycle reply aligns registered data.
-    // No extra parcel owner, edge, cache access or instruction bubble.
     val registeredFirst = firstParcel(word, wordClasses.getOrElse(0.U(8.W)), pcLane)
-    io.response.bits.instruction := Mux(result.secondHalfFault,
-        Cat(secondParcel(word), firstHalf), registeredFirst._1)
-    when(in(secondSend)) { firstHalf := registeredFirst._3 }
-    when(io.request.fire) {
-        pc := io.request.bits
-        pcLane := reuseLane
-        secondPc := I1TimingMath.incrementPowerOfTwo(io.request.bits, 1, 8)
-        stale := io.invalidate
-        when(reuse) { acceptFirst(word, wordClasses.getOrElse(0.U(8.W)), reuseLane, false.B, false.B) }
+    val returnedFirst = firstParcel(io.memoryResponse.bits.data, returnedClasses, pcLane)
+    // Early phase, not late return VALID, selects both the data and status.
+    // If downstream stalls, the existing registers retain this exact reply.
+    // Qualify fixed windows with the registered phase before selecting data.
+    // Late BRAM length bits then pass one OR reduction, instead of a nested
+    // returned/held and first/second four-way instruction mux.
+    val returnFirst = firstParcel(io.memoryResponse.bits.data, returnedClasses,
+        pcLane & Fill(lanesPerWord, in(firstWait)))._1
+    val holdFirst = firstParcel(word, wordClasses.getOrElse(0.U(8.W)),
+        pcLane & Fill(lanesPerWord, !waiting && !result.secondHalfFault))._1
+    val returnSecond = Cat(secondParcel(io.memoryResponse.bits.data, in(secondWait)),
+        firstHalf & Fill(16, in(secondWait)))
+    val heldSecond = !waiting && result.secondHalfFault
+    val holdSecond = Cat(secondParcel(word, heldSecond), firstHalf & Fill(16, heldSecond))
+    io.response.bits.instruction := returnFirst | holdFirst | returnSecond | holdSecond
+    when(waiting) {
+        io.response.bits.compressed := in(firstWait) && returnedFirst._2 && !io.memoryResponse.bits.error
+        io.response.bits.error := io.memoryResponse.bits.error
+        io.response.bits.pageFault := io.memoryResponse.bits.pageFault
+        io.response.bits.guest.foreach(_ := io.memoryResponse.bits.guest.get)
+        io.response.bits.secondHalfFault := in(secondWait)
     }
-    // Only the registered reply phase exposes result/firstHalf. Prepare the
-    // existing payload registers throughout their retained wait phase; the
-    // real response edge still alone advances ownership and validates data.
-    // Cache tag/response VALID therefore does not enable every result bit.
+    when(in(secondSend)) { firstHalf := registeredFirst._3 }
+    // Prepare raw payload throughout the retained wait phase. A return can
+    // bypass to the consumer, or the existing word/result registers hold it.
+    // Real response/turnover controls ownership, not the wide word capture CE.
     when(in(firstWait) || in(secondWait)) {
+        resultFromReuse.foreach(_ := false.B)
         val data = io.memoryResponse.bits
+        result.guest.foreach(_ := data.guest.get)
         // A wait phase owns this existing word storage. Prepare even before
         // VALID, but ONLY the real response edge advances phase/wordValid.
         word := data.data
         wordClasses.foreach(_ := returnedClasses)
         when(in(firstWait)) {
             acceptFirst(data.data, returnedClasses, pcLane, data.error, data.pageFault)
+            result.guest.foreach(_ := data.guest.get)
         }.otherwise {
             val half = secondParcel(data.data)
             result.instruction := Cat(half, firstHalf)
@@ -137,6 +176,18 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
             result.error := data.error
             result.pageFault := data.pageFault
             result.secondHalfFault := true.B
+        }
+    }
+    // New-owner metadata wins over old-return preparation on a turnover edge.
+    // word itself still captures the return, including when the new owner reuses it.
+    when(io.request.fire) {
+        pc := io.request.bits
+        pcLane := reuseLane
+        secondPc := I1TimingMath.incrementPowerOfTwo(io.request.bits, 1, 8)
+        stale := io.invalidate
+        when(reuse) {
+            acceptFirst(reusableWord, reusableClasses, reuseLane, false.B, false.B)
+            resultFromReuse.foreach(_ := true.B)
         }
     }
     when(io.memoryResponse.fire) {
@@ -152,18 +203,17 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
     val reused = accepted && reuse
     val firstReturned = in(firstWait) && io.memoryResponse.valid
     val secondReturned = in(secondWait) && io.memoryResponse.valid
-    phases(idle) := (in(idle) && !accepted) ||
-        (in(reply) && io.response.ready && !accepted)
+    phases(idle) := (in(idle) && !accepted) || (io.response.fire && !accepted)
     phases(firstWait) := (in(firstWait) && !io.memoryResponse.valid) || (accepted && !reuse)
     phases(secondSend) := (in(secondSend) && !io.memoryRequest.ready) ||
         (firstReturned && memorySplit) || (reused && reuseSplit)
     phases(secondWait) := (in(secondWait) && !io.memoryResponse.valid) ||
         (in(secondSend) && io.memoryRequest.ready)
-    phases(reply) := (in(reply) && !io.response.ready) ||
-        (firstReturned && !memorySplit) || secondReturned || (reused && !reuseSplit)
+    phases(reply) := ((in(reply) || (firstReturned && !memorySplit) || secondReturned) &&
+        !io.response.ready) || (reused && !reuseSplit)
     when(io.invalidate) { wordValid := false.B; stale := true.B }
     when(!reset.asBool) {
-        when(io.response.valid) {
+        when(in(reply)) {
             assert(io.response.bits.instruction === result.instruction,
                 "raw-word retiming changed the authorized parcel response")
         }
@@ -175,6 +225,8 @@ class FiveStageFetchWordCuts(p: FiveStageConfig) extends Module {
         assert(!io.memoryResponse.valid || in(firstWait) || in(secondWait),
             "registered C response has no parcel owner")
         assert(!io.request.fire || !io.request.bits(0), "odd instruction PC")
-        assert(!(io.request.fire && io.memoryResponse.fire), "two C owners accepted on one edge")
+        when(io.request.fire && io.memoryResponse.fire) {
+            assert(io.response.fire, "C turnover must complete the old owner before replacing it")
+        }
     }
 }

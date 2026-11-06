@@ -21,6 +21,8 @@ def sha(path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--models", type=Path, required=True)
+    ap.add_argument("--profiles", nargs="+", choices=PROFILES, default=list(PROFILES),
+                    help="profiles to assess using existing models (default: all)")
     ap.add_argument("--compressed-model", type=Path, required=True, help="qualified exhaustive C GSIM model directory")
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
@@ -30,7 +32,8 @@ def main():
         ap.error("existing models and fresh output within clone build/ required")
     output.mkdir(parents=True)
     gsim, cxx = common.setup(False)
-    receipt = {"status": "RUNNING", "commands": [], "profiles": {}, "gsim_sha256": sha(gsim)}
+    receipt = {"status": "RUNNING", "commands": [], "profiles": {}, "requested_profiles": args.profiles,
+               "gsim_sha256": sha(gsim)}
 
     def run(argv, log, negative=None):
         argv = [str(v) for v in argv]
@@ -87,7 +90,8 @@ def main():
         receipt["exhaustive_compressed"] = run([output / "compressed-check"], output / "compressed-positive.log").strip()
         run([output / "compressed-check", "--wrong-expansion"], output / "compressed-negative.log",
             "independent exhaustive C expansion oracle")
-        for name, extra in PROFILES.items():
+        for name in args.profiles:
+            extra = PROFILES[name]
             parent = models / name
             previous = json.loads((parent / "receipt.json").read_text())
             if previous["status"] != "PASS_GSIM_READY_FOR_VIVADO" or previous["gsim_sha256"] != sha(gsim):
@@ -120,13 +124,18 @@ def main():
                         return json.loads(next(l[len(prefix):] for l in text.splitlines() if l.startswith(prefix)))
                     value = {**row("MATCHED_COREMARK_PASS "), **row("I1_COREMARK_PREDICTION "), "latency": latency}
                     value["ipc"] = value["roi_instructions"] / value["roi_ticks"]
-                    perf = next(l for l in text.splitlines() if l.startswith("I1_PERF "))
-                    value["whole_program_length_repairs"] = int(dict(token.split("=", 1) for token in perf.split()[1:])["length_repairs"])
+                    perf = dict(token.split("=", 1) for token in
+                                next(l for l in text.splitlines() if l.startswith("I1_PERF ")).split()[1:])
+                    value["whole_program_length_repairs"] = int(perf["length_repairs"])
+                    value["frontend_length_repairs"] = int(perf["frontend_length_repairs"])
                     result[kind].append(value)
                     print(name, kind, latency, value["roi_ticks"], value["ipc"], flush=True)
                 run([*argv, "--inject"], folder / (kind + "-negative.log"), "CoreMark independent register oracle mismatch")
                 run([*argv, "--inject-prediction-observer"], folder / (kind + "-prediction-negative.log"),
                     "prediction observation mismatch")
+                if kind == "compressed":
+                    run([*argv, "--inject-length-observer"], folder / "compressed-length-negative.log",
+                        "independent frontend length repair oracle")
             if any(a[k] != dict(b, branch_accuracy=b["roi_correct"]/b["roi_branches"])[k]
                    for a, b in zip(previous["coremark"], result["fixed_im"]) for k in a):
                 raise RuntimeError("extended software oracle changed the fixed-binary measurements")

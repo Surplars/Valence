@@ -43,7 +43,6 @@ class FiveStageBurstPort(val p: FiveStageConfig) extends Bundle {
 class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement: Boolean = false,
     trustedReadOnlyCacheability: Boolean = false, reportMaintenance: Boolean = false,
     reportQuiescence: Boolean = false) extends Module {
-    require(!reportQuiescence || p.coherentCaches, "quiescence observation requires coherent caches")
     require(!reportMaintenance || p.coherentCaches, "maintenance completion requires real coherent flush")
     require(bytes == 0 || (bytes >= 2 * p.cacheLineBytes && bytes <= 65536 && (bytes & (bytes - 1)) == 0))
     val io = IO(new Bundle {
@@ -87,8 +86,13 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         io.memory.request.bits := 0.U.asTypeOf(io.memory.request.bits)
         io.memory.response.ready := true.B
     } else {
-    val idle :: lookup :: send :: receive :: reply :: Nil = Enum(5)
-    val state = RegInit(idle)
+    // Each phase has its own next equation: admission never enables unrelated
+    // burst/response state registers through a shared FSM clock enable.
+    val idle = RegInit(true.B)
+    val lookup = RegInit(false.B)
+    val send = RegInit(false.B)
+    val receive = RegInit(false.B)
+    val reply = RegInit(false.B)
     val saved = Reg(new FiveStageDataRequest(p))
     val result = Reg(new FiveStageDataResponse(p))
     val savedCacheable = RegInit(false.B)
@@ -103,6 +107,12 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
     val beat = RegInit(0.U(beatBits.W))
     val hit = WireDefault(false.B)
     val ramWord = WireDefault(0.U(p.xlen.W))
+    val ramClasses = if (p.cacheFetchPredecode) Some(WireDefault(I1InstructionPredecode.classify(ramWord))) else None
+    // Read-only IF words use the spare eight bits of each 72-bit BRAM word.
+    // Compute parcel length at refill, before the registered RAM write, so a
+    // cache hit returns data and its classes together without another cycle.
+    val packedInstruction = p.cacheFetchPredecode && allowHitReplacement
+    if (packedInstruction) when(io.request.valid) { assert(!io.request.bits.write, "packed IF cache is read-only") }
     val ramWritePending = if (p.fpgaTimingCuts && bytes > 0) Some(RegInit(false.B)) else None
     val inWindow = if (p.fpgaTimingCuts)
         I1AddressWindow.contains(io.request.bits.address, p.cacheableBase, p.cacheableBytes)
@@ -110,23 +120,24 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
             io.request.bits.address < (p.cacheableBase + p.cacheableBytes).U
     val cacheable = (bytes > 0).B && (if (trustedReadOnlyCacheability) io.readCacheable.get
         else !io.request.bits.noAllocate && inWindow)
-    io.response.valid := state === reply || (state === lookup && hit && !saved.write)
+    io.response.valid := reply || (lookup && hit && !saved.write)
     io.response.bits := result
     io.response.bits.pageFault := false.B
     io.response.bits.fetchSpan := false.B
     // Hit qualifies VALID, not RAM data selection. Removing the tag compare
     // from this wide mux breaks tag -> data -> parcel decode scheduling.
     // A miss cannot consume this data because response.valid remains low.
-    when(state === lookup && !saved.write) {
+    when(lookup && !saved.write) {
         io.response.bits.data := ramWord; io.response.bits.error := false.B
+        io.response.bits.parcelClasses.foreach(_ := ramClasses.get)
     }
     io.request.ready := (if (allowHitReplacement)
-        state === idle || (io.response.fire && !ramWritePending.getOrElse(false.B)) else state === idle)
-    val tagLookup = state === lookup || writeLookupPending.getOrElse(false.B)
+        idle || (io.response.fire && !ramWritePending.getOrElse(false.B)) else idle)
+    val tagLookup = lookup || writeLookupPending.getOrElse(false.B)
     io.hit := tagLookup && hit
     io.miss := tagLookup && !hit
     io.bypass := io.request.fire && !cacheable
-    io.memory.request.valid := state === send
+    io.memory.request.valid := send
     io.memory.request.bits.address := Mux(savedCacheable && !saved.write,
         (saved.address >> lineBits) << lineBits, (saved.address >> offsetBits) << offsetBits)
     io.memory.request.bits.write := saved.write
@@ -136,12 +147,39 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
     io.memory.request.bits.size := Mux(savedCacheable && !saved.write, offsetBits.U, saved.size)
     io.memory.request.bits.byteOffset := Mux(savedCacheable && !saved.write, 0.U,
         saved.address(offsetBits - 1, 0))
-    io.memory.response.ready := state === receive
-    when(io.request.fire) {
+    io.memory.response.ready := receive
+    // Retention waits for the owner, deferred RAM write and upstream request.
+    // Observation does not alter normal cache admission or response timing.
+    io.quiescent.foreach(_ := idle && !ramWritePending.getOrElse(false.B) &&
+        !writeLookupPending.getOrElse(false.B) && !io.quiescenceRequestPending.get)
+    io.quiescenceRequestPending.foreach { pending =>
+        when(!reset.asBool) {
+            assert(!io.request.valid || pending, "cache quiescence bound omitted a live upstream offer")
+        }
+    }
+    val accept = io.request.fire
+    val needsLookup = if (p.overlapWriteLookup) cacheable && !io.request.bits.write else cacheable
+    val lastBeatFire = io.memory.response.fire && io.memory.response.bits.last
+    // A consumed hit/reply may replace the owner at this edge. The other
+    // phases cannot admit a request, so their next equations stay local.
+    idle := (idle || io.response.fire) && !accept
+    lookup := accept && needsLookup
+    send := (send && !io.memory.request.ready) || (accept && !needsLookup) ||
+        (lookup && (!hit || saved.write))
+    receive := (receive && !lastBeatFire) || (send && io.memory.request.ready)
+    reply := (reply && !io.response.ready) ||
+        (lookup && hit && !saved.write && !io.response.ready) || lastBeatFire
+    // Burst bookkeeping is zero before entering receive, independent of the
+    // next request admission path. A stalled receive keeps the current burst.
+    when(!receive) { beat := 0.U; failed := false.B }
+    // A free/completing local slot prepares payload before request VALID.
+    // Active owners retain these fields through the response transfer; only
+    // real acceptance advances the phase and validates the prepared payload.
+    when(idle || io.response.fire) {
         saved := io.request.bits; savedCacheable := cacheable; writeHit := false.B
-        state := (if (p.overlapWriteLookup) Mux(cacheable && !io.request.bits.write, lookup, send)
-            else Mux(cacheable, lookup, send))
-        beat := 0.U; failed := false.B; fillKilled := io.invalidate
+        fillKilled := io.invalidate
+    }
+    when(io.request.fire) {
         writeLookupPending.foreach(_ := cacheable && io.request.bits.write)
     }
     writeLookupPending.foreach { waiting =>
@@ -149,25 +187,26 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
         // even if the burst request is backpressured; later disabled RAM reads are unspecified.
         when(waiting) { writeHit := hit && !io.invalidate; waiting := false.B }
     }
-    when(state === lookup) {
+    when(lookup) {
         when(hit && !saved.write) {
-            when(!io.response.ready) { result.data := ramWord; result.error := false.B; state := reply }
-        }.otherwise { writeHit := hit && saved.write; state := send }
+            when(!io.response.ready) {
+                result.data := ramWord; result.error := false.B
+                result.parcelClasses.foreach(_ := ramClasses.get)
+            }
+        }.otherwise { writeHit := hit && saved.write }
     }
-    when(io.memory.request.fire) { state := receive }
     when(io.memory.response.fire) {
         failed := failed || io.memory.response.bits.error
         val desiredBeat = if (wordsPerLine == 1) 0.U else saved.address(lineBits - 1, offsetBits)
         when(!savedCacheable || saved.write || beat === desiredBeat) {
             result.data := io.memory.response.bits.data
+            result.parcelClasses.foreach(_ := I1InstructionPredecode.classify(io.memory.response.bits.data))
         }
         when(io.memory.response.bits.last) {
-            result.error := failed || io.memory.response.bits.error; state := reply
+            result.error := failed || io.memory.response.bits.error
         }.otherwise { beat := beat + 1.U }
     }
-    // Response consumption may install the next owner at the same edge. Do not erase it.
-    when(io.response.fire && !io.request.fire) { state := idle }
-    when(io.invalidate && state =/= idle) { fillKilled := true.B }
+    when(io.invalidate && !idle) { fillKilled := true.B }
     if (bytes > 0) {
         val sets = bytes / p.cacheLineBytes
         val indexBits = log2Ceil(sets)
@@ -178,35 +217,63 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
             (p.cacheableBase ^ (p.cacheableBase + p.cacheableBytes - 1)).bitLength else p.xlen
         val tagBits = math.max(1, varyingAddressBits - lineBits - indexBits)
         val ramAddressBits = log2Ceil(bytes / (p.xlen / 8))
-        val data = SyncReadMem(bytes / (p.xlen / 8), Vec(p.xlen / 8, UInt(8.W)))
+        val data = if (!packedInstruction) Some(SyncReadMem(bytes / (p.xlen / 8), Vec(p.xlen / 8, UInt(8.W)))) else None
+        // Eight independent 4096x9 lanes use the BRAM byte/parity organization.
+        // A monolithic 4096x72 memory is inferred as URAM with a slower output;
+        // keeping byte lanes explicit preserves one-cycle IF latency and capacity.
+        val instructionData = if (packedInstruction)
+            Some(Seq.fill(8)(SyncReadMem(bytes / 8, UInt(9.W)))) else None
         val tags = if (!p.fpgaTimingCuts) Some(SyncReadMem(sets, UInt(tagBits.W))) else None
         val bankedTags = if (p.fpgaTimingCuts) Some(Module(new I1CacheTags(sets, tagBits))) else None
         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
             "ram_style = \"block\"")))
-        val valid = RegInit(0.U(sets.W))
+        val valid = if (!p.fpgaTimingCuts) Some(RegInit(0.U(sets.W))) else None
         def set(address: UInt): UInt = address(lineBits + indexBits - 1, lineBits)
         def tag(address: UInt): UInt = if (varyingAddressBits <= lineBits + indexBits) 0.U(tagBits.W)
             else address(varyingAddressBits - 1, lineBits + indexBits)
         def word(address: UInt): UInt = address(ramAddressBits + offsetBits - 1, offsetBits)
-        val readEnable = io.request.fire && cacheable
-        ramWord := data.read(word(io.request.bits.address), readEnable).asUInt
+        // Prefetch only through locally available ports, without hit -> READY
+        // feedback. A real owner observes this read on its first lookup cycle;
+        // stalled hits move data to result before the next prefetch can replace it.
+        // Receive/install and delayed writes exclude all tag/data RAM collisions.
+        val readEnable = if (p.fpgaTimingCuts) !receive && !ramWritePending.get
+            else io.request.fire && cacheable
+        if (packedInstruction) {
+            val lanes = instructionData.get.map(_.read(word(io.request.bits.address), readEnable))
+            ramWord := Cat(lanes.reverse.map(_(7, 0)))
+            ramClasses.get := VecInit(lanes.map(_(8))).asUInt
+        } else { ramWord := data.get.read(word(io.request.bits.address), readEnable).asUInt }
         val install = io.memory.response.fire && savedCacheable && !saved.write &&
             io.memory.response.bits.last && !failed && !io.memory.response.bits.error && !fillKilled && !io.invalidate
+        val eraseSaved = (lookup && !hit && !saved.write) ||
+            (io.memory.response.fire && saved.write && writeHit && io.memory.response.bits.error) ||
+            (send && saved.write && saved.noAllocate)
         bankedTags.foreach { bank =>
             bank.io.readValid := readEnable
             bank.io.readSet := set(io.request.bits.address)
-            bank.io.expectedTag := tag(saved.address)
+            // Tags capture their comparison on the same prefetch edge as data/presence.
+            bank.io.expectedTag := tag(io.request.bits.address)
             bank.io.writeValid := install
             bank.io.writeSet := set(saved.address)
             bank.io.writeTag := tag(saved.address)
+            // A bypass write owns this cache exclusively through its real
+            // reply. Erase its saved row in send, before external bytes change;
+            // admission's live translation/address never drives the valid bank.
+            bank.io.eraseValid := eraseSaved
+            bank.io.eraseSet := set(saved.address)
+            bank.io.invalidate := io.invalidate
         }
         val tagMatch = bankedTags.map(_.io.matches).getOrElse(
             tags.get.read(set(io.request.bits.address), readEnable) === tag(saved.address))
-        hit := valid(set(saved.address)) && tagMatch && !io.invalidate
+        // Tag, data and presence describe the same prefetched address. Only
+        // accepted owners use them; invalidation also cancels the current lookup.
+        val present = valid.map(_(set(saved.address))).getOrElse(true.B)
+        hit := present && tagMatch && !io.invalidate
         val fill = io.memory.response.fire && savedCacheable && !saved.write
         val update = io.memory.response.fire && saved.write && writeHit && !io.memory.response.bits.error
         val fillWord = (word(saved.address) >> log2Ceil(wordsPerLine)) << log2Ceil(wordsPerLine) | beat
         val writeData = Mux(update, saved.data, io.memory.response.bits.data)
+        val writePayload = if (packedInstruction) Cat(I1InstructionPredecode.classify(writeData), writeData) else writeData
         val mask = Mux(update, saved.mask, ((BigInt(1) << (p.xlen / 8)) - 1).U)
         val writeAddress = Mux(update, word(saved.address), fillWord)
         if (p.fpgaTimingCuts) {
@@ -214,33 +281,35 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
             // Consecutive refill beats still write one per cycle. Last-beat hit
             // replacement is held until the scheduled write is drained, avoiding
             // undefined same-address read/write data without relying on vendor mode.
-            val heldData = RegEnable(writeData, fill || update)
+            val heldData = RegEnable(writePayload, fill || update)
             val heldMask = RegEnable(mask, fill || update)
             val heldAddress = RegEnable(writeAddress, fill || update)
             ramWritePending.get := fill || update
             when(ramWritePending.get) {
-                data.write(heldAddress, heldData.asTypeOf(Vec(p.xlen / 8, UInt(8.W))), heldMask.asBools)
+                if (packedInstruction) for ((lane, i) <- instructionData.get.zipWithIndex) {
+                    lane.write(heldAddress, Cat(heldData(64 + i), heldData(8 * i + 7, 8 * i)))
+                }
+                else data.get.write(heldAddress, heldData.asTypeOf(Vec(p.xlen / 8, UInt(8.W))), heldMask.asBools)
             }
         } else when(fill || update) {
-            data.write(writeAddress, writeData.asTypeOf(Vec(p.xlen / 8, UInt(8.W))), mask.asBools)
+            if (packedInstruction) for ((lane, i) <- instructionData.get.zipWithIndex) {
+                lane.write(writeAddress, Cat(writePayload(64 + i), writePayload(8 * i + 7, 8 * i)))
+            }
+            else data.get.write(writeAddress, writeData.asTypeOf(Vec(p.xlen / 8, UInt(8.W))), mask.asBools)
         }
-        when(install) {
-            tags.foreach(_.write(set(saved.address), tag(saved.address)))
-            valid := valid | UIntToOH(set(saved.address), sets)
+        tags.foreach { memory => when(install) { memory.write(set(saved.address), tag(saved.address)) } }
+        valid.foreach { bits =>
+            when(install) { bits := bits | UIntToOH(set(saved.address), sets) }
+            // Never publish an old tag after a failed refill or write error.
+            when(lookup && !hit && !saved.write ||
+                io.memory.response.fire && saved.write && writeHit && io.memory.response.bits.error) {
+                bits := bits & ~UIntToOH(set(saved.address), sets)
+            }
+            when(io.request.fire && io.request.bits.write && io.request.bits.noAllocate) {
+                bits := bits & ~UIntToOH(set(io.request.bits.address), sets)
+            }
+            when(io.invalidate) { bits := 0.U }
         }
-        // Never expose the old tag after its payload has been partially overwritten by a failed refill.
-        when(state === lookup && !hit && !saved.write) { valid := valid & ~UIntToOH(set(saved.address), sets) }
-        // A real AXI B error can arrive after external bytes changed. Do not publish the old
-        // cached value after the precise fault; invalidate the hit without inventing a successful ack.
-        when(io.memory.response.fire && saved.write && writeHit && io.memory.response.bits.error) {
-            valid := valid & ~UIntToOH(set(saved.address), sets)
-        }
-        // A PMP-boundary scalar write may deliberately bypass a line previously filled in M-mode.
-        // Invalidate at admission, before any real ack/error, so later cacheable reads cannot see stale bytes.
-        when(io.request.fire && io.request.bits.write && io.request.bits.noAllocate) {
-            valid := valid & ~UIntToOH(set(io.request.bits.address), sets)
-        }
-        when(io.invalidate) { valid := 0.U }
     }
     when(!reset.asBool) {
         if (trustedReadOnlyCacheability) when(io.request.fire) {
@@ -249,11 +318,14 @@ class FiveStageWordCache(val p: FiveStageConfig, bytes: Int, allowHitReplacement
                 "trusted IF cacheability contradicts physical/noAllocate policy")
         }
         assert(!io.request.fire || !io.request.bits.atomic, "raw atomic reached cache without physical atomic owner")
-        assert(!io.memory.response.valid || state === receive, "cache received an unowned burst response")
+        assert(!io.memory.response.valid || receive, "cache received an unowned burst response")
         when(io.memory.response.fire) {
             val expectedLast = !savedCacheable || saved.write || beat === (wordsPerLine - 1).U
             assert(io.memory.response.bits.last === expectedLast, "cache burst length/last mismatch")
         }
     }
     }
+    // Physical caches/atomic memory and the host-only walker never create guest faults.
+    io.response.bits.guest.foreach(_ := 0.U.asTypeOf(new I1GuestFault))
+
 }

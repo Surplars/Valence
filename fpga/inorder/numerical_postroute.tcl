@@ -8,7 +8,7 @@ foreach value [list $reference $candidate $output] {
 }
 if {[file exists $output]} { error "fresh post-route evidence directory required" }
 file mkdir $output
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 source [file join [file dirname [info script]] numerical_timing.tcl]
 foreach role {reference default} checkpoint [list $reference $candidate] {
     set folder [file join $output $role]

@@ -15,7 +15,9 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
         val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
         val instructionRequest = Decoupled(UInt(p.xlen.W))
-        val instructionResponse = Flipped(Decoupled(new FiveStageFetchResponse))
+        val instructionResponse = Flipped(Decoupled(new FiveStageFetchResponse(p)))
+        // Registered bound covers an offered fetch and every accepted parcel until reply.
+        val fetchOwner = Output(Bool())
         val dataRequest = Decoupled(new FiveStageDataRequest(p))
         val dataResponse = Flipped(Decoupled(new FiveStageDataResponse(p)))
         val dataCandidates = if (p.fpgaTimingCuts && p.fastDataTranslation && p.preparedTranslationProofs)
@@ -23,6 +25,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         val dataCandidateEarly = dataCandidates.map(_ => Output(Bool()))
         val dataReadAhead = if (p.dataReplyHandoff) Some(Output(Bool())) else None
         val aia = if (p.withAia) Some(new I1AiaCsrPort) else None
+        val spinor = if (p.spinor) Some(new I1SpinorPort) else None
+        val spinorMemoryFault = if (p.spinor && p.withH) Some(Flipped(Valid(new I1SpinorMemoryFault))) else None
         val fenceIFlush = if (p.externalFenceICompletion) Some(Output(Bool())) else None
         val fenceIFlushReady = if (p.externalFenceICompletion) Some(Input(Bool())) else None
         val fenceIFetchDrained = if (p.externalFenceICompletion) Some(Output(Bool())) else None
@@ -84,12 +88,24 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         wbValid && !wbPacket.fault && wbPacket.control.fenceI else false.B
     private val wbFenceIWait = if (p.externalFenceICompletion)
         wbFenceI && (!io.fenceIFlushReady.get || !fenceIFetchDrained) else false.B
-    private val wbHold = wbAiaWait || wbFenceIWait
-    private val wbCommit = if (p.withAia || p.externalFenceICompletion) wbValid && !wbHold else wbValid
+    private val spinorSent = if (p.spinor) Some(RegInit(false.B)) else None
+    private val spinorGranted = if (p.spinor) Some(RegInit(false.B)) else None
+    private val spinorPrepared = if (p.spinor) Some(RegInit(false.B)) else None
+    private val spinorSequence = if (p.spinor) Some(RegInit(0.U(64.W))) else None
+    private val wbSpinor = if (p.spinor) wbValid && wbPacket.control.spinor.get else false.B
+    private val wbHold = if (p.spinor) wbAiaWait || wbFenceIWait ||
+        (wbSpinor && !wbPacket.fault && !spinorPrepared.get) else wbAiaWait || wbFenceIWait
+    private val wbCommit = if (p.withAia || p.externalFenceICompletion || p.spinor)
+        wbValid && !wbHold else wbValid
     private val rrPacket = if (p.registerReadStage) Reg(new FiveStageExecutePacket(p))
         else WireDefault(0.U.asTypeOf(new FiveStageExecutePacket(p)))
     private val addrPacket = if (p.addressStage) Reg(new FiveStageCompletion(p))
         else WireDefault(0.U.asTypeOf(new FiveStageCompletion(p)))
+    // Save prediction differences at the existing EX/ADDR edge. ADDR can
+    // reduce the fall-through difference directly; a taken target uses the
+    // same saved difference without a wide PC selection ahead of recovery.
+    private val addressPredictionDelta = if (p.fpgaTimingCuts && (p.branchPredictorEntries > 0 || p.withC))
+        Some(Reg(UInt(p.xlen.W))) else None
     private val cmpPacket = if (p.completionStage) Reg(new FiveStageMemoryReturn(p))
         else WireDefault(0.U.asTypeOf(new FiveStageMemoryReturn(p)))
     private val rrCaptured = if (p.registerReadStage) RegInit(false.B) else false.B
@@ -156,6 +172,7 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     val activeRecovery = if (p.fpgaTimingCuts) wbFlush else olderFlush
     io.clearReservation := olderFlush
     val exRedirect = WireDefault(false.B)
+    val addressRedirectPending = WireDefault(false.B)
     val redirectPc = Wire(UInt(p.xlen.W))
     val retirementRedirectPc = Wire(UInt(p.xlen.W))
     val flush = olderFlush || exRedirect
@@ -196,6 +213,16 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     csr.io.trap.bits.pc := Mux(irqCommit, architecturalNextPc, wbPacket.instruction.pc)
     csr.io.trap.bits.cause := Mux(irqCommit, csr.io.irqCause, wbPacket.cause)
     csr.io.trap.bits.tval := Mux(irqCommit, 0.U, wbPacket.tval)
+    csr.io.trap.bits.guest.foreach { metadata =>
+        val cause = wbPacket.cause(4, 0)
+        val addressFault = Seq(0, 1, 3, 4, 5, 6, 7, 12, 13, 15, 20, 21, 23)
+            .map(n => cause === n.U).reduce(_ || _)
+        val dataFault = Seq(4, 5, 6, 7, 13, 15, 21, 23).map(n => cause === n.U).reduce(_ || _)
+        metadata.address := !irqCommit && addressFault && (csr.io.hypervisor.get.virtualized ||
+            wbPacket.control.hypervisor.get.memory || dataFault && csr.io.context.guest.get.dataVirtualized)
+        metadata.physical := Mux(irqCommit, 0.U, wbPacket.guest.get.physical)
+        metadata.implicitPte := !irqCommit && wbPacket.guest.get.implicitPte
+    }
     io.trapTaken := csr.io.trap.valid
     io.trapPc := csr.io.trap.bits.pc
     io.trapCause := csr.io.trap.bits.cause
@@ -263,6 +290,57 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             "IMSIC response has no committed WB owner")
     }
 
+    if (p.spinor) {
+        val port = io.spinor.get
+        val token = Cat(p.hartId.U(16.W), spinorSequence.get)
+        port.frm := csr.io.fpRounding; port.fflags := csr.io.committedFpFlags.get
+        port.command.valid := wbSpinor && !wbPacket.fault && !spinorSent.get
+        port.command.bits.instruction := wbPacket.instruction.instruction
+        port.command.bits.scalar := wbPacket.result
+        port.command.bits.scalar2 := wbPacket.storeSource
+        port.command.bits.avl := wbPacket.address
+        port.command.bits.token := token
+        port.grant.valid := wbSpinor && spinorSent.get && !spinorGranted.get && port.preview.valid
+        port.grant.bits := token
+        // Prepare the existing WB payload while done is held. Acknowledge on
+        // the following architectural WB edge: scalar/FCSR/trap and done.fire
+        // are then atomic, with no raw VPU payload on the register write mux.
+        port.done.ready := wbSpinor && spinorPrepared.get && wbCommit
+        when(port.command.fire) { spinorSent.get := true.B }
+        when(port.grant.fire) { spinorGranted.get := true.B }
+        when(wbSpinor && spinorGranted.get && port.done.valid && !spinorPrepared.get) {
+            assert(port.done.bits.token === token &&
+                port.done.bits.instruction === wbPacket.instruction.instruction, "Spinor WB owner mismatch")
+            val result = port.done.bits
+            val floatingDestination = I1SpinorDecode.floatingDestination(wbPacket.instruction.instruction)
+            wbPacket.result := result.scalar
+            wbPacket.control.writesRd := result.writesScalar && !floatingDestination
+            wbPacket.floating.get.write := result.writesScalar && floatingDestination
+            wbPacket.floating.get.data := result.scalar
+            wbPacket.floating.get.flags := Mux(result.flagsValid, result.flags, 0.U)
+            wbPacket.fault := result.exception; wbPacket.cause := result.cause; wbPacket.tval := result.tval
+            io.spinorMemoryFault.foreach { fault =>
+                when(result.exception && (result.cause === 5.U || result.cause === 7.U) && fault.valid) {
+                    assert(fault.bits.token === token, "vector translation fault belongs to another command")
+                    wbPacket.cause := fault.bits.cause; wbPacket.tval := fault.bits.tval
+                    wbPacket.guest.get := fault.bits.guest
+                }
+            }
+            wbRecovery.foreach(_ := result.exception)
+            spinorPrepared.get := true.B
+        }
+        csr.io.vectorRetire.get := wbCommit && wbSpinor && spinorPrepared.get &&
+            !(wbPacket.fault && wbPacket.cause === 2.U)
+        when(wbCommit && wbSpinor) {
+            spinorSent.get := false.B; spinorGranted.get := false.B; spinorPrepared.get := false.B
+            spinorSequence.get := spinorSequence.get + 1.U
+        }
+        when(wbSpinor && !reset.asBool) {
+            assert(!rrValid && !exValid && !addrValid && !memValid && !cmpValid,
+                "Spinor WB command did not drain scalar backend")
+        }
+    }
+
     // The cut profile captured memoryResult (including access errors) at the
     // MEM/CMP edge. Do not decode the raw response a second time in capacity.
     val completionFault = cmpValid && (if (p.fpgaTimingCuts) cmpPacket.completion.fault
@@ -270,25 +348,41 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     def memoryResult(packet: FiveStageCompletion, response: FiveStageDataResponse, accessed: Bool)
         : FiveStageCompletion = {
         val completed = WireDefault(packet)
-        val shifted = response.data >> Cat(packet.address(log2Ceil(p.xlen / 8) - 1, 0), 0.U(3.W))
-        def extend(bits: Int): UInt = if (bits == p.xlen) shifted(bits - 1, 0) else
-            Cat(Fill(p.xlen - bits, !packet.control.funct3(2) && shifted(bits - 1)), shifted(bits - 1, 0))
-        val loaded = MuxLookup(packet.control.funct3(1, 0), shifted)(Seq(
-            0.U -> extend(8), 1.U -> extend(16), 2.U -> extend(32)))
-        when(accessed) {
-            when(packet.control.load || packet.control.atomic) {
-                completed.result := Mux(packet.control.atomic && packet.control.atomicOperation === 3.U,
-                    response.data, loaded)
-            }
+        val direct = packet.control.atomic && packet.control.atomicOperation === 3.U
+        val (shifted, loaded) = if (p.fpgaTimingCuts) I1LoadExtract(response.data,
+            packet.address(log2Ceil(p.xlen / 8) - 1, 0), packet.control.funct3, direct,
+            packet.result, accessed && (packet.control.load || packet.control.atomic)) else {
+            val value = response.data >> Cat(packet.address(log2Ceil(p.xlen / 8) - 1, 0), 0.U(3.W))
+            def extend(bits: Int): UInt = if (bits == p.xlen) value(bits - 1, 0) else
+                Cat(Fill(p.xlen - bits, !packet.control.funct3(2) && value(bits - 1)), value(bits - 1, 0))
+            val extracted = MuxLookup(packet.control.funct3(1, 0), value)(Seq(
+                0.U -> extend(8), 1.U -> extend(16), 2.U -> extend(32)))
+            (value, Mux(direct, response.data, extracted))
+        }
+        if (p.fpgaTimingCuts) {
+            completed.result := loaded
             completed.floating.foreach { fp =>
-                when(packet.control.floating && packet.control.load) {
-                    fp.data := Mux(packet.control.funct3 === 2.U, I1FloatingPointBits.boxSingle(shifted), shifted)
+                val load = accessed && packet.control.floating && packet.control.load
+                val single = packet.control.funct3 === 2.U
+                fp.data := I1ExecuteDatapath.operand(Seq(load && !single, load && single, !load),
+                    Seq(shifted, I1FloatingPointBits.boxSingle(shifted), packet.floating.get.data))
+            }
+        }
+        when(accessed) {
+            if (!p.fpgaTimingCuts) {
+                when(packet.control.load || packet.control.atomic) { completed.result := loaded }
+                completed.floating.foreach { fp =>
+                    when(packet.control.floating && packet.control.load) {
+                        fp.data := Mux(packet.control.funct3 === 2.U, I1FloatingPointBits.boxSingle(shifted), shifted)
+                    }
                 }
             }
             when(response.error) {
                 completed.fault := true.B
-                completed.cause := Mux(response.pageFault, Mux(packet.control.store, 15.U, 13.U),
-                    Mux(packet.control.store, 7.U, 5.U))
+                completed.guest.foreach(_ := response.guest.get)
+                completed.cause := Mux(response.guest.map(_.pageFault).getOrElse(false.B),
+                    Mux(packet.control.store, 23.U, 21.U), Mux(response.pageFault, Mux(packet.control.store, 15.U, 13.U),
+                    Mux(packet.control.store, 7.U, 5.U)))
                 completed.tval := packet.address
             }
         }
@@ -337,6 +431,12 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         candidates(0).data := memPacket.storeData; candidates(0).mask := memPacket.storeMask
         candidates(0).atomic := memPacket.control.atomic
         candidates(0).atomicOperation := memPacket.control.atomicOperation
+        candidates(0).guest.foreach { access =>
+            access.vector := false.B
+            access.force := memPacket.control.hypervisor.get.memory
+            access.execute := memPacket.control.hypervisor.get.execute
+            access.fetch := false.B
+        }
         candidates(1) := earlyBits
     }
     io.dataCandidateEarly.foreach(_ := selectEarlyPayload)
@@ -349,10 +449,23 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     io.dataRequest.bits.atomic := Mux(selectEarlyPayload, earlyBits.atomic, memPacket.control.atomic)
     io.dataRequest.bits.atomicOperation := Mux(selectEarlyPayload, earlyBits.atomicOperation,
         memPacket.control.atomicOperation)
+    io.dataRequest.bits.guest.foreach { access =>
+        access.vector := false.B
+        access.force := !selectEarlyPayload && memPacket.control.hypervisor.get.memory
+        access.execute := !selectEarlyPayload && memPacket.control.hypervisor.get.execute
+        access.fetch := false.B
+    }
     io.dataResponse.ready := memValid && memSent && !activeRecovery
     when(io.dataRequest.fire) { memSent := true.B }
     val memComplete = !memReplyRequired || (memSent && io.dataResponse.valid)
-    val memFire = memValid && memComplete && !activeRecovery && !completionFault
+    // Evaluate both outcomes before the late memory response arrives. Payload
+    // enables select once, instead of rippling MEM -> EX -> RR -> ID readiness.
+    val doneWithoutReply = !memReplyRequired
+    val doneWithReply = !memReplyRequired || memSent
+    def selectReply(absent: Bool, present: Bool): Bool = Mux(io.dataResponse.valid, present, absent)
+    val memoryPermission = memValid && !activeRecovery && !completionFault
+    val memFire = if (p.fpgaTimingCuts) selectReply(memoryPermission && doneWithoutReply,
+        memoryPermission && doneWithReply) else memoryPermission && memComplete
     if (p.overlapDataRetirement) {
         // The old response is the translation boundary's registered result,
         // not a raw AXI/cache response. Never issue behind an old error or an
@@ -414,7 +527,10 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     // Do not ripple MEM fire -> ADDR fire -> EX fire -> frontend capacity.
     val backendProgress = !activeRecovery && !completionFault
     val addressRoom = if (p.fpgaTimingCuts) !memValid || memComplete else memReady
-    val addressFire = addrValid && addressRoom && backendProgress
+    val addressPermission = addrValid && backendProgress
+    val addressFire = if (p.fpgaTimingCuts) selectReply(
+        addressPermission && (!memValid || doneWithoutReply),
+        addressPermission && (!memValid || doneWithReply)) else addressPermission && addressRoom
     val executeReady = if (p.addressStage) !addrValid || addressFire else memReady
     when(addressFire) {
         if (p.addressStage) {
@@ -578,9 +694,25 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         (c.fpExecute && I1FloatingPointDecode.usesRounding(fpInstruction) && fpRounding > 4.U))
     val csrData = MuxLookup(c.funct3(1, 0), csrSource)(Seq(
         2.U -> (csr.io.readDataForWrite | csrSource), 3.U -> (csr.io.readDataForWrite & ~csrSource)))
+    val hypervisorException = if (p.withH) {
+        val h = Module(new I1HypervisorDecode(p.xlen))
+        h.io.instruction := exPacket.instruction.instruction
+        h.io.privilege := csr.io.context.privilege
+        h.io.virtualized := csr.io.hypervisor.get.virtualized
+        h.io.hu := csr.io.hypervisor.get.hu; h.io.tvm := csr.io.hypervisor.get.tvm
+        h.io.exception
+    } else false.B
+    val hypervisorFence = c.hypervisor.map(_.fence).getOrElse(false.B)
     val systemIllegal = (c.mret && !csr.io.mretLegal) || (c.sret && !csr.io.sretLegal) ||
-        (c.sfence && !csr.io.sfenceLegal) || (c.wfi && !csr.io.wfiLegal)
-    val illegal = !c.legal || csrIllegal || systemIllegal || fpIllegal
+        (c.sfence && !hypervisorFence && !csr.io.sfenceLegal) || (c.wfi && !csr.io.wfiLegal) ||
+        hypervisorException
+    val virtualInstruction = csr.io.hypervisor.map(h =>
+        csrIllegal && h.csrVirtual && !(csrWrite && c.csrAddress(11, 10) === 3.U) ||
+        c.sret && !csr.io.sretLegal && h.sretVirtual ||
+        c.sfence && !hypervisorFence && !csr.io.sfenceLegal && h.sfenceVirtual ||
+        c.wfi && !csr.io.wfiLegal && h.wfiVirtual || hypervisorException && h.virtualized).getOrElse(false.B)
+    val vectorIllegal = if (p.spinor) c.spinor.get && !csr.io.vectorEnabled.get else false.B
+    val illegal = !c.legal || csrIllegal || systemIllegal || fpIllegal || vectorIllegal
     val instructionFault = exPacket.instruction.fetchError || illegal || c.ecall || c.ebreak
     // Numerical opcodes cannot also be CSR/system opcodes. Their legality
     // was captured at the existing ID edge, where serial FP already drains
@@ -589,9 +721,11 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     val numericalRounding = exPacket.numericalRounding.getOrElse(fpRounding)
     val exFault = instructionFault ||
         memoryMisaligned || branchMisaligned
-    val exCause = Mux(exPacket.instruction.fetchError, Mux(exPacket.instruction.fetchPageFault, 12.U, 1.U),
-        Mux(illegal, 2.U, Mux(c.ebreak, 3.U, Mux(c.ecall,
-            Mux(csr.io.context.privilege === 0.U, 8.U, Mux(csr.io.context.privilege === 1.U, 9.U, 11.U)),
+    val exCause = Mux(exPacket.instruction.fetchError, Mux(exPacket.instruction.fetchGuest.map(_.pageFault).getOrElse(false.B), 20.U,
+            Mux(exPacket.instruction.fetchPageFault, 12.U, 1.U)),
+        Mux(illegal, Mux(virtualInstruction, 22.U, 2.U), Mux(c.ebreak, 3.U, Mux(c.ecall,
+            Mux(csr.io.context.privilege === 0.U, 8.U, Mux(csr.io.context.privilege === 1.U,
+                Mux(csr.io.hypervisor.map(_.virtualized).getOrElse(false.B), 10.U, 9.U), 11.U)),
             Mux(branchMisaligned, 0.U, Mux(c.store, 6.U, 4.U))))))
     // Unsupported >32-bit prefix is rejected from its first parcel. We do not claim uncaptured bits in mtval.
     val illegalValue = Mux(p.withC.B && !exPacket.instruction.compressed &&
@@ -618,8 +752,19 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     val executeRoom = if (p.fpgaTimingCuts) !addrValid || !memValid || memComplete else executeReady
     val executeLocalReady = !dependency &&
         (!c.mulDiv || mulComplete || numericalFault) && (!c.fpExecute || fpComplete || numericalFault)
-    val executeAdmission = exValid && executeRoom && !dependency && backendProgress
-    val exFire = exValid && executeRoom && executeLocalReady && backendProgress
+    val executeRoomWithoutReply = !addrValid || !memValid || doneWithoutReply
+    val executeRoomWithReply = !addrValid || !memValid || doneWithReply
+    val executePermission = exValid && executeLocalReady && backendProgress
+    val executeWithoutReply = executePermission && executeRoomWithoutReply
+    val executeWithReply = executePermission && executeRoomWithReply
+    val executeAdmission = if (p.fpgaTimingCuts) selectReply(
+        exValid && !dependency && backendProgress && executeRoomWithoutReply,
+        exValid && !dependency && backendProgress && executeRoomWithReply)
+        else exValid && executeRoom && !dependency && backendProgress
+    val exFire = if (p.fpgaTimingCuts) selectReply(executeWithoutReply, executeWithReply)
+        else executePermission && executeRoom
+    val executePayloadSpace = if (p.fpgaTimingCuts) selectReply(
+        !exValid || executeWithoutReply, !exValid || executeWithReply) else !exValid || exFire
     val floatingStore = if (p.withF) floatingOperands(1).pad(p.xlen) else 0.U(p.xlen.W)
     val storeSource = Mux(c.floating && c.store, floatingStore, rs2)
     val storeData = (storeSource << Cat(address(offsetBits - 1, 0), 0.U(3.W)))(p.xlen - 1, 0)
@@ -664,7 +809,11 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     // Local completion is registered ownership, not cancellation-qualified VALID.
     // Admission already carries older recovery. Keep redirect cancellation out of
     // the completion -> EX capacity chain, including the compact/7-stage profiles.
-    val numericalCancel = if (p.fpgaTimingCuts) backendFlush else activeRecovery
+    // ADDR already knows that its younger EX owner is on the wrong path.
+    // Cancel pure numerical work immediately, even while ADDR waits for MEM.
+    // The architectural redirect still waits for the real ADDR transfer below.
+    // This keeps cache response/READY out of MDU and FPU payload enables.
+    val numericalCancel = if (p.fpgaTimingCuts) activeRecovery || addressRedirectPending else activeRecovery
     if (p.withM) {
         val mulDiv = Module(new FiveStageMulDiv(p))
         mulDiv.io.kill := numericalCancel
@@ -723,10 +872,14 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         val ac = addrPacket.control
         val mismatch = if (p.branchPredictorEntries > 0 || p.withC)
             Mux(addrPacket.branchTaken && !addrPacket.fault,
-                !I1TimingMath.equal(addrPacket.branchTarget, addrPacket.instruction.predictedNextPc),
-                !I1TimingMath.equal(addrPacket.nextPc, addrPacket.instruction.predictedNextPc)) else addrPacket.branchTaken
-        exRedirect := addressFire && !addressPrepared.fault && !ac.mret && !ac.sret &&
+                !I1TimingMath.equal(addrPacket.branchTarget ^ addrPacket.nextPc, addressPredictionDelta.get),
+                addressPredictionDelta.get.orR) else addrPacket.branchTaken
+        addressRedirectPending := addrValid && !addressPrepared.fault && !ac.mret && !ac.sret &&
             !ac.sfence && !ac.fenceI && mismatch
+        exRedirect := addressRedirectPending && addressRoom && backendProgress
+        when(addressRedirectPending && !exRedirect) {
+            assert(!exFire, "cancelled younger EX cannot pass an ADDR owner waiting to redirect")
+        }
     } else if (p.branchPredictorEntries > 0) {
         exRedirect := exFire && !exFault && !c.mret && !c.sret && !c.sfence && !c.fenceI &&
             predictionMismatch
@@ -773,22 +926,41 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     executed.fault := exFault; executed.cause := exCause
     executed.tval := (if (p.fpgaTimingCuts) Mux(exPacket.instruction.fetchError || c.ebreak,
         fetchFaultPc, Mux(illegal, illegalValue, 0.U)) else exTval)
+    executed.guest.foreach(_ := exPacket.instruction.fetchGuest.get)
     executed.csrWrite := csrWrite
     executed.csrData := (if (p.withAia) Mux(I1Aia.indirect(c.csrAddress), csrSource, csrData) else csrData)
-    val changesMap = c.csrAddress === "h180".U || p.pmpEntries.U =/= 0.U &&
+    val changesMap = c.csrAddress === "h180".U || (p.withH.B &&
+        (c.csrAddress === "h280".U || c.csrAddress === "h680".U)) || p.pmpEntries.U =/= 0.U &&
         c.csrAddress >= "h3a0".U && c.csrAddress <= "h3bf".U
     executed.contextBarrier.foreach(_ := csrWrite &&
-        (changesMap || c.csrAddress === "h300".U || c.csrAddress === "h100".U))
+        (changesMap || c.csrAddress === "h300".U || c.csrAddress === "h100".U ||
+            p.withH.B && (c.csrAddress === "h200".U || c.csrAddress === "h600".U)))
     executed.translationInvalidate.foreach(_ := c.sfence || csrWrite && changesMap)
     executed.floating.foreach { fp =>
         fp.write := c.fpWrites
         fp.data := fpResult
         fp.flags := Mux(c.fpExecute && !numericalFault, fpFlags, 0.U)
     }
+    if (p.spinor) when(c.spinor.get) {
+        val instruction = exPacket.expanded.get
+        executed.result := Mux(I1SpinorDecode.floatingSource(instruction), floatingOperands.head,
+            Mux(I1SpinorDecode.csr(instruction) && instruction(14), c.rs1.pad(64), rs1))
+        executed.address := rs1
+        executed.storeSource := rs2
+    }
     if (p.fpgaTimingCuts) {
         // Capture an unowned payload while ADDR is empty or releasing its owner.
         // EX admission still controls valid; its late ready no longer gates this wide payload.
-        when(!addrValid || addressFire) { addrPacket := executed }
+        when(!addrValid || addressFire) {
+            addrPacket := executed
+            addressPredictionDelta.foreach(_ := executed.nextPc ^ executed.instruction.predictedNextPc)
+        }
+        addressPredictionDelta.foreach { delta =>
+            when(addrValid) {
+                assert(delta === (addrPacket.nextPc ^ addrPacket.instruction.predictedNextPc),
+                    "ADDR prediction difference must belong to its captured owner")
+            }
+        }
     }
     when(exFire) {
         exValid := false.B; mulDivSent := false.B; operandHeld := false.B
@@ -811,7 +983,10 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             assert(serial === decodedControl.serial, "registered ID serial class differs from full C/ISA decode")
         }
     }
-    val rrFire = rrValid && (!exValid || exFire) && !olderSerial && !activeRecovery && !completionFault
+    val registerPermission = rrValid && !olderSerial && backendProgress
+    val rrFire = if (p.fpgaTimingCuts) selectReply(
+        registerPermission && (!exValid || executeWithoutReply),
+        registerPermission && (!exValid || executeWithReply)) else registerPermission && (!exValid || exFire)
     val issueReady = if (p.registerReadStage) !rrValid || rrFire else !exValid || exFire
     // EX redirects kill younger valid bits at the edge, rather than propagating the
     // operand/comparison path through frontend capacity. Speculative RF reads are safe:
@@ -820,11 +995,17 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     // Absorb duplicate live-owner gates rather than cascading rrFire ->
     // idFire -> ifFire -> reply READY. This is exact lookahead, not a
     // registered guess, added slot or lost-throughput timing shortcut.
-    val idCapacity = if (p.fpgaTimingCuts) I1ExecuteDatapath.backendCapacity(
-        rrValid, exValid, addrValid, memValid, memComplete, executeLocalReady, backendProgress)
-        else issueReady
+    val capacityWithoutReply = I1ExecuteDatapath.backendCapacity(
+        rrValid, exValid, addrValid, memValid, doneWithoutReply, executeLocalReady, backendProgress)
+    val capacityWithReply = I1ExecuteDatapath.backendCapacity(
+        rrValid, exValid, addrValid, memValid, doneWithReply, executeLocalReady, backendProgress)
+    // Put each sink's permission and empty-slot terms before the final select.
+    // This preserves its own ownership rule without cascading another CE gate.
+    def backendGrant(permission: Bool, empty: Bool = false.B): Bool = selectReply(
+        empty || (permission && capacityWithoutReply), empty || (permission && capacityWithReply))
     val frontPermission = !quiesceBlocking && !activeRecovery && !csr.io.irqPending && !wbFenceI
-    val idFire = idValid && idCapacity && idLocalPermission && frontPermission
+    val decodePermission = idValid && idLocalPermission && frontPermission
+    val idFire = if (p.fpgaTimingCuts) backendGrant(decodePermission) else decodePermission && issueReady
     val idRounding = Mux(decodedControl.funct3 === 7.U, csr.io.fpRounding, decodedControl.funct3)
     val idNumericalLegal = I1ExecuteDatapath.numericalLegal(idPacket.fetchError, decodedControl.legal,
         decodedControl.floating, csr.io.fpEnabled,
@@ -838,14 +1019,23 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         packet.numericalLegal.foreach(_ := idNumericalLegal)
         packet.numericalRounding.foreach(_ := idRounding)
     }
-    rf.io.readEnable := idFire; rf.io.rs1 := decodedControl.rs1; rf.io.rs2 := decodedControl.rs2
+    // FPGA reads prepare unowned ID payload every edge. The first RR cycle
+    // consumes it or captures rrLeft/rrRight; rrCaptured then holds that owner.
+    rf.io.readEnable := (if (p.fpgaTimingCuts) true.B else idFire)
+    rf.io.rs1 := decodedControl.rs1; rf.io.rs2 := decodedControl.rs2
     fpr.foreach { registers =>
-        registers.io.readEnable := idFire && decodedControl.floating
+        // FP serialDrain admits only into an empty backend. RR captures all
+        // three operands in EX on the next edge, before later ID reads matter.
+        registers.io.readEnable := (if (p.fpgaTimingCuts) true.B else idFire && decodedControl.floating)
         registers.io.rs1 := decoder.io.instruction(19, 15)
         registers.io.rs2 := decoder.io.instruction(24, 20)
         registers.io.rs3 := decoder.io.instruction(31, 27)
     }
-    if (p.fpgaTimingCuts) when(!rrValid || rrFire) {
+    // Reuse the flat vacancy lookahead for payload CE. The separate serial
+    // permission still protects a live RR owner while an older serial drains.
+    val rrPayloadSpace = if (p.fpgaTimingCuts) backendGrant(!olderSerial, !rrValid)
+        else !rrValid || (!olderSerial && issueReady)
+    if (p.fpgaTimingCuts) when(rrPayloadSpace) {
         rrPacket.instruction := idPacket; rrPacket.control := decodedControl
         captureExecutionMetadata(rrPacket)
     }
@@ -866,10 +1056,16 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     }
     if (p.registerReadStage) {
         val rc = rrPacket.control
+        if (p.fpgaTimingCuts && p.withF) when(rrValid && rc.floating && !backendFlush) {
+            assert(rrFire, "serial FP RR owner must capture its operands on the next edge")
+        }
         val readLeft = Mux(wbMatch(rc.rs1, rc.usesRs1), wbPacket.result, Mux(rrCaptured, rrLeft, rf.io.data1))
         val readRight = Mux(wbMatch(rc.rs2, rc.usesRs2), wbPacket.result, Mux(rrCaptured, rrRight, rf.io.data2))
-        when(rrValid && !idFire) { rrLeft := readLeft; rrRight := readRight; rrCaptured := true.B }
-        if (p.fpgaTimingCuts) when(!exValid || exFire) {
+        // The old RR payload may be captured even when ID replaces its owner.
+        // rrCaptured alone determines whether the new owner can consume it.
+        when(rrValid) { rrLeft := readLeft; rrRight := readRight }
+        when(rrValid && !idFire) { rrCaptured := true.B }
+        if (p.fpgaTimingCuts) when(executePayloadSpace) {
             exPacket := rrPacket
             exLeft := Mux(rrPacket.operandEnable.get(0), readLeft, 0.U)
             exRight := Mux(rrPacket.operandEnable.get(1), readRight, 0.U)
@@ -901,44 +1097,57 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
                 (mask(0) && addressFire) || (mask(1) && !memFire),
                 (mask(1) && memFire) || (mask(2) && !completionAdvance),
                 mask(2) && completionAdvance && !completionFault)).asUInt
-            def nextProducer(index: UInt, used: Bool): UInt = {
+            def nextProducer(index: UInt, used: Bool): (UInt, Bool) = {
                 def writes(control: FiveStageDecodeControl): Bool =
                     used && index =/= 0.U && control.writesRd && control.rd === index
-                val offers = Seq(
-                    // At an RF replacement edge, a live EX owner necessarily advances.
-                    Mux(exValid, writes(c), addrValid && !addressFire && writes(addrPacket.control)),
-                    Mux(addressFire, writes(addrPacket.control),
-                        memValid && !memFire && writes(memPacket.control)),
-                    Mux(memFire, writes(memPacket.control),
-                        cmpValid && !completionAdvance && writes(cmpPacket.completion.control)),
-                    completionAdvance && !completionFault && writes(cmpPacket.completion.control))
-                VecInit(I1ExecuteDatapath.operandMasksWhen(true.B, offers)).asUInt
+                // Choose the closest owner BEFORE late backend movements.
+                val offers = Seq(exValid && writes(c), addrValid && writes(addrPacket.control),
+                    memValid && writes(memPacket.control), cmpValid && writes(cmpPacket.completion.control))
+                val closest = I1ExecuteDatapath.operandMasksWhen(true.B, offers)
+                // RR admission releases EX and excludes recovery/completion faults.
+                // A matching CMP owner therefore advances to WB at this edge.
+                val located = VecInit(Seq(closest(0) || (closest(1) && !addressFire),
+                    (closest(1) && addressFire) || (closest(2) && !memFire),
+                    closest(2) && memFire, closest(3))).asUInt
+                (located, !VecInit(offers).asUInt.orR)
             }
-            def aluSelection(mask: UInt, overrideEnable: Bool): UInt =
+            def retainedFallback(mask: UInt): Bool =
+                !(mask(0) || mask(1) || (mask(2) && (!completionAdvance || !completionFault)))
+            def aluSelection(mask: UInt, fallback: Bool, overrideEnable: Bool): UInt =
                 VecInit((0 until 4).map(i => mask(i) && !overrideEnable) ++
-                    Seq(!mask.orR && !overrideEnable, overrideEnable)).asUInt
+                    Seq(fallback && !overrideEnable, overrideEnable)).asUInt
+            val (nextLeft, nextLeftFallback) = nextProducer(rc.rs1, rc.usesRs1)
+            val (nextRight, nextRightFallback) = nextProducer(rc.rs2, rc.usesRs2)
             // Departing EX metadata is unowned; advancing it is harmless. Avoid
             // late backend ready in every retained-mask/ALU-select data mux.
             when(exValid) {
                 leftProducer.get := advance(leftProducer.get)
                 rightProducer.get := advance(rightProducer.get)
-                leftAluSelect.get := aluSelection(advance(leftProducer.get), c.usePc)
-                rightAluSelect.get := aluSelection(advance(rightProducer.get), c.useImmediate)
+                leftAluSelect.get := aluSelection(advance(leftProducer.get),
+                    retainedFallback(leftProducer.get), c.usePc)
+                rightAluSelect.get := aluSelection(advance(rightProducer.get),
+                    retainedFallback(rightProducer.get), c.useImmediate)
             }
             when(rrFire) {
                 assert(!exValid || exFire, "RF replacement must release the live EX owner")
-                leftProducer.get := nextProducer(rc.rs1, rc.usesRs1)
-                rightProducer.get := nextProducer(rc.rs2, rc.usesRs2)
-                leftAluSelect.get := aluSelection(nextProducer(rc.rs1, rc.usesRs1), rc.usePc)
-                rightAluSelect.get := aluSelection(nextProducer(rc.rs2, rc.usesRs2), rc.useImmediate)
+            }
+            // Prepare selectors with the same local vacancy as exPacket.
+            // Without RR admission the replacement payload remains unowned.
+            when(executePayloadSpace) {
+                leftProducer.get := nextLeft
+                rightProducer.get := nextRight
+                leftAluSelect.get := aluSelection(nextLeft, nextLeftFallback, rc.usePc)
+                rightAluSelect.get := aluSelection(nextRight, nextRightFallback, rc.useImmediate)
             }
         }
     }
-    val ifCapacity = if (p.fpgaTimingCuts) !idValid || (idLocalPermission && idCapacity)
-        else !idValid || idFire
-    val frontendAccept = frontPermission && ifCapacity
-    val ifFire = ifValid && frontendAccept
-    if (p.fpgaTimingCuts) when(!idValid || idFire) { idPacket := ifPacket }
+    val frontendAccept = if (p.fpgaTimingCuts) backendGrant(
+        frontPermission && idLocalPermission, frontPermission && !idValid)
+        else frontPermission && (!idValid || idFire)
+    val ifFire = if (p.fpgaTimingCuts) backendGrant(
+        ifValid && frontPermission && idLocalPermission, ifValid && frontPermission && !idValid)
+        else ifValid && frontendAccept
+    if (p.fpgaTimingCuts) when(backendGrant(decodePermission, !idValid)) { idPacket := ifPacket }
     when(ifFire) {
         idValid := true.B
         if (!p.fpgaTimingCuts) idPacket := ifPacket
@@ -948,22 +1157,29 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
 
     // An offered request is never withdrawn under READY backpressure, even on a redirect.
     // Killed read owners drain with their original PC; they cannot become valid instructions.
+    // FPGA: only a deferred flush target. offerPc already retains the normal
+    // predicted/repaired candidate, including while new offers are stopped.
     val desiredPc = RegInit(p.resetVector.U(p.xlen.W))
     val offerValid = RegInit(true.B)
     val offerPc = RegInit(p.resetVector.U(p.xlen.W))
     val offerKilled = RegInit(false.B)
     val pending = RegInit(false.B)
+    io.fetchOwner := offerValid || pending
     val pendingPc = Reg(UInt(p.xlen.W))
-    val pendingPrediction = Reg(UInt(p.xlen.W))
+    // In timing mode offerPc is the accepted fetch's saved prediction until
+    // that owner returns or is killed. Reuse this existing storage rather
+    // than building a second wide bank-selection cone and PC register.
+    val pendingPrediction = if (p.fpgaTimingCuts) offerPc else Reg(UInt(p.xlen.W))
+    val predictionShadow = if (p.fpgaTimingCuts) Some(Reg(UInt(p.xlen.W))) else None
     val pendingKilled = RegInit(false.B)
+    val predictTaken = WireDefault(false.B)
+    val predictShort = WireDefault(false.B)
+    val pendingTaken = if (p.fpgaTimingCuts && p.withC) Some(Reg(Bool())) else None
+    val pendingShort = if (p.fpgaTimingCuts && p.withC) Some(Reg(Bool())) else None
+
     val predictedNext = WireDefault(if (p.fpgaTimingCuts)
         I1TimingMath.incrementPowerOfTwo(offerPc, 2) else offerPc + 4.U)
-    val predictionCount = if (p.fpgaTimingCuts && p.branchPredictorEntries > 0)
-        math.min(4, p.branchPredictorEntries / 2) + 2 else 1
-    val predictionValues = WireDefault(VecInit(Seq.fill(predictionCount)(0.U(p.xlen.W))))
-    val predictionMask = WireDefault(1.U(predictionCount.W))
-    predictionValues(0) := predictedNext
-    if (p.branchPredictorEntries > 0) {
+    val predictionCandidates = if (p.branchPredictorEntries > 0) {
         val predictor = Module(new FiveStageBranchPredictor(p))
         predictor.io.pc := offerPc
         predictor.io.invalidate := io.invalidateInstructionCache
@@ -975,12 +1191,34 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         predictor.io.train.bits.target := wbPacket.branchTarget
         predictor.io.train.bits.compressed := wbPacket.instruction.compressed
         predictedNext := predictor.io.nextPc
+        predictTaken := predictor.io.taken
+        predictShort := predictor.io.compressed
         if (p.fpgaTimingCuts) {
-            predictionValues := VecInit(predictor.io.candidateValues.get.all)
-            predictionMask := predictor.io.candidateMask.get
-            predictedNext := I1ExecuteDatapath.operand(predictionMask.asBools, predictionValues.toSeq)
-        }
-    }
+            val values = predictor.io.candidateValues.get.all
+            val takes = (0 until predictor.bankCount).map(i => predictor.io.candidateMask.get(i + 2))
+            Some((takes, values.drop(2), Mux(predictor.io.compressed, values.head, values(1))))
+        } else None
+    } else None
+    // A returned length difference is the opposite of the captured hint.
+    // Prepare its correction from that register ahead of response data;
+    // transfer ownership remains separate from payload selection.
+    val fetchSequentialPc = if (p.fpgaTimingCuts && p.withC) Mux(!pendingShort.get,
+        I1TimingMath.incrementPowerOfTwo(pendingPc, 1, 8),
+        I1TimingMath.incrementPowerOfTwo(pendingPc, 2, 8)) else 0.U(p.xlen.W)
+    // Payload selection needs only the returned fields and captured hint.
+    // VALID/pending ownership qualify transfer, not the wide prediction mux.
+    val fetchLengthDifferent = if (p.fpgaTimingCuts && p.withC)
+        !io.instructionResponse.bits.error && !io.instructionResponse.bits.pageFault &&
+            !pendingTaken.get && (pendingShort.get =/= io.instructionResponse.bits.compressed)
+        else false.B
+    val fetchLengthMismatch = if (p.fpgaTimingCuts && p.withC)
+        pending && io.instructionResponse.valid && !pendingKilled && fetchLengthDifferent
+        else false.B
+    // Stop an unoffered next request without waiting for backend recovery.
+    // Only committing the correction needs flush/fence/quiesce permission.
+    val repairFetchLength = fetchLengthMismatch && !flush && !wbFenceI && !quiesceBlocking
+    val earlyLengthRepair = repairFetchLength && io.instructionResponse.ready
+    val responsePrediction = Mux(fetchLengthDifferent, fetchSequentialPc, pendingPrediction)
     if (p.externalFenceICompletion) fenceIFetchDrained := !offerValid && !pending
     val responseSpace = if (p.fpgaTimingCuts)
         pendingKilled || wbFenceI || quiesceBlocking || fetchQueue.get.io.input.ready
@@ -996,13 +1234,14 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         queue.io.input.bits.instruction := io.instructionResponse.bits.instruction
         queue.io.input.bits.fetchError := io.instructionResponse.bits.error
         queue.io.input.bits.fetchPageFault := io.instructionResponse.bits.pageFault
+        queue.io.input.bits.fetchGuest.foreach(_ := io.instructionResponse.bits.guest.get)
         queue.io.input.bits.compressed := p.withC.B && io.instructionResponse.bits.compressed
         queue.io.input.bits.fetchSecondHalfFault := io.instructionResponse.bits.secondHalfFault
         queue.io.input.bits.predictedNextPc :=
-            (if (p.branchPredictorEntries > 0 || p.withC) pendingPrediction else 0.U)
+            (if (p.branchPredictorEntries > 0 || p.withC) responsePrediction else 0.U)
     }
     io.instructionResponse.ready := pending && responseSpace
-    io.instructionRequest.valid := offerValid && (if (p.fpgaTimingCuts)
+    io.instructionRequest.valid := offerValid && !fetchLengthMismatch && (if (p.fpgaTimingCuts)
         !pending || (io.instructionResponse.valid && responseSpace) else !pending || io.instructionResponse.fire)
     io.instructionRequest.bits := offerPc
     when(io.instructionResponse.fire) {
@@ -1012,9 +1251,10 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             ifPacket.instruction := io.instructionResponse.bits.instruction
             ifPacket.fetchError := io.instructionResponse.bits.error
             ifPacket.fetchPageFault := io.instructionResponse.bits.pageFault
+            ifPacket.fetchGuest.foreach(_ := io.instructionResponse.bits.guest.get)
             ifPacket.compressed := p.withC.B && io.instructionResponse.bits.compressed
             ifPacket.fetchSecondHalfFault := io.instructionResponse.bits.secondHalfFault
-            ifPacket.predictedNextPc := (if (p.branchPredictorEntries > 0 || p.withC) pendingPrediction else 0.U)
+            ifPacket.predictedNextPc := (if (p.branchPredictorEntries > 0 || p.withC) responsePrediction else 0.U)
         }
     }
     when(!offerValid && !csr.io.irqPending && !flush && !wbFenceI && !quiesceBlocking) {
@@ -1023,11 +1263,19 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     }
     when(io.instructionRequest.fire) {
         pending := true.B; pendingPc := offerPc; pendingKilled := offerKilled || flush || wbFenceI || quiesceBlocking
-        pendingPrediction := predictedNext
+        if (!p.fpgaTimingCuts) pendingPrediction := predictedNext
+        predictionShadow.foreach(_ := predictedNext)
+        pendingTaken.foreach(_ := predictTaken)
+        pendingShort.foreach(_ := predictShort)
         offerValid := !csr.io.irqPending && !wbFenceI && !quiesceBlocking; offerKilled := false.B
         if (!p.fpgaTimingCuts) {
             offerPc := Mux(offerKilled, desiredPc, predictedNext)
             when(!offerKilled) { desiredPc := predictedNext }
+        }
+    }
+    predictionShadow.foreach { shadow =>
+        when(!reset.asBool && pending && !pendingKilled && !flush && !wbFenceI && !quiesceBlocking) {
+            assert(pendingPrediction === shadow, "shared prediction PC lost its live fetch owner")
         }
     }
     if (p.externalFenceICompletion) when(wbFenceI) {
@@ -1036,14 +1284,15 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         if (!p.fpgaTimingCuts) ifValid := false.B
         idValid := false.B
         when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
-        when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
+        when(offerValid && !io.instructionRequest.fire && !fetchLengthMismatch) { offerKilled := true.B }
+        when(fetchLengthMismatch) { offerValid := false.B; offerKilled := false.B }
     }
     when(flush) {
         if (!p.fpgaTimingCuts) ifValid := false.B
         idValid := false.B
         if (!p.fpgaTimingCuts) desiredPc := redirectPc
         when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
-        when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
+        when(offerValid && !io.instructionRequest.fire && !fetchLengthMismatch) { offerKilled := true.B }
             .otherwise {
                 offerValid := true.B; offerKilled := false.B
                 if (!p.fpgaTimingCuts) offerPc := redirectPc
@@ -1055,23 +1304,34 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
         // FIRE into every candidate mask reintroduced permission -> READY
         // -> wide payload mux -> hold mux on the PC feedback path.
         val predict = io.instructionRequest.fire && !offerKilled && !flush && !wbFenceI && !quiesceBlocking
-        val resume = !flush && !wbFenceI && !quiesceBlocking && ((!offerValid && !csr.io.irqPending) ||
-            (io.instructionRequest.fire && offerKilled))
-        val redirect = flush && (!offerValid || io.instructionRequest.fire)
-        val replay = offerKilled || !offerValid
-        val choosePrediction = !flush && !replay
-        // Merge mutually exclusive bank candidates with recovery BEFORE
-        // selecting a wide PC. No resolved predictor word traverses two more muxes.
-        val offerMasks = Seq(flush, !flush && replay) ++
-            predictionMask.asBools.map(_ && choosePrediction)
-        val offerValues = Seq(redirectPc, desiredPc) ++ predictionValues.toSeq
-        when(predict || resume || redirect) {
-            offerPc := I1ExecuteDatapath.operand(offerMasks, offerValues)
+        // Prepare the saved redirect as soon as the killed offer is accepted,
+        // even while fence/quiesce keeps the next candidate hidden.
+        val killedAccepted = io.instructionRequest.fire && offerKilled
+        val redirect = flush && (!offerValid || io.instructionRequest.fire || fetchLengthMismatch)
+        val replay = offerKilled
+        // Resolve priority in narrow owner masks. Bank targets, sequential
+        // repair and recovery enter one parallel PC reduction, without XOR
+        // correction followed by a second wide choice/hold mux.
+        val recovery = flush || quiesceRelease
+        val ordinary = !recovery && !repairFetchLength && !replay
+        val repair = !recovery && repairFetchLength
+        val deferred = !recovery && !repairFetchLength && replay
+        val recoveryPc = Mux(quiesceRelease, architecturalNextPc, redirectPc)
+        val correctedOffer = predictionCandidates.map { case (takes, targets, sequential) =>
+            I1ExecuteDatapath.operand(takes.map(_ && ordinary) ++
+                Seq(ordinary && !takes.reduce(_ || _), repair, deferred, recovery),
+                targets ++ Seq(sequential, fetchSequentialPc, desiredPc, recoveryPc))
+        }.getOrElse(I1ExecuteDatapath.operand(Seq(ordinary, repair, deferred, recovery),
+            Seq(predictedNext, fetchSequentialPc, desiredPc, recoveryPc)))
+        when(predict || killedAccepted || redirect || earlyLengthRepair || quiesceRelease) {
+            offerPc := correctedOffer
         }
-        when(predict || flush) {
-            desiredPc := I1ExecuteDatapath.operand(Seq(flush) ++
-                predictionMask.asBools.map(_ && !flush), Seq(redirectPc) ++ predictionValues.toSeq)
-        }
+        // A held VALID must keep offerPc unchanged until acceptance. Retain
+        // only the latest flush target for that deferred recovery.
+        when(flush) { desiredPc := redirectPc }
+    }
+    if (p.fpgaTimingCuts && p.withC) when(earlyLengthRepair) {
+        offerValid := !csr.io.irqPending; offerKilled := false.B
     }
     if (externalQuiesce) {
         // Cut only unexecuted IF/ID work. Already offered requests remain stable;
@@ -1081,8 +1341,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             if (!p.fpgaTimingCuts) ifValid := false.B
             idValid := false.B
             when(pending && !io.instructionResponse.fire) { pendingKilled := true.B }
-            when(offerValid && !io.instructionRequest.fire) { offerKilled := true.B }
-            when(!offerValid || io.instructionRequest.fire) { offerValid := false.B }
+            when(offerValid && !io.instructionRequest.fire && !fetchLengthMismatch) { offerKilled := true.B }
+            when(!offerValid || io.instructionRequest.fire || fetchLengthMismatch) { offerValid := false.B }
         }
         val stopped = quiesceRequest && !stages.reduce(_ || _) && !offerValid && !pending &&
             !wbRecovery.getOrElse(false.B)
@@ -1093,7 +1353,10 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
             // Include the last retired branch/trap/xRET recovery, not the stale
             // speculative desired PC. The release edge itself admits no work.
             offerValid := true.B; offerKilled := false.B
-            offerPc := architecturalNextPc; desiredPc := architecturalNextPc
+            if (!p.fpgaTimingCuts) {
+                offerPc := architecturalNextPc
+                desiredPc := architecturalNextPc
+            }
         }
         when(stopped) {
             assert(!io.retire.valid && !io.trapTaken && !io.dataRequest.valid && !io.instructionRequest.valid,
@@ -1142,7 +1405,8 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
                 assert(io.instructionResponse.fire && !pendingKilled && !flush,
                     "IF enqueue has no live fetch-response owner")
             }
-            assert(io.instructionRequest.valid === (offerValid && (!pending || io.instructionResponse.fire)),
+            assert(io.instructionRequest.valid === (offerValid && !fetchLengthMismatch &&
+                (!pending || io.instructionResponse.fire)),
                 "lookahead fetch request slot mismatch")
             when(exValid) {
                 assert(exPacket.operandEnable.get === Cat(c.usesRs2 && c.rs2 =/= 0.U, c.usesRs1 && c.rs1 =/= 0.U),
@@ -1204,6 +1468,9 @@ class FiveStageCore(val p: FiveStageConfig = FiveStageConfig(), externalQuiesce:
     private def observedPrediction(instruction: FiveStageInstruction): UInt =
         if (p.branchPredictorEntries > 0 || p.withC) instruction.predictedNextPc
         else instruction.pc + 4.U // Disabled prediction has an implicit four-byte fall-through.
+    protected def observedFetchLengthRepair: (Bool, UInt, UInt, UInt) =
+        (earlyLengthRepair, pendingPc, pendingPrediction, fetchSequentialPc)
+
     protected def observedRetirementPrediction: UInt = observedPrediction(wbPacket.instruction)
     protected def observedBranchResolution: (Bool, UInt, UInt, UInt) = if (p.fpgaTimingCuts) {
         val control = addrPacket.control

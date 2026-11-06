@@ -6,7 +6,7 @@ set out [file normalize [lindex $argv 1]]
 if {![file isfile $input]} { error "synthesized checkpoint missing" }
 if {[file exists $out]} { error "refusing to overwrite physical evidence" }
 file mkdir $out
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 open_checkpoint $input
 puts "ORBITAL_I1_CHECKPOINT_DESIGN_OBJECT [get_property NAME [current_design]]"
 # An opened DCP's design object/project name is not its RTL top module. Validate the

@@ -24,6 +24,7 @@ object I1SerialPredecode {
             (p.withD.B && quadrant === 2.U && (function === 1.U || function === 5.U)) ||
             ((p.xlen == 32).B && (quadrant === 0.U || quadrant === 2.U) &&
                 (function === 3.U || function === 7.U)))
-        Mux(p.withC.B && compressed, breakpointClass || floatingClass, native)
+        val classified = if (p.spinor) native || opcode === "h57".U else native
+        Mux(p.withC.B && compressed, breakpointClass || floatingClass, classified)
     }
 }

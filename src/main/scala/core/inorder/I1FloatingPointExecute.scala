@@ -356,9 +356,11 @@ class I1FloatingPointExecute(p: FiveStageConfig, c: I1FloatingPointConfig) exten
     }
     if (p.fpgaTimingCuts) {
         val completing = completed.foldLeft(false.B)(_ || _)
-        when(busy && !rejected && completing && !producerFlush && !io.flush && !io.result.fire) {
+        when(busy && !rejected && completing && !producerFlush) {
+            // Prepare data before late CPU acceptance/cancellation. Those
+            // signals commit only the owner bit; on fire/flush data is unowned.
             rejection := Mux1H(results.zip(completed).map { case (port, owned) => owned -> port.bits }.toSeq)
-            rejected := true.B
+            when(!io.flush && !io.result.fire) { rejected := true.B }
         }
     }
     val rejectionPayload = WireDefault(0.U.asTypeOf(new I1FloatingPointResult(p)))
