@@ -8,7 +8,10 @@ object FpgaNextBoardGsim {
     def build(c: FpgaNextConfig, lineageProbes: Boolean = false, verifyConfiguration: Boolean = false,
         sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false,
         proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false,
-        factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocGsim = new BoardSocGsim(
+        factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocGsim = {
+        require(!c.dmaLineThresholdRewrite && !c.dmaSingleReadWait,
+            "DMA schedule experiments require CommonFabricDmaScheduleGsimMain; this legacy board wrapper is not qualified for them")
+        new BoardSocGsim(
         externalDdr = true, clockHz = c.cpuHz, timingProfile = c.timingProfile,
         uartBaud = c.uartBaud, dataCacheWays = c.cacheWays, issueWidth = c.issueWidth,
         instructionPrefetch = c.instructionPrefetch, isaProfile = c.isaProfile,
@@ -76,6 +79,7 @@ object FpgaNextBoardGsim {
         bankedStoreData = bankedStoreData,
         registerNextLineDecision = registerNextLineDecision,
         combinedTimingR1Audit = combinedTimingR1Audit)
+    }
 }
 
 /** Same fixed CPU/cache/fabric profile as the native export, without clock-domain peripherals. */

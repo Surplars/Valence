@@ -5,7 +5,7 @@ import chisel3.util._
 import _root_.circt.stage.ChiselStage
 import soc.core.ooo._
 
-class IntegerCoreGsim(p: OooParams) extends Module {
+class IntegerCoreGsim(p: OooParams, bankedIndirectStorage: Boolean = false) extends Module {
     require(p.renameWidth == 2 && p.commitWidth == 2)
     require(Set(2, 4, 8).contains(p.memoryEntries), "GSIM harness checks two, four or eight memory slots")
     require(Set(32, 64).contains(p.branchPredictorEntries), "GSIM predictor model supports 32 or 64 entries")
@@ -40,7 +40,7 @@ class IntegerCoreGsim(p: OooParams) extends Module {
         val decoded           = Output(new IntegerRequest)
         val decodeLegal       = Output(Bool())
     })
-    val core = Module(new IntegerCore(p))
+    val core = Module(new IntegerCore(p, bankedIndirectStorage = bankedIndirectStorage))
     io.memory <> core.io.memory
     io.memoryBusy           := core.io.memoryBusy
     io.issueCount           := core.io.issueCount
@@ -128,7 +128,10 @@ object IntegerCoreGsimMain extends App {
         parallelRenameRanks = args.drop(13).contains("parallel-rename-ranks"),
         parallelMinMaxWordResults = args.drop(13).contains("parallel-minmax-word-results"),
         parallelArchitecturalDestinations = args.drop(13).contains("early-architectural-destinations"),
-        parallelAluWordResults = args.drop(13).contains("early-alu-word-results")
+        parallelAluWordResults = args.drop(13).contains("early-alu-word-results"),
+        compressedInstructions = args.drop(13).contains("compressed"),
+        registeredPredictionTraining = args.drop(13).contains("registered-prediction-training")
     )
-    ChiselStage.emitCHIRRTLFile(new IntegerCoreGsim(p), Array("--target-dir", target))
+    ChiselStage.emitCHIRRTLFile(new IntegerCoreGsim(p,
+        bankedIndirectStorage = args.drop(13).contains("banked-indirect-storage")), Array("--target-dir", target))
 }

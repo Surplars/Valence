@@ -338,3 +338,40 @@ SMT-2会使同时存活的架构寄存器状态接近翻倍，并竞争现有单
 原RAM/UART启动的12组周期记录与上一轮完全一致；44条裸核IPC记录逐项一致，报告模型哈希随源码更新。
 全量日志 `build/gsim/dma-final.log`，导出日志 `build/gsim/dma-rtl-export.log`。
 原IPC没有提升；本轮增益是增加独立传输能力并验证CPU/DMA同时前进，未宣称所有负载性能最优。
+
+## 显式双 tag / 单读等待实验（2026-11-05）
+
+生产默认不变。`FpgaNextConfig` 新增两个独立的默认关闭选项。以下 flag 名仅用于 Scala
+`FpgaNextConfig.fromOptions`；`fpga/next/export.py` 和旧 native/board CLI 不接受它们：
+
+- `dmaLineThresholdRewrite` / `--dma-line-threshold-rewrite`：只替换整行资格判断中的
+  “剩余至少八个字”比较；需要启用 `dmaLineTransfers`。保留所有64位长度输入及下溢语义，
+  `countBits > 60` 时仍使用原减法表达式。
+- `dmaSingleReadWait` / `--dma-single-read-wait`：仅允许两个总 tag 的 DMA 同时有一个
+  尚未返回的源行读。另一个 tag 可继续持有目的行写及其响应。该选项要求
+  `dmaLineTransfers=true`、`dmaLineEntries=2`，不会增大 DDR/Home 容量或总线宽度。
+  已经向下游发出的背压请求仍不可撤回；读响应、写响应、错误排空和标量首尾路径不变。
+
+对应的 GSIM CHIRRTL 发射入口为：
+
+```sh
+mill -i IonSoC.test.runMain platform.CommonFabricDmaScheduleGsimMain <fresh-output> read-window
+mill -i IonSoC.test.testOnly platform.CommonFabricDmaScheduleSpec ooo.LegacyDmaScheduleGuardSpec
+```
+
+发射器显式支持五种模式，均保留选定 CPU、缓存、Home1024/四路/M2W2、DDR四槽/两写槽、
+64位外部数据总线及网络/JTAG 等端点：
+
+- `default`：完整 `FpgaNextConfig.Selected`，所有新增选项关闭。
+- `line`：打开已有写收集 flow、单 tag 行 DMA，阈值仍为原表达式。
+- `threshold`：在 `line` 基础上打开阈值改写。
+- `dual`：在 `threshold` 基础上用两个 tag，并打开已有 `lineReadChannel`。
+- `read-window`：在 `dual` 基础上仅打开单源行读等待限制。
+
+这些是 fabric-only 测试入口，没有 CPU 指令执行。完整行返回是内部 DDR 管理器至 Home
+的通道，不是把外部64位总线改宽。固定共享读/写时隙模型中，64KiB DMA 与64KiB取指请求
+共同运行时，`dual` 到 `read-window` 的 DMA 周期为40,956到32,796，完整有限排空为
+40,980到32,801；取指首 A 接受到最后 D 消费跨度上的字节/周期约1.600到2.000。
+该模型的读时隙使用已接近其人为服务上限，不能解释为真实 DDR 饱和、CPU IPC 或 Fmax。
+独立读写服务下，稀疏标量请求的 offer-to-response 均值反而从20.781增加到25.156周期，
+所以不自动推广为默认配置。真实 CPU/cache+fabric、物理 DDR/MIG、布线时序及板测另行验证。

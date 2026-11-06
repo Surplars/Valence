@@ -49,8 +49,20 @@ object CoherentLineHomeModule {
         internalLineGrant: Boolean = false,
         memoryScheduleOverlap: Boolean = false,
         futureHomeWayReservation: Boolean = false,
-        allowSharedFutureLookup: Boolean = false
+        allowSharedFutureLookup: Boolean = false,
+        dmaMaintenanceCompletionFlow: Boolean = false,
+        dmaReadAcquireOverlap: Boolean = false,
+        dmaProbeAcquireOverlap: Boolean = false
     ): CoherentLineHomeModule = {
+        require(!dmaProbeAcquireOverlap || dmaReadAcquireOverlap,
+            "DMA Probe/Acquire overlap requires bounded DMA read/Acquire overlap")
+        require(!dmaReadAcquireOverlap || (dmaLineTransfers && dmaLineEntries == 2 && nClients == 2 &&
+            acquireEntries == 2 && writebackEntries == 2 && trackedLines == 1024 && trackedWays == 4 &&
+            mixedReadWrite && lineReadChannel && internalLineGrant),
+            "DMA read/Acquire overlap requires the bounded two-client, two-tag independent-line Home")
+        require(!dmaMaintenanceCompletionFlow || (dmaLineTransfers && dmaLineEntries == 2 &&
+            acquireEntries > 1 && (writebackEntries > 1 || mixedReadWrite)),
+            "maintenance completion flow requires the bounded two-tag DMA Home")
         require(!allowSharedFutureLookup || (futureHomeWayReservation && memoryScheduleOverlap &&
             trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 && writebackEntries == 2 &&
             mixedReadWrite && dmaLineTransfers && dmaLineEntries == 4 && tagConfig.bankedStorage &&
@@ -88,7 +100,9 @@ object CoherentLineHomeModule {
                     sharedLookupMatch = memoryScheduleOverlap && trackedLines == 512 && trackedWays == 2 &&
                         acquireEntries == 2 && writebackEntries == 2 && mixedReadWrite && dmaLineTransfers &&
                         dmaLineEntries == 4 && tagConfig.bankedStorage && (!futureHomeWayReservation || allowSharedFutureLookup) &&
-                        lineTransferDispatchFlow && lineReadChannel && internalLineGrant, nClients = nClients))
+                        lineTransferDispatchFlow && lineReadChannel && internalLineGrant, nClients = nClients,
+                    dmaMaintenanceCompletionFlow = dmaMaintenanceCompletionFlow,
+                    dmaReadAcquireOverlap = dmaReadAcquireOverlap, dmaProbeAcquireOverlap = dmaProbeAcquireOverlap))
             else Module(new NonBlockingCoherentLineHome(params, base, bytes, trackedLines,
                 trackedWays, acquireEntries, rawResponseMetadata, tagConfig))
         }

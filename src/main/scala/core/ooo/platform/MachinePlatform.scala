@@ -69,7 +69,8 @@ class MachinePlatform(
     localCacheReadSelection: Boolean = false
 ,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false,
+    dmaLineThresholdRewrite: Boolean = false, dmaSingleReadWait: Boolean = false) extends Module {
     require(!p.fetchThirdPacketLookahead,
         "identity fetch horizon requires the explicitly ranged Common-A1 two-owner integration")
     require(Set(0, 32, 64, 128).contains(dataTlbMissCacheEntries),
@@ -358,7 +359,8 @@ class MachinePlatform(
         loader.io.linkUp := io.jtagLinkUp.get
     }
     val dma       = Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes, lineTransfers = dmaLineTransfers,
-        lineYieldCycles = dmaLineYieldCycles, lineEntries = dmaLineEntries))
+        lineYieldCycles = dmaLineYieldCycles, lineEntries = dmaLineEntries,
+        lineThresholdRewrite = dmaLineThresholdRewrite, singleReadWait = dmaSingleReadWait))
     val packetDma = if (ethernetDma) Some(Module(new soc.ip.dma.EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = networkDmaConfig.maxFrameBytes,
         postedRxSlots = networkDmaConfig.postedRxSlots, memoryCredits = networkDmaConfig.memoryCredits,

@@ -4,6 +4,19 @@ import chisel3._
 import chisel3.util._
 import soc.ip.bus.{RegisterPort, RegisterResponse}
 
+object MemoryCopyDmaThreshold {
+    def atLeastEight(length: UInt, readsSent: UInt, countBits: Int): Bool = {
+        require(length.getWidth == 64 && readsSent.getWidth == countBits)
+        if (countBits <= 60) {
+            val words = length >> 3
+            val end = readsSent +& 8.U
+            (words < readsSent.pad(61)) || (words >= end.pad(61))
+        } else {
+            (length >> 3) - readsSent >= 8.U
+        }
+    }
+}
+
 /** Four-credit aligned memory copy engine. Independent of the CPU; see docs/dma.md. */
 class MemoryCopyDma(
     base: BigInt = BigInt("10001000", 16),
@@ -11,9 +24,14 @@ class MemoryCopyDma(
     ramBytes: BigInt = 4096,
     lineTransfers: Boolean = false,
     lineYieldCycles: Int = 0,
-    lineEntries: Int = 1
+    lineEntries: Int = 1,
+    lineThresholdRewrite: Boolean = false,
+    singleReadWait: Boolean = false
 ) extends Module {
     require(Set(1, 2, 4, 8).contains(lineEntries) && (lineTransfers || lineEntries == 1))
+    require(!lineThresholdRewrite || lineTransfers, "line threshold rewrite requires line transfers")
+    require(!singleReadWait || (lineTransfers && lineEntries == 2),
+        "single read-wait scheduling requires exactly two line tags")
     require(lineYieldCycles >= 0 && lineYieldCycles <= 64 && (lineTransfers || lineYieldCycles == 0))
     require(base >= 0 && base % 8 == 0 && base + 40 <= (BigInt(1) << 64))
     require(
@@ -91,7 +109,8 @@ class MemoryCopyDma(
         lineBusy := state =/= lIdle
         lineEligible := nextSource(5, 0) === 0.U &&
             (destination + (readsSent << 3))(5, 0) === 0.U &&
-            (length >> 3) - readsSent >= 8.U
+            (if (lineThresholdRewrite) MemoryCopyDmaThreshold.atLeastEight(length, readsSent, countBits)
+             else (length >> 3) - readsSent >= 8.U)
         val scalarDrained = !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U &&
             readsSent === writesDone && writesSent === writesDone
         when(state === lIdle && busy && !failed && scalarDrained && lineEligible) { state := lRead }
@@ -149,13 +168,21 @@ class MemoryCopyDma(
         val nextSource = source + (readsSent << 3)
         lineEligible := nextSource(5, 0) === 0.U &&
             (destination + (readsSent << 3))(5, 0) === 0.U &&
-            (length >> 3) - readsSent >= 8.U
+            (if (lineThresholdRewrite) MemoryCopyDmaThreshold.atLeastEight(length, readsSent, countBits)
+             else (length >> 3) - readsSent >= 8.U)
         val scalarDrained = !locked && !owners.io.deq.valid && !data.io.deq.valid && resident === 0.U
         lineBusy := phases.map(_ =/= empty).reduce(_ || _) || held
         val chooseLineWrite = Mux(held, heldWrite, writable.asUInt.orR)
         val selectedSlot = Mux(held, heldSlot,
             Mux(writable.asUInt.orR, PriorityEncoder(writable), PriorityEncoder(free)))
-        val availableLine = Mux(chooseLineWrite, writable(selectedSlot), free.asUInt.orR && lineEligible)
+        // Admission bound only: write ownership and irrevocable held offers
+        // keep their existing rules. Total tags and payload storage stay fixed.
+        val readInFlight = if (singleReadWait) phases.map(_ === readWait).reduce(_ || _) else false.B
+        val availableLine = if (singleReadWait) {
+            Mux(chooseLineWrite, writable(selectedSlot), free.asUInt.orR && lineEligible && !readInFlight)
+        } else {
+            Mux(chooseLineWrite, writable(selectedSlot), free.asUInt.orR && lineEligible)
+        }
         val yielding = WireDefault(false.B)
         if (lineYieldCycles > 0) {
             val quiet = RegInit(0.U(log2Ceil(lineYieldCycles + 1).W))

@@ -307,7 +307,8 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         frozenStoreCheckedFlow: Boolean = false,
         pendingReadyStoreQuery: Boolean = false, registeredHomeRequestBoundary: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false,
+    dmaLineThresholdRewrite: Boolean = false, dmaSingleReadWait: Boolean = false) extends Module {
     SvTranslationService.indexBits(dataTranslationEntries)
     if (externalDdr) ddrBridge.validateSoc()
     require(triSpeedTxFrameSlots == 1 || (triSpeedEthernet && triSpeedTxFrameSlots == 2))
@@ -454,6 +455,7 @@ class BoardSocTop(vivadoMemories: Boolean = true, simulation: Boolean = false,
         ethernetControl = ethernetControl, ethernetDma = ethernetDma, clockManagement = cmuConfig.nonEmpty,
         externalUart = managedPeripherals, ddrBridge = ddrBridge, cacheConcurrency = cacheConcurrency, tagConfig = tagConfig, networkDmaConfig = networkDmaConfig, bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
+        dmaLineThresholdRewrite = dmaLineThresholdRewrite, dmaSingleReadWait = dmaSingleReadWait,
         lineTransferDispatchFlow = lineTransferDispatchFlow,
         registerProbeLookup = registerProbeLookup, localAddressRanges = localAddressRanges,
         localCacheReadSelection = localCacheReadSelection,

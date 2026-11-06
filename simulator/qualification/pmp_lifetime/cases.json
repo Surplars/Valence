@@ -1,0 +1,206 @@
+[
+  {
+    "name": "idle-unknown",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_address": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "io_size": "xxx"
+    }
+  },
+  {
+    "name": "idle-illegal",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_address": "0000000000000000000000000000000000000000000000000000000000000001",
+      "io_size": "100"
+    }
+  },
+  {
+    "name": "reset-live-illegal",
+    "kind": "natural",
+    "negative": false,
+    "reset": true,
+    "inputs": {
+      "io_address": "0000000000000000000000000000000000000000000000000000000000000001",
+      "io_size": "100",
+      "io_preparedValid": "1",
+      "io_walker0State": "01",
+      "io_walker1State": "01"
+    }
+  },
+  {
+    "name": "fp-held-valid-denied",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_preparedValid": "1"
+    }
+  },
+  {
+    "name": "fp-held-valid-allowed",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_privilege": "11",
+      "io_preparedValid": "1"
+    }
+  },
+  {
+    "name": "fp-valid-misaligned-denied",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_address": "0000000000000000000000000000000000000000000000000000000000000001",
+      "io_preparedValid": "1"
+    }
+  },
+  {
+    "name": "fp-valid-oversize-denied",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_size": "100",
+      "io_preparedValid": "1"
+    }
+  },
+  {
+    "name": "fp-valid-unknown",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_address": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "io_size": "xxx",
+      "io_preparedValid": "1"
+    }
+  },
+  {
+    "name": "walker0-held-valid-denied",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_walker0State": "01"
+    }
+  },
+  {
+    "name": "walker0-held-valid-allowed",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_privilege": "11",
+      "io_walker0State": "01"
+    }
+  },
+  {
+    "name": "walker0-valid-misaligned-denied",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_address": "0000000000000000000000000000000000000000000000000000000000000001",
+      "io_walker0State": "01"
+    }
+  },
+  {
+    "name": "walker0-valid-oversize-denied",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_size": "100",
+      "io_walker0State": "01"
+    }
+  },
+  {
+    "name": "walker0-valid-unknown",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_address": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "io_size": "xxx",
+      "io_walker0State": "01"
+    }
+  },
+  {
+    "name": "walker1-held-valid-denied",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_walker1State": "01"
+    }
+  },
+  {
+    "name": "walker1-held-valid-allowed",
+    "kind": "natural",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_privilege": "11",
+      "io_walker1State": "01"
+    }
+  },
+  {
+    "name": "walker1-valid-misaligned-denied",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_address": "0000000000000000000000000000000000000000000000000000000000000001",
+      "io_walker1State": "01"
+    }
+  },
+  {
+    "name": "walker1-valid-oversize-denied",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_size": "100",
+      "io_walker1State": "01"
+    }
+  },
+  {
+    "name": "walker1-valid-unknown",
+    "kind": "natural",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_address": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "io_size": "xxx",
+      "io_walker1State": "01"
+    }
+  },
+  {
+    "name": "idle-bad-region",
+    "kind": "decoded",
+    "negative": true,
+    "reset": false,
+    "inputs": {
+      "io_state_regionActive_0": "1",
+      "io_state_regionLow_0": "00000000000000000000000000000000000000000000000000000000000000001",
+      "io_state_regionEnd_0": "00000000000000000000000000000000000000000000000000000000000000011"
+    }
+  },
+  {
+    "name": "idle-good-region-unknown-address",
+    "kind": "decoded",
+    "negative": false,
+    "reset": false,
+    "inputs": {
+      "io_address": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "io_size": "xxx"
+    }
+  }
+]

@@ -61,7 +61,8 @@ class CommonMachinePlatform(
     experimentalA1Runtime: Boolean = false,
     val a1Experimental: Option[CommonA1ExperimentalSelection] = None,
     val peripheralConfig: CommonPeripheralConfig = CommonPeripheralConfig(),
-    val cpuSpec: Option[CommonA1CpuSpec] = None
+    val cpuSpec: Option[CommonA1CpuSpec] = None,
+    val fabricDmaExperiment: Option[CommonFabricDmaExperiment] = None
 ) extends RawModule {
     val socConfig = CommonSocConfig(profile, cpuSpec, peripheralConfig, a1Experimental)
     socConfig.peripherals.validateRuntime(runtimeDebugAdmission, runtimeNetworkAdmission)
@@ -95,6 +96,10 @@ class CommonMachinePlatform(
     require(profile.clockProfile != "boot50-dynamic" || runtimeRateControl)
     private val boundary = if (runtimeDebugAdmission) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
+    require(fabricDmaExperiment.isEmpty || (a1Experimental.isEmpty && cpuSpec.isEmpty),
+        "fabric DMA experiment initially requires generic A1 CPU configuration")
+    val resolvedFabric = CommonFabricDmaExperiment.resolve(profile, peripheralConfig, boundary,
+        fabricDmaExperiment, runtime = experimentalA1Runtime || runtimeDebugAdmission || runtimeRateControl)
     val a1CpuConfig = socConfig.cpuConfig(boundary, experimentalA1Runtime)
     val a1MemoryProfile = CommonA1ExperimentalSelection.memoryProfile(a1Experimental)
     require(independentDdrClock || profile.fabricHz == profile.ddrUiHz,
@@ -118,7 +123,7 @@ class CommonMachinePlatform(
     val rawRxClock = if (peripheralConfig.network) Some(IO(Input(Clock()))) else None
     val commonColdReset = IO(Input(AsyncReset()))
     val io = IO(new Bundle {
-        val ddrAxi = new Axi4MemoryPort(32, profile.fpga.ddr.axiIdWidth)
+        val ddrAxi = new Axi4MemoryPort(32, resolvedFabric.fpga.ddr.axiIdWidth)
         val ddrReady = Input(Bool())
         // Cold-start admission only; dropping this after startup cannot reset or cancel owners.
         val bootEnable = Input(Bool())
@@ -186,11 +191,13 @@ class CommonMachinePlatform(
 
     // Exactly one fabric and one managed peripheral bank, OUTSIDE the CPU choice.
     val fabric = withClockAndReset(fabricClock, fabricRelease.resetOut) {
-        Module(new CommonMachineFabric(boundary = boundary, fpga = profile.fpga,
-            features = peripheralConfig.features, ramBytes = profile.fpga.ddrBytes, externalDdr = true,
+        Module(new CommonMachineFabric(boundary = boundary, fpga = resolvedFabric.fpga,
+            features = peripheralConfig.features, ramBytes = resolvedFabric.fpga.ddrBytes, externalDdr = true,
             romFiles = romFiles, programmable = programmable, vivadoMemories = vivadoMemories,
             externalTimer = independentTimebaseClock, runtimeDebugAdmission = runtimeDebugAdmission,
-            runtimeNetworkAdmission = runtimeNetworkAdmission))
+            runtimeNetworkAdmission = runtimeNetworkAdmission,
+            dmaMaintenanceCompletionFlow = resolvedFabric.completionFlow,
+            dmaReadAcquireOverlap = resolvedFabric.readOverlap, dmaProbeAcquireOverlap = resolvedFabric.probeOverlap))
     }
     fabric.io.tile <> crossing.fabric
     fabric.io.transportCpuEmptySynchronized := crossing.cpuEmptyInFabric
@@ -208,7 +215,7 @@ class CommonMachinePlatform(
     val fixedQualifiers = ddrQualification.toSeq ++ timerQualification.toSeq
     val fixedFabricIdle = if (runtimeFixedQualification) Some(Wire(Vec(2, Bool()))) else None
     if (independentDdrClock) {
-        val ddrCrossing = Module(new Axi4ClockDomainBoundary(32, profile.fpga.ddr.axiIdWidth))
+        val ddrCrossing = Module(new Axi4ClockDomainBoundary(32, resolvedFabric.fpga.ddr.axiIdWidth))
         ddrCrossing.fabricClock := fabricClock; ddrCrossing.ddrClock := ddrClock.get
         ddrCrossing.commonColdReset := commonColdReset
         ddrCrossing.fabric <> fabric.io.ddrAxi.get
@@ -379,7 +386,7 @@ class CommonMachinePlatform(
     fabric.io.uartRx := true.B // actual UART is the shared managed bank below
     protected def buildPeripheralBank(): ManagedPeripheralBank =
         new ManagedPeripheralBank(socConfig.cmu, profile.cpuHz, profile.uartHz,
-        profile.uartBaud, hardwareClocks, networkDmaConfig = profile.fpga.network,
+        profile.uartBaud, hardwareClocks, networkDmaConfig = resolvedFabric.fpga.network,
         triSpeedEthernet = peripheralConfig.network, triSpeedTxFrameSlots = (if (peripheralConfig.network) 2 else 1),
         networkEnabled = peripheralConfig.network, runtimeAdmission = runtimeNetworkAdmission,
         runtimeControlPark = runtimeControlQualification, runtimeFixedMac = runtimeFixedMac,

@@ -1,0 +1,1295 @@
+{
+  "schemaVersion": 1,
+  "kind": "non-executable profile and evidence summary",
+  "consumedByRunner": false,
+  "defaultEnabled": false,
+  "feature": "dmaProbeAcquireOverlap",
+  "status": "default-off candidate; narrow SMC/concurrent-DMA frozen and independently reviewed",
+  "sourceFiles": [
+    {
+      "path": "src/main/scala/core/ooo/cache/CoherentLineHome.scala",
+      "sha256": "35a56b54384e5b97133cc687a4f3d9bce058224007607c67c84b2f485b7fbd86"
+    },
+    {
+      "path": "src/main/scala/core/ooo/cache/MixedCoherentLineHome.scala",
+      "sha256": "676a961f2abe4cff9d3e75e79921030d37d2a8fe945a2766c6eb8cc0a4fd26ae"
+    },
+    {
+      "path": "src/main/scala/platform/CommonMachineFabric.scala",
+      "sha256": "c8d20dbcd72ed63f60361947ae202101556acda9e3aae2a48e600e5cec5075be"
+    },
+    {
+      "path": "src/test/scala/platform/CommonFabricDmaProbeAcquireGsim.scala",
+      "sha256": "3964de3123caaacd2a27b9e953a6b1ce801274c3865c3dca52d06deb2588b73e"
+    },
+    {
+      "path": "src/test/scala/platform/CommonFabricDmaProbeAcquireSpec.scala",
+      "sha256": "4dec888c98f8fa8e862bf0c36953ac3b7d19f1d65d7acfe12fc6e56835e05182"
+    },
+    {
+      "path": "src/test/scala/platform/CommonMachineFabricGsim.scala",
+      "sha256": "47cd1c76162c058d4fcb99b43fc25352dc8d7770217088b9c33ebaab3d118bd5"
+    }
+  ],
+  "configuration": {
+    "completeResolvedProfileLock": false,
+    "selectionChain": [
+      "CommonFabricHomeCompletion.config",
+      "CommonFabricDmaSchedule.config(\"dual\")",
+      "FpgaNextConfig.Selected.copy(...)"
+    ],
+    "dynamicDependency": "Unspecified fields inherit live FpgaNextConfig.Selected; neither this manifest nor Home require checks lock the complete W16 system.",
+    "homeGuard": {
+      "readOverlapRequired": true,
+      "dmaLineTransfers": true,
+      "dmaLineEntries": 2,
+      "nClients": 2,
+      "acquireEntries": 2,
+      "writebackEntries": 2,
+      "trackedLines": 1024,
+      "trackedWays": 4,
+      "sets": 256,
+      "mixedReadWrite": true,
+      "lineReadChannel": true,
+      "internalLineGrant": true
+    },
+    "focusedEmitter": {
+      "dmaReadAcquireOverlap": true,
+      "dmaMaintenanceCompletionFlow": true,
+      "dmaProbeAcquireOverlap": "explicit off|on",
+      "runtime": false
+    },
+    "dualScheduleOverrides": {
+      "ddrWriteCollectionFlow": true,
+      "dmaLineTransfers": true,
+      "dmaLineEntries": 2,
+      "lineReadChannel": true,
+      "dmaLineThresholdRewrite": true,
+      "dmaSingleReadWait": false
+    },
+    "reviewedDdrLimits": {
+      "maxOutstanding": 4,
+      "maxOutstandingWrites": 2
+    },
+    "completionFlowOffCoverage": "pure elaboration only; not measured runtime/performance equivalence"
+  },
+  "entryPoints": {
+    "specs": [
+      "platform.CommonFabricDmaAcquireSpec",
+      "platform.CommonFabricDmaProbeAcquireSpec"
+    ],
+    "fabricEmitter": "platform.CommonFabricDmaProbeAcquireGsimMain",
+    "emitterArguments": [
+      "fresh-output-directory",
+      "off|on"
+    ],
+    "historicalExecution": "pinned direct Scala compiler and ScalaTest Runner; exact argv and hashes in external source evidence",
+    "standardMillCommandsRetestedHere": false,
+    "portableFullCpuRunner": null
+  },
+  "toolVersions": {
+    "scala": "2.13.17",
+    "chisel": "7.3.0",
+    "chiselPlugin": "7.3.0",
+    "scalaTest": "3.2.19"
+  },
+  "evidence": {
+    "sourceBundle": "recovery-1106-probe-acquire-source",
+    "primaryReport": "recovery-1106-probe-acquire-final/REPORT.md",
+    "maintenanceReport": "recovery-1106-probe-acquire-maintenance-final/REPORT.md",
+    "validatedArchive": {
+      "name": "recovery-1106-probe-acquire-validated-evidence.tar.gz",
+      "sha256": "148f9e099465731becbee9903f3e6c4114d300e8e00cbaee7614debd09da57d9"
+    },
+    "candidateFabricFirSha256": "48fb8d6055948e2c2665acc684b457bc9101a2c1544ac39b7cd4d3acde306f70",
+    "sourceFabricModules": 85,
+    "realCacheFixtureBodies": 18,
+    "cpuComposition": {
+      "lineage": "retained W16",
+      "modules": 277,
+      "changedBodies": [
+        "MixedCoherentLineHome"
+      ],
+      "unchangedBodies": 276,
+      "freshCurrentSourceCpuBuild": false
+    },
+    "smcConcurrentDma": {
+      "status": "PASS_FROZEN_INDEPENDENT_SMC_FENCE_REVIEW",
+      "references": [
+        {
+          "artifact": "recovery-1106-probe-acquire-smc-cpu/FROZEN_MANIFEST.json",
+          "sha256": "bf59ab11eab5ba3e26908604f3608895d4381b9058334d05c6bd46cca231ae67"
+        },
+        {
+          "artifact": "recovery-1106-probe-acquire-smc-cpu/RESULT.json",
+          "sha256": "040373c0c9b227ba2e03dee085e8c4f88f71190d95e6a217cf05ab216dee8894"
+        },
+        {
+          "artifact": "recovery-1106-probe-acquire-smc-cpu/errata_v1/FROZEN_MANIFEST.json",
+          "sha256": "24f5b80456a402eb3e18a181432c4b892b936979b5cb6a56300b58a2a1a6eacd"
+        },
+        {
+          "artifact": "recovery-1106-probe-acquire-smc-review/FINAL_RESULT.json",
+          "sha256": "b05303c1a75b8557759c2e448cae07b291170fedb1864d06e482f5dbe083f047"
+        }
+      ],
+      "nativeRuns": 2,
+      "totalCyclesOffOn": [
+        3776,
+        3759
+      ],
+      "dmaCyclesOffOn": [
+        1861,
+        1844
+      ],
+      "instructionWaitOffOn": [
+        313,
+        313
+      ],
+      "limits": [
+        "One hart, one same-line 8-byte patch, retained W16 only.",
+        "Active optional instruction prefetch disabled.",
+        "Code writeback is within the DMA job, without a Home DMA-line owner at that exact beat.",
+        "Final zero debt is after terminal EBREAK at quiet/GPR inspection, not the trap edge."
+      ]
+    },
+    "irqMmuAssessment": {
+      "artifact": "recovery-1106-probe-acquire-irq-vm-assessment/REPORT.md",
+      "sha256": "9e71f281f6052afa87baef0d4a83e4d9693b061f188b11f8842baa6ce7affc9a",
+      "executed": false,
+      "timerIrq": "Retained model reuse plausible; requires independent timer/MMIO/precise-EPC oracle.",
+      "mmu": "Not drop-in; separately scope page tables, translation, PMP, SFENCE and architecture oracle.",
+      "coverage": "Interface or hardware presence is not executed coverage."
+    },
+    "retainedTimerIrq": {
+      "status": "two matched native PASS; independently reviewed",
+      "references": [
+        {
+          "artifact": "recovery-1106-probe-acquire-irq-final/RESULT.json",
+          "sha256": "1fad2bd96340c179859cf60af003dcfe393021330d1df05eeccd008d75ac6e2a"
+        },
+        {
+          "artifact": "recovery-1106-probe-acquire-irq-final/REPORT.md",
+          "sha256": "682ef908b3ee719703de31a5c83988b2bef640a459df82b92f8e18e2ce1e93e8"
+        },
+        {
+          "artifact": "recovery-1106-probe-acquire-irq-cpu/FROZEN_MANIFEST.json",
+          "sha256": "a71c995ef736def1c580c31999ae3196f7ed3e76b370ba80292253aaa5718a5f"
+        },
+        {
+          "artifact": "recovery-1106-probe-acquire-irq-review/FINAL_RESULT.json",
+          "sha256": "cd9412f3b3c5f4e1dd36992c9db0765545cd49f39b535d23f97b7ea89de3c6c9"
+        }
+      ],
+      "nativeCases": 2,
+      "producerOfflineNegatives": 6,
+      "independentOracleNegativesPerSide": 9,
+      "scope": "retained W16 M-mode timer IRQ with precise handler/MRET and concurrent DMA ownership",
+      "limits": [
+        "Final timer masked pending: level1/MTIE0, not cleared or rearmed.",
+        "All31 fills direct; no queued-fill IRQ coverage.",
+        "No MMU or current-source runtime qualification."
+      ],
+      "archiveSha256": "6aba3f72b28bbb49f6c7e909fd3d7e4914bb334859c16a21e00182587faf983a"
+    }
+  },
+  "qualificationLimits": [
+    "Home guards do not lock the entire W16 profile.",
+    "Finite completion is not universal fairness.",
+    "Retained CPU client0 inactivity is not two-client CPU coverage.",
+    "No physical timing, Fmax, MIG or board qualification.",
+    "Any current-source CPU integration requires a new qualification lineage."
+  ],
+  "knownCosts": {
+    "mixedInstructionWaitExtraCycles": [
+      60,
+      66
+    ],
+    "delayedMixedFetchMaxExtraCycles": 2,
+    "delayedMixedFetchP99ExtraCycles": 3,
+    "fenceCaseTotalExtraCycles": 25,
+    "fenceCaseDmaExtraCycles": 83
+  },
+  "logicalMapOnly": {
+    "fabricLutDelta": 81,
+    "fabricMuxfDelta": -141,
+    "ffCarryRamUnchanged": true,
+    "directoryAndClientLocalDDepthDelta": 1,
+    "flattenedRamCarryTiming": "unknown"
+  },
+  "promotion": "Explicit separate approval; keep all public defaults false.",
+  "manifestPlacement": "docs/data, outside GSIM config JSON input globs; descriptive only",
+  "currentSourceEntry": {
+    "qualification": "SOURCE_ELABORATION_ONLY_NOT_RETAINED_W16_RUNTIME_OR_BOARD_QUALIFIED",
+    "class": "platform.CommonMachinePlatformMain",
+    "option": "--experimental-fabric-dma=read-baseline|probe-acquire",
+    "defaultSelection": null,
+    "scope": "generic static production A1; no CPU spec/experiment/runtime/SoC file selection",
+    "cpu": {
+      "issueWidth": 2,
+      "robEntries": 16,
+      "physicalRegisters": 48,
+      "lsuOwners": 2,
+      "instructionCacheBytes": 32768,
+      "dataCacheBytes": 32768,
+      "cacheWays": 2
+    },
+    "compile": {
+      "mainSources": 347,
+      "selectedTestHelperSources": 9,
+      "successfulCompiles": 1
+    },
+    "focusedTestsPassed": 9,
+    "preEmitCliRejections": 8,
+    "successfulChirrtlEmits": 2,
+    "extmodules": [
+      "BUFGCE",
+      "BUFGCE_1",
+      "BUFGCE_2"
+    ],
+    "changedModules": [
+      "MixedCoherentLineHome"
+    ],
+    "allModulePortsStorageInstancesMatch": true,
+    "homeStorageDeclarations": 57,
+    "cpuPrivateConfigurationIdentical": true,
+    "identityDigestIncludesSharedFabric": true,
+    "historicalDefaultEmittedEquivalenceEstablished": false,
+    "firtoolValidated": false,
+    "nativeCurrentCpuExecuted": false,
+    "svBoardShellOrPhysicalQualification": false,
+    "evidenceRoot": "recovery-1106-probe-acquire-current-entry",
+    "pairReceiptSha256": "35102e3807aff0396bc81104e7284e1d6c738bbd4673ba561bde110c4f663e0f",
+    "nonExternalModulesIncludingPublicTop": 571,
+    "publicTop": "CommonMachinePlatform",
+    "totalDefinitions": 574
+  },
+  "currentMatchingSynchronousRuntime": {
+    "qualification": "MATCHING_CURRENT_CPU_CACHE_FABRIC_SYNCHRONOUS_RUNTIME_ONLY",
+    "defaultEnabled": false,
+    "separateFromRetainedW16": true,
+    "genericLsuOwners": 2,
+    "nativeRuns": 8,
+    "pairedConditions": 4,
+    "composition": {
+      "modules": 266,
+      "cpuClosure": 181,
+      "fabricClosure": 84,
+      "explicitSharedClockTop": 1,
+      "byteExactCurrentProductionEntryChildBodies": 265
+    },
+    "fullProductionRawModuleExecuted": false,
+    "productionIndependentClocksCdcFifoResetBufgceQualified": false,
+    "productionClockRatioModeled": false,
+    "nativeArchitectureGprMemoryProtocolFenceDrainPassed": true,
+    "closedAcquireGrantEInstallGenerations": 640,
+    "closedDmaGenerations": 128,
+    "earlyDirtyProbesOnOff": [
+      22,
+      0
+    ],
+    "producerOfflineDiagnosticNegatives": 10,
+    "hardwareFaultInjection": false,
+    "pairedOutcomes": [
+      {
+        "condition": "dconflict-normal",
+        "dmaOffOn": [
+          1407,
+          1174
+        ],
+        "wholeRunOffOn": [
+          6912,
+          6679
+        ]
+      },
+      {
+        "condition": "dconflict-delayed",
+        "dmaOffOn": [
+          2753,
+          2135
+        ],
+        "wholeRunOffOn": [
+          10623,
+          10005
+        ]
+      },
+      {
+        "condition": "iconflict-delayed",
+        "dmaOffOn": [
+          1313,
+          1274
+        ],
+        "wholeRunOffOn": [
+          9745,
+          9773
+        ],
+        "instructionWaitDelta": 28,
+        "acceptedFetchesEach": 107,
+        "completedFetchesEach": 107,
+        "maxFetchLatencyEach": 49,
+        "p99FetchLatencyEach": 48
+      },
+      {
+        "condition": "poll-normal",
+        "dmaOffOn": [
+          679,
+          679
+        ],
+        "wholeRunOffOn": [
+          2968,
+          2968
+        ]
+      }
+    ],
+    "unqualified": [
+      "current IRQ",
+      "current MMU",
+      "current SMC",
+      "current fault recovery",
+      "full production RawModule",
+      "board/MIG/physical timing"
+    ],
+    "references": [
+      {
+        "artifact": "recovery-1106-current-a1-runtime/ARTIFACT_PINS.json",
+        "sha256": "8d7e679756580f1b71cca6fb6b7ec4ab35c92bb7d53b03896362cd3a09beb869"
+      },
+      {
+        "artifact": "recovery-1106-current-a1-runtime/REPORT.md",
+        "sha256": "da007036f07d313a76a52284971d6625198458581a3984500685580db11f2e16"
+      },
+      {
+        "artifact": "recovery-1106-current-a1-runtime/RESULT.json",
+        "sha256": "e415f1f316e64dbca1058f91c332f341eb13857b2c0046677f3e69868887c969"
+      },
+      {
+        "artifact": "recovery-1106-current-a1-runtime-review/ARTIFACT_PINS.json",
+        "sha256": "34f8f69360e821c814cb6e1eaab8cf17fe8c0f5a41baf98d64c179749b0e2b43"
+      },
+      {
+        "artifact": "recovery-1106-current-a1-runtime-review/REPORT.md",
+        "sha256": "2b93b12bf4f48cf904907deac12d935ff80a3283793fc69d5b2da851935a7996"
+      },
+      {
+        "artifact": "recovery-1106-current-a1-runtime-review/FINAL_RESULT.json",
+        "sha256": "b777a72d6e88b820547235f61aed4ae9d7d342312f5e0bc5ca6e169d9e7038d0"
+      }
+    ],
+    "independentOfflineDiagnosticNegatives": 20,
+    "terminalTrapDebtsEach": {
+      "fetch": 1,
+      "scalarReservationClear": 1
+    },
+    "finalZeroDebtEndpoint": {
+      "quietSamples": 36,
+      "gprInspectionCount": 32
+    }
+  },
+  "productionClockBoundaryComponentRuntime": {
+    "qualification": "EXACT_PRODUCTION_COMMON_CPU_CLOCK_BOUNDARY_COMPONENT_ONLY",
+    "defaultEnabled": false,
+    "productionDefinitions": 107,
+    "vendorModulesIncluded": false,
+    "nativeSimulator": "installed official Yosys sim",
+    "clocksMHz": {
+      "cpu": 100,
+      "fabric": 250
+    },
+    "fabricPhaseOffsetsNs": [
+      0,
+      1,
+      3
+    ],
+    "lanes": 26,
+    "threePhaseDeliveredTokens": 12480,
+    "tokensPerLanePerPhase": {
+      "beforeDrainedReset": 128,
+      "afterDrainedReset": 32
+    },
+    "capacityPerLane": 17,
+    "nativeOriginalAssertionInstances": 52,
+    "minimumEnabledSamplesPerAssertionPerPhase": 92,
+    "activeAssertionPredicateEnableTriggerUnknowns": false,
+    "functionalStructureUnchanged": {
+      "cells": 3075,
+      "rams": 26,
+      "asynchronousResetFlipFlopCells": 423
+    },
+    "adaptation": "independently structure-checked official verification-cell-only lowering",
+    "negatives": {
+      "copiedMonitorNativeAssertionFatal": 2,
+      "copiedDutWrongFabricClockOracleRejection": 1,
+      "observerPerturbationRejections": 2
+    },
+    "blockedCommonColdReset": {
+      "assertNs": 697,
+      "releaseNs": 797,
+      "oldAcceptedPerLane": 17,
+      "abortedOldTokens": 442,
+      "abortedCountIsNotCompletion": true,
+      "emptyWindowNs": 240,
+      "oldValidOrReplayInEmptyWindow": false,
+      "newEpochDeliveredPerLane": 32,
+      "newEpochDeliveredTokens": 832,
+      "bothTestEndpointsReset": true
+    },
+    "unqualified": [
+      "integrated production A1+fabric+CDC runtime",
+      "whole-core 100:250 throughput",
+      "one-sided reset",
+      "stopped clocks",
+      "external accepted DDR write rollback",
+      "metastability/MTBF",
+      "physical STA",
+      "BUFGCE/vendor clock behavior",
+      "board",
+      "power"
+    ],
+    "references": [
+      {
+        "artifact": "recovery-1106-production-cdc-validation/RESULT.json",
+        "sha256": "908632b382d1d2db00f7245a23b72897b73db85b93dec69c42f304556bf0f95d"
+      },
+      {
+        "artifact": "recovery-1106-production-cdc-validation/REPORT.md",
+        "sha256": "6fc34ce43bc52070db5be9b9b525d698a394cef002c5283308dbcc3e9b6a0b89"
+      },
+      {
+        "artifact": "recovery-1106-production-cdc-validation/FREEZE.json",
+        "sha256": "24887de8756a4435c6120341fe44f23dee4c9db3d5f3c630038d7e1b9a5adcf8"
+      },
+      {
+        "artifact": "recovery-1106-production-cdc-validation/ARTIFACT_PINS.json",
+        "sha256": "458486d5cce613a17aea31ee725798f6b9c42c58fd7c54acbdf8b831a237eb8d"
+      },
+      {
+        "artifact": "recovery-1106-cdc-tool-feasibility/runtime-review-v1/MANIFEST.json",
+        "sha256": "377a29efdb6e800df1b533195dcbf612397f7e05336d60833457c41c4137cbae"
+      },
+      {
+        "artifact": "recovery-1106-cdc-tool-feasibility/runtime-review-v2/REVIEW.json",
+        "sha256": "1106bb5fd90d1f5272162347148461d05e627fde6cef3f66cee931f59e25cfa7"
+      },
+      {
+        "artifact": "recovery-1106-cdc-tool-feasibility/runtime-review-v2/REPORT.md",
+        "sha256": "553f294a92cb2c5265603b919591ecb1cf04247ff0da813be268b896351f1e59"
+      },
+      {
+        "artifact": "recovery-1106-cdc-tool-feasibility/runtime-review-v2/MANIFEST.json",
+        "sha256": "4f0577b5a6b319ddf7174d6ce7f6c5d25a55d406695943eaf1dc0c8cf31fb806"
+      }
+    ],
+    "modelReuseEvidence": "Final freeze pins retained model and actual traces; command/mtime evidence supports reuse. Historical per-run model hashes were not recorded or reconstructed.",
+    "totalAcceptedTokens": 13754,
+    "totalDeliveredTokens": 13312,
+    "totalResetAbortedTokens": 442
+  },
+  "productionCdcFabricSyntheticCombination": {
+    "qualification": "EXACT_PRODUCTION_CDC_FABRIC_SYNTHETIC_CPU_ENDPOINTS_ONLY",
+    "defaultEnabled": false,
+    "productionDefinitions": {
+      "cdc": 107,
+      "fabric": 84,
+      "startup": 2
+    },
+    "explicitWiringWrapper": 1,
+    "realA1Executed": false,
+    "clocksMHz": {
+      "cpuSide": 100,
+      "fabric": 250
+    },
+    "phaseOffsetNs": 1,
+    "matchedOffOnServiceLaw": true,
+    "onEarlierNs": {
+      "finalDdrB": 224,
+      "fabricDrainedEpoch": 224,
+      "cpuEpochReception": 230
+    },
+    "secondAcquireAndGrantTimingUnchanged": true,
+    "drainedCommonResetPreservesCommittedDdrData": true,
+    "savedObservationNegativesRejected": 11,
+    "assertionCoverage": {
+      "offReachedTotal": [
+        189,
+        297
+      ],
+      "onReachedTotal": [
+        190,
+        301
+      ],
+      "allSiteNonvacuity": false
+    },
+    "unqualified": [
+      "real A1 execution",
+      "CPU FENCE.I",
+      "application throughput/IPC",
+      "external accepted write rollback",
+      "full-platform runtime",
+      "board/MIG/physical timing"
+    ],
+    "references": [
+      {
+        "artifact": "recovery-1106-cdc-fabric-combination/REPORT.md",
+        "sha256": "7279b07b0a3e10655a7662d838a6ae6e28f64422c3bea59d87e26dfbe41cb2ac"
+      },
+      {
+        "artifact": "recovery-1106-cdc-fabric-combination/RESULT.json",
+        "sha256": "0e80169414b744b3be80ff5fa922eedf501571a294230f2ef7828814291ecbe1"
+      },
+      {
+        "artifact": "recovery-1106-cdc-fabric-combination/FREEZE.json",
+        "sha256": "e68d066f84809deab5c37bc497eaa060529fb73b8b8eaa04960a2528afaebade"
+      },
+      {
+        "artifact": "recovery-1106-cdc-fabric-review/REPORT.md",
+        "sha256": "2bb8cf3b3da59c11affdcb90c71b8cb7e66b406bf05a5280108cef96f90ada12"
+      },
+      {
+        "artifact": "recovery-1106-cdc-fabric-review/ARTIFACT_PINS.json",
+        "sha256": "a728fb44952db6c5ab2b464d9b2b972a451a306c1b4922029fada49b5d563fcc"
+      }
+    ],
+    "archiveSha256": "a7daca11086998ac926454ac2120a90f506f9c8a094e0e8f443f834e8df3f726"
+  },
+  "realA1CdcFabricStrictShortGuest": {
+    "qualification": "OWNER_LIFETIME_REPAIRED_NARROW_STRICT_SHORT_GUEST_ONLY",
+    "defaultEnabled": false,
+    "originalStrictAttempt": {
+      "status": "FAILED_PRESERVED",
+      "failureNs": 415,
+      "idleUnknownEnabledPmpPredicates": 6,
+      "laterDiagnosticIsNotRetroactiveStrictPass": true
+    },
+    "verificationOnlyRepair": {
+      "scalaFiles": 3,
+      "originalPredicatesAndTriggersUnchanged": 752,
+      "ownerLifetimeEnablesChanged": 6,
+      "directedCases": 20,
+      "validOwnerIllegalOrUnknownStillRejected": true,
+      "zeroInitializationOrGenericUnknownFilter": false
+    },
+    "strictRuntimeNs": 10000,
+    "clocksMHz": {
+      "cpu": 100,
+      "fabric": 250
+    },
+    "phaseOffsetNs": 1,
+    "retiredInstructions": 344,
+    "architecturalChecks": {
+      "x7": 18,
+      "timerObservations": [
+        90,
+        91
+      ],
+      "x12": 102
+    },
+    "fenceNs": {
+      "privateStatus": 6285,
+      "returnedEpoch": 6385,
+      "retirement": 6415
+    },
+    "assertions": {
+      "reached": 273,
+      "total": 752,
+      "enabledKnownTrueSamples": 184664,
+      "unreached": 479,
+      "allOriginalPredicateWavesUnchanged": true
+    },
+    "publicPortComparison": {
+      "ports": 612,
+      "comparisons": 6120612,
+      "equal": true
+    },
+    "unqualifiedWorkloads": [
+      "DMA/dirty Probe",
+      "MMU",
+      "FPU",
+      "IRQ",
+      "fault recovery"
+    ],
+    "targetedOwnersIdleInShortGuest": true,
+    "noThroughputPhysicalOrBoardQualification": true,
+    "references": [
+      {
+        "artifact": "recovery-1106-pmp-assert-validity/REPORT.md",
+        "sha256": "6db5f2b5846a4e7991385cef9c23829b3d4df4df29c6cec00a7898801e26b38b"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-validity/RESULT.json",
+        "sha256": "83769c56947b3b5b967b5133ad8b0f2f7c7ad9321b61d757fb97f24c9dab4f05"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-validity/FREEZE.json",
+        "sha256": "cc91465ab55cf62d2e1c49da84b9d4bdce39a6fc3eccaf0bf4a68563e7423c81"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-validity/ARTIFACT_PINS.json",
+        "sha256": "15a8685c6c10b0ba1f2bf72fe9f93be865b8ef9e392b82a57ffbac42908ad8f2"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-validity/SOURCE_BINDING.json",
+        "sha256": "9387e81d80f2f3b193ecde942da9cdd4c5ab570e4c6a138afd7b8fbb61dc1506"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-review/REPORT.md",
+        "sha256": "9f43b29d0b64a33d09d95ab35719e9a6d20c35b979886ffe02009fef04e04b08"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-review/RESULT.json",
+        "sha256": "f7df92771b389e16bcd2ada0fd4f7788b6ec1b0efe3c9e264e6561c496622f8e"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-review/STRICT_DIAGNOSTIC_REVIEW.json",
+        "sha256": "0399fbe3391131f03e9493ce3876a917f9d4efeabeb630dc1cf66458ca4eca12"
+      },
+      {
+        "artifact": "recovery-1106-pmp-assert-review/ARTIFACT_PINS.json",
+        "sha256": "ef2398b8fb0e57440407d10bbc86f323e18e64620150164cbbf72acdfa82f45d"
+      },
+      {
+        "artifact": "recovery-1106-pmp-runtime-review/REPORT.md",
+        "sha256": "d5a9b5a13ca8b7499bb8589a1dbd2c18618a058d94b3718a2a67f0f8f248109c"
+      },
+      {
+        "artifact": "recovery-1106-pmp-runtime-review/RESULT.json",
+        "sha256": "dd839d8b75a8f3c42c5e9d70bb1d4ca150ab1e271aaf343ee9e991641d3b953d"
+      },
+      {
+        "artifact": "recovery-1106-pmp-runtime-review/ARTIFACT_PINS.json",
+        "sha256": "5f6259ac4cd823f5ae7c56a6ff688b691c7db2a45cdc915f6d6a5ee6403bc5e8"
+      }
+    ],
+    "independentSavedObservationNegatives": 4,
+    "finalObservedFetchScalarExercisedTransportDebtsZero": true,
+    "globalCpuQuiescenceClaimed": false
+  },
+  "realA1CdcFabricDirtySourceDma": {
+    "qualification": "MATCHED_REAL_A1_DIRTY_SOURCE_DMA_FENCE_I_PRODUCTION_CDC_FABRIC_DIGITAL_RUNTIME_ONLY",
+    "defaultEnabled": false,
+    "separateFromRetainedW16": true,
+    "genericLsuOwners": 2,
+    "runtimeNsEach": 20000,
+    "composition": {
+      "cpuDefinitions": 181,
+      "cdcDefinitions": 107,
+      "fabricDefinitions": 84,
+      "startupDefinitions": 2,
+      "explicitWrapper": 1,
+      "onlyOffOnDifferentModule": "MixedCoherentLineHome",
+      "freshOffProductionMainEmission": false,
+      "offLineage": "Exact prior production OFF Home substitution in corrected current ON composition.",
+      "assertionLifetimeRepairUnchanged": true
+    },
+    "clocksMHz": {
+      "cpu": 100,
+      "fabric": 250
+    },
+    "independentlyEdgedClocks": true,
+    "phaseOffsetNs": 1,
+    "guest": {
+      "words": 65,
+      "dirtySourceBytes": 64,
+      "destinationWordsChecked": 8,
+      "realCpuProgramsDma": true,
+      "differentSetAcquire": true,
+      "realFenceI": true,
+      "dmaStatusChecked": true,
+      "syntheticCpuInitiator": false,
+      "internalCpuStateInjection": false,
+      "sha256": "e63042328d21e555c3815faa77d35ac6312d4a3db9b30884e408751d2051febd"
+    },
+    "matchedService": {
+      "destinationBDelayCounterFabricCycles": 2200,
+      "acceptedLastWToDestinationBFabricCycles": 2201,
+      "purpose": "Deliberate validation backpressure, not production DDR latency or bandwidth."
+    },
+    "configurationMetadata": {
+      "cpuPrivateIdentical": true,
+      "fabricProbeFlagSelectionAndDerivedCombinedIdentityDiffer": true,
+      "originalCommonBaseConfigMetadataPreserved": true,
+      "effectiveBindingsClarifyOriginalIdenticalConfigClaim": true,
+      "noModelOrStimulusChange": true
+    },
+    "unqualified": [
+      "current multiclock MMU",
+      "current multiclock FPU",
+      "current multiclock IRQ",
+      "current multiclock error recovery",
+      "reset while DDR owner live",
+      "physical CDC/metastability/MTBF/RDC",
+      "vendor-clock/MIG/board timing",
+      "general application throughput/IPC"
+    ],
+    "references": [
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc/REPORT.md",
+        "sha256": "38ae8babc561aae7bb7b45eb794deb4321f4c182b84e15aac5e67f17a016a821"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc/RESULT.json",
+        "sha256": "40b748062a30eeb9f691209fa2ac5cfbca4025eb960727d4c5685fc645421731"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc/ARTIFACT_PINS.json",
+        "sha256": "8ee82054dabf94f6a44fd4b2426b14ab66db7269293e8242d1c72d01c99a558b"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc/FREEZE.json",
+        "sha256": "37ce197396543b337df3ec278d9c59c0271f6e32791ae97623b1529a7905b819"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc/EFFECTIVE_CONFIG_BINDING.json",
+        "sha256": "119c34b07cf6068d8035bdbe3f15b84c3685136f510ad7498c2db6b4d9de95cb"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-review/REPORT.md",
+        "sha256": "3cb815a9b048a1b602264487085ad0cca82fd5c595c417c290285c0002f96cdb"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-review/RESULT.json",
+        "sha256": "a7d0fb7cee660479c958aceb6eda16ffca3b951d44fbcd79f668ee6819337fb9"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-review/ARTIFACT_PINS.json",
+        "sha256": "30c3de7ad35eff40150959a671335bde2e089939fc84615e02ba192984ed7bea"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-coordination/SOURCE_PAIR_REVIEW.json",
+        "sha256": "76972d8872cd485cc56e6e8b079d4cf0585dbad390623bc87f5e324d91235fa3"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-coordination/EFFECTIVE_CONFIG_REVIEW.json",
+        "sha256": "050c8a8c748cbf0cf57a8ee0ca9a9cb21f1b720fd674b61b9de440d666d06ccd"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-coordination/OFF_NATIVE_REVIEW.json",
+        "sha256": "6f3368386163594cb741bf8b4568ca86eabbd8a44f8c96382c4f243326eaef83"
+      },
+      {
+        "artifact": "recovery-1106-real-cpu-dma-cdc-coordination/ON_NATIVE_REVIEW.json",
+        "sha256": "447826f422c6a484f30e475ce90cd9985bf880a3967dcc49422368d60cfc6fbb"
+      }
+    ],
+    "nativeRuns": 2,
+    "status": "PASS_NATIVE_STRICT_PAIR_AND_INDEPENDENT_REVIEW",
+    "pairedTimingNsOffOn": {
+      "destinationAw": [
+        3727,
+        3511
+      ],
+      "destinationB": [
+        12575,
+        12355
+      ],
+      "fabricDrainedEpoch": [
+        12603,
+        12383
+      ],
+      "cpuDrainedEpoch": [
+        12645,
+        12425
+      ],
+      "fenceIRetirement": [
+        12705,
+        12485
+      ],
+      "guestPassMarker": [
+        14225,
+        14005
+      ]
+    },
+    "earlierDestinationBEpochFenceAndPassMarkerOnNs": 220,
+    "earlierDestinationBEpochFenceAndPassMarkerOnCpuCycles": 22,
+    "otherFabricAcquireToEIntervalNs": [
+      3343,
+      3683
+    ],
+    "destinationAwDuringOtherAcquireToEOffOn": [
+      false,
+      true
+    ],
+    "dirtyProbeAndOtherAcquireGrantETimingUnchanged": true,
+    "cpuFabricPrivateStatusNsEach": [
+      8875,
+      8895
+    ],
+    "privateStatusWhileDestinationBOwnerLiveEach": true,
+    "nonterminalRetirementsEach": 62,
+    "canonicalArchitecturalOutcomesEqual": true,
+    "exactFinalWrittenBytesEqual": 128,
+    "dirtyProbeBeatsEach": 8,
+    "ddrCountsEach": {
+      "ar": 4,
+      "r": 32,
+      "aw": 2,
+      "w": 16,
+      "b": 2
+    },
+    "finalDebtClosure": {
+      "endpointNs": 20000,
+      "observedCdcLanesEach": 26,
+      "activeCdcLanesEach": 11,
+      "acceptedProtocolDdrAndCdcDebtsZero": true,
+      "cleanCacheLinesMayRemain": true,
+      "terminalSpinRemainsActive": true,
+      "globalCpuQuiescenceClaimed": false
+    },
+    "assertions": {
+      "offReachedTotal": [
+        421,
+        748
+      ],
+      "onReachedTotal": [
+        422,
+        752
+      ],
+      "offEnabledKnownTrueSamples": 404504,
+      "onEnabledKnownTrueSamples": 404459,
+      "allSiteNonvacuity": false
+    },
+    "independentSavedObservationNegatives": {
+      "mode": "off",
+      "rejected": 16,
+      "dutFaultInjection": false
+    }
+  },
+  "realA1CdcFabricDmaReadErrorRecovery": {
+    "qualification": "MATCHED_REAL_A1_DMA_READ_ERROR_CLEAR_RESTART_DIGITAL_RUNTIME_ONLY",
+    "defaultEnabled": false,
+    "runtimeNsEach": 7000,
+    "guestWords": 86,
+    "clocksMHz": {
+      "cpu": 100,
+      "fabric": 250
+    },
+    "phaseOffsetNs": 1,
+    "productionRtlUnchanged": true,
+    "sourceGeneration": 2,
+    "sourceErrorBeatZeroBased": 3,
+    "rresp": 2,
+    "actualErrorInjectionsEach": 1,
+    "failedDescriptorDestinationWrites": 0,
+    "cpuObservedStatusValues": [
+      6,
+      0,
+      1,
+      2
+    ],
+    "ordinaryFenceOnly": true,
+    "maintenanceEpochs": 0,
+    "traps": 0,
+    "usefulRetirementsEach": 82,
+    "writtenBytesEach": 128,
+    "passMarkerNsEach": 5615,
+    "postPassZeroDebtGuardNs": 1385,
+    "allMeasuredTimingDeltasNs": 0,
+    "speedupClaim": false,
+    "ddrTransactionsEach": {
+      "AR": 5,
+      "R": 40,
+      "AW": 2,
+      "W": 16,
+      "B": 2
+    },
+    "cdcLanesObserved": 26,
+    "cdcLanesActive": 9,
+    "assertionCoverage": {
+      "off": {
+        "total": 748,
+        "enabled_sites": 420,
+        "enabled_samples": 129281
+      },
+      "on": {
+        "total": 752,
+        "enabled_sites": 421,
+        "enabled_samples": 129321
+      }
+    },
+    "savedObservationNegatives": 10,
+    "serviceLastWToBCycles": 1,
+    "serviceIsIdealizedNotMeasuredDdr": true,
+    "limits": [
+      "One64-byte descriptor fails then restarts; not multi-entry error-drain qualification.",
+      "OrdinaryFENCE only, no FENCE.I, maintenance epoch, shared flush or instruction visibility claim.",
+      "One external read owner and one write/B owner; no sustained throughput/bandwidth claim.",
+      "Native wall time and bounded event timing are not hardware performance signoff.",
+      "No physical CDC/RDC/metastability, MIG/board, generic ISA/IRQ/FP/MMU or reset-abort coverage."
+    ],
+    "evidence": {
+      "recovery-1106-real-cpu-dma-error-cdc/REPORT.md": "26221885cf7426c09312a112229c986d44ab28ea69673db22bbe556774436f2d",
+      "recovery-1106-real-cpu-dma-error-cdc/RESULT.json": "987b679723b486853b040a11311b893ff96573c18aeaaa253682f74ff7c0c54d",
+      "recovery-1106-real-cpu-dma-error-cdc/ARTIFACT_PINS.json": "6f54fbff8e56fe3b4e715248cb4e117e49b84e74410d0bb38bf6a7085cbda1c8",
+      "recovery-1106-real-cpu-dma-error-cdc/FREEZE.json": "90f48a7303acd3d51e555a7c2bace404619bba97e0edbb80e437f30b82170c21",
+      "recovery-1106-real-cpu-dma-error-cdc-review/REPORT.md": "0396324648b6da3efd9f9314d3aa8ec7592ee827e620e03ecb92136add9f5258",
+      "recovery-1106-real-cpu-dma-error-cdc-review/RESULT.json": "ef520c69e18f4a33b92072d6ea60bc4d24da8374467c494208f7dbfaf0e7428f",
+      "recovery-1106-real-cpu-dma-error-cdc-review/ARTIFACT_PINS.json": "b6efe04c97588896aa64ecae43a32584c567e8370e40337f0b1d50d92fa3d750",
+      "recovery-1106-real-cpu-dma-error-cdc-review/FREEZE.json": "1ef90748adb7de79d4e8ac7c5f98fc05837f63a810be85fb908d7eddaf484fe8",
+      "recovery-1106-real-cpu-dma-error-cdc-coordination/ARTIFACT_PINS.json": "a1461c129e7927c2b60c97994221aecea214f7f190aa22a7d9ce75cd7487b729"
+    }
+  },
+  "realA1CdcFabricDualOwnerDdr": {
+    "qualification": "MATCHED_REAL_A1_128B_DMA_FOUR_COLD_LOADS_DUAL_OWNER_DDR_DIGITAL_RUNTIME_ONLY",
+    "status": "PASS_INDEPENDENT_MATCHED_REAL_CPU_DUAL_OWNER_CDC",
+    "defaultEnabled": false,
+    "nativeRuns": 2,
+    "runtimeNsEach": 9000,
+    "clocksMHz": {
+      "cpu": 100,
+      "fabric": 250
+    },
+    "phaseOffsetNs": 1,
+    "modelBinding": {
+      "genericLsuOwners": 2,
+      "existingCpuCacheCdcFabricBodiesReused": true,
+      "productionRtlAndDefaultsUnchanged": true,
+      "unchangedScalaSourceFiles": 1138,
+      "sameGuestServiceAndClockResetWitness": true,
+      "baseModelSha256": {
+        "off": "dd8dba47a53cbe502a570a28d7485c9246ea1d8cc8ce4facc105d39e62674dd8",
+        "on": "ad4f55f9bebcf381af6d49e2e53a94d29bf10e335374564e768899175efd6c52"
+      },
+      "composedModelSha256": {
+        "off": "03b480322a5dc6d6491dd47da5832afa29f7ba9f1a438e3c9cd1edb4025103fc",
+        "on": "272822e25a53f0b35eb19c50b8e950553545260c6f5c2580e8b4dd4714728d5a"
+      },
+      "traceSha256": {
+        "off": "680a7fa8cc2ded84bfe16072a571dcf8e6e4ad01793b7520089916396403522a",
+        "on": "184da3839e6d314a79f08b25fcfa793e490c94a8cba64707ba6a001bf485b11a"
+      }
+    },
+    "guest": {
+      "words": 122,
+      "bytes": 488,
+      "sha256": "fcb6474672cfb73e03b1c904ada98b26534b5e0619eef8ed9a032f5ee654df74",
+      "instructionSupply": "ROM",
+      "dirtySource": "0x80201000",
+      "destination": "0x80202000",
+      "dmaPayloadBytes": 128,
+      "cold64BitLoads": 4,
+      "coldLoadStrideBytes": 128,
+      "coldArchitecturalBytes": 32,
+      "coldLinefillBytes": 256,
+      "coldLinefillOverheadBytes": 224,
+      "sumChecked": true,
+      "requiredDmaStatus": 2,
+      "ordinaryFenceOnly": true,
+      "destinationWordsIndividuallyChecked": 16,
+      "usefulRetirementsEach": 116,
+      "repeatedBusyPollIterationsEach": 0,
+      "terminalSpinRetirementsExcluded": true,
+      "prefetchPredictionsEach": 0,
+      "prefetchAllocationsEach": 0
+    },
+    "matchedService": {
+      "sha256": "cc20a45a9f2108972cc1972de4af490daf33883cb2ad65138444cdec6eed380d",
+      "capacity": {
+        "read": 2,
+        "writeThroughB": 2
+      },
+      "acceptedUncontendedLatencyFabricEdges": {
+        "arToFirstR": 11,
+        "consecutiveR": 4,
+        "finalWToB": 2
+      },
+      "sameAsEarlierSingleOwnerServiceLaw": false,
+      "comparisonIsHomeOverlapNotServiceCapacityIncrease": true,
+      "measuredPhysicalDdrTiming": false,
+      "separateEndpointQualification": {
+        "nativePositiveCases": 19,
+        "nativeInvalidEndpointRejections": 9,
+        "savedObservationRejections": 136,
+        "transfersFaultResetHoldCoverageToActualCpu": false
+      }
+    },
+    "pairedTimingOffOn": {
+      "firstSourceStoreRetireNs": [
+        1225,
+        1225
+      ],
+      "guestPassNs": [
+        7915,
+        7285
+      ],
+      "firstSourceStoreToPassCpuCycles": [
+        669.0,
+        606.0
+      ],
+      "dmaStartRetireToPassCpuCycles": [
+        455.0,
+        392.0
+      ],
+      "coldFirstRequestToFourthRetireCpuCycles": [
+        168.0,
+        105.0
+      ],
+      "coldLoadRetireNs": {
+        "off": [
+          3845,
+          4375,
+          4735,
+          5085
+        ],
+        "on": [
+          3845,
+          4115,
+          4265,
+          4455
+        ]
+      },
+      "dmaFabricStartAcceptNs": [
+        3295,
+        3295
+      ],
+      "finalDestinationBNs": [
+        4803,
+        4099
+      ],
+      "dmaStartToFinalBNs": [
+        1508,
+        804
+      ],
+      "dmaStartToFinalBFabricCycles": [
+        377,
+        201
+      ],
+      "dmaStartToFinalB128BytePayloadMBps": [
+        84.88063660477454,
+        159.20398009950247
+      ],
+      "status2CaptureNs": [
+        5195,
+        4563
+      ],
+      "ordinaryFenceRetireNs": [
+        5415,
+        4785
+      ],
+      "elapsedIntervalsNotInclusiveSampleCounts": true
+    },
+    "onMinusOff": {
+      "guestPassNs": -630,
+      "firstSourceStoreToPassCpuCycles": -63,
+      "firstSourceStoreToPassPercent": -9.417040358744394,
+      "dmaStartRetireToPassCpuCycles": -63,
+      "coldFirstRequestToFourthRetireCpuCycles": -63,
+      "dmaStartToFinalBNs": -704,
+      "dmaStartToFinalBFabricCycles": -176,
+      "boundedWorkloadResultNotGeneralSpeedup": true
+    },
+    "trafficAndOwnership": {
+      "ddrAcceptedTransactionsEach": {
+        "ar": 10,
+        "r": 80,
+        "aw": 4,
+        "w": 32,
+        "b": 4
+      },
+      "readBytesEach": 640,
+      "strobedWriteBytesEach": 256,
+      "exactDistinctBackedBytesEach": 256,
+      "peakAcceptedReadOwnersEach": 2,
+      "peakAcceptedWriteThroughBOwnersEach": 1,
+      "coldExternalReadWithDmaOrWritebackFabricCyclesOffOn": [
+        76,
+        89
+      ],
+      "onThirdColdArCapacityWaitNs": 44,
+      "onThirdColdArCapacityWaitFabricEdges": 11,
+      "capacityWaitIsTestServiceNotPhysicalDdr": true
+    },
+    "verification": {
+      "independentArchitectureMemoryProtocolAndCdcReplay": true,
+      "identicalFinalCheckerReproducesBothOriginalReplaysByteForByte": true,
+      "cdcLanesAccountedEach": 26,
+      "activeCdcLanesEach": 9,
+      "postPassZeroNonfetchAcceptedDebtAndObservedOwnerGuardNsOffOn": [
+        1085,
+        1715
+      ],
+      "cleanCacheLinesAndTerminalSpinRemain": true,
+      "globalCpuQuiescenceClaimed": false,
+      "originalNativeAssertionWiringPreserved": true,
+      "originalAssertionCoverage": {
+        "off": {
+          "total": 748,
+          "enabled_sites": 431,
+          "enabled_samples": 170225
+        },
+        "on": {
+          "total": 752,
+          "enabled_sites": 438,
+          "enabled_samples": 169477
+        }
+      },
+      "additiveServiceAssertionsEach": 13,
+      "allAssertionSitesReached": false,
+      "savedActualObservationNegativesRejectedEach": 14,
+      "savedActualObservationNegativesRejectedTotal": 28,
+      "dutFaultInjection": false
+    },
+    "nativeHostExecutionCost": {
+      "secondsOffOn": [
+        471.54935865302105,
+        488.3392143929959
+      ],
+      "totalSeconds": 959.888573046017,
+      "peakRssKiBOffOn": [
+        2115900,
+        2148288
+      ],
+      "scope": "Native execution receipts only; excludes preparation, replay and packaging. Not simulated hardware time."
+    },
+    "limits": [
+      "Fixed 128-byte DMA and four cold loads at one clock phase; no sustained throughput or generic application IPC claim.",
+      "ROM instruction supply does not measure DDR instruction-fetch fairness; finite completion is not universal starvation freedom.",
+      "Ordinary FENCE does not qualify FENCE.I, shared maintenance or instruction visibility.",
+      "Standalone service error, hold, partial-strobe and reset-abort coverage does not transfer to these success-only CPU runs.",
+      "Actual two-read/one-write ownership does not qualify simultaneous two-write CPU traffic; no actual R/B response stalls occur.",
+      "Prior retained-W16, maintenance, error-recovery and IRQ results remain separate qualification lineages.",
+      "No broader ISA/MMU/FPU/IRQ, physical CDC/RDC/metastability, vendor-clock/MIG, routed-timing or board qualification; hardware timing remains unknown."
+    ],
+    "evidence": {
+      "recovery-1106-real-cpu-dual-owner-cdc/REPORT.md": "fbca33459b2cfca029da1c136cb0befeb78216e2830729485e67c5753e7ec462",
+      "recovery-1106-real-cpu-dual-owner-cdc/RESULT.json": "6b359884b2030e7d3300ca639a26a30cda4a49971f9a3e4e14e1c23308272da6",
+      "recovery-1106-real-cpu-dual-owner-cdc/MANIFEST.json": "b7a464562a92eee7979ce905b9ae06e438df8ec17e1359d07c07ed94cb4328ea",
+      "recovery-1106-real-cpu-dual-owner-cdc/FREEZE.json": "e22cc924dcdcaa5d5ff5cc29ef1e82c6437f4493c811b3278555ff0a9365b655",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/REPORT.md": "49d5d84832c1e0f20a1266661b61f9b4b9236b599973d7d95ad1d9eb829870f3",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/RESULT.json": "ce682a855f39afb7c9bd420f5f689e5ea8e46af028f3c8a2a12a298680500f0d",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/ARTIFACT_PINS.json": "9e2cfcb02a7ef510cfb0806258d2eaef1b7b6813175706b17995e445023baa3f",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/FREEZE.json": "22d8c68ba21d0563bd768ad51acf2d2d432ba8754fb1f39b29dabdbea347fc46",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/REPLAY_OFF.json": "5006717e4cf539ca5ddbd175e81142711fcf0415169ddfb3b2c6819328022ad7",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/REPLAY_ON.json": "98d0c3a0c63ba1775a461790270f6685dcf78e186163207a2c1f07e1a5d5adb5",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/METRICS_OFF_ON.json": "5041b41004974c8656828503020915aa5b187b9965bdeaaa992ca17310a53b08",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/PAIR_COMPARISON.json": "7936569b42b5b1ff78a101b46d542b41296bde1dde3ec964df264993fc7cbde5",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/NEGATIVES_OFF.json": "b5e5c14b9798c50397103570088e28ec95c3bd7f54e8583e56e718904473e0b9",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/NEGATIVES_ON.json": "0b7600bddb299324e2e84fe6738d4208511fe4002c01086e5b757fc759a0e724",
+      "recovery-1106-real-cpu-dual-owner-cdc-review/FINAL_CHECKER_PAIR.json": "298c51ecce34e27cc8b1006e5232eeaf94df50415598df029761fa25e681d29d",
+      "recovery-1106-real-cpu-dual-owner-cdc/MATCHED_PRELAUNCH.json": "bfc48adbe5804225fce7273466542aa137f12f51e4aeb544b161df338ff8921c",
+      "recovery-1106-real-cpu-dual-owner-cdc/ASSERT_PRESERVATION.json": "f41429b3bb4639ae5b13f55d4e4038dac0e328492393136a4a2a2929aed7c380",
+      "recovery-1106-real-cpu-dual-owner-cdc/SERVICE_CONTRACT.json": "df78d147d05cf5419635ab540ddca79f069332cf1bcca464a09882521d7e9acc",
+      "recovery-1106-dual-owner-ddr-final/REPORT.md": "bb1713a3fed5ca0ab11cd5f48ff40c0e3f6af3430b0e092373579f537022c283",
+      "recovery-1106-dual-owner-ddr-final/RESULT.json": "dafc773cb42d1c9a5e7986f4200d210c5e7f5412f9a0bc632203e901f4d72447"
+    }
+  },
+  "rejectedProbeWindowAcquireExtension": {
+    "status": "REJECTED_DISPROPORTIONATE_LOGICAL_COST_NO_CPU_RUN",
+    "qualification": "BOUNDED_HOME_COMPONENT_AND_LOGICAL_RESOURCE_SCREEN_ONLY",
+    "feature": "dmaProbeWindowAcquire",
+    "defaultEnabled": false,
+    "overlayOnly": true,
+    "productionRtlDefaultsAndCliUnchanged": true,
+    "productionHomeSha256": "676a961f2abe4cff9d3e75e79921030d37d2a8fe945a2766c6eb8cc0a4fd26ae",
+    "overlayHomeSha256": "c9eda79aab8011dc8ddee978295feee7e32c32b7905e409de5d8247733cbabe5",
+    "componentPerformance": {
+      "matchedPairs": 4,
+      "units": "sampled Home component cycles",
+      "acquireResponseEarlierRange": [
+        22,
+        58
+      ],
+      "allOwnerTerminalAndDrainEarlierRange": [
+        6,
+        7
+      ],
+      "dmaCompletionUnchangedInThesePairs": true,
+      "actualCpuCyclesMeasured": false,
+      "clockRatioConversionValid": false
+    },
+    "resourceScreen": {
+      "candidateMaps": 1,
+      "baselineRemaps": 0,
+      "scope": "Same-geometry saved full-fabric/Home logical xcup map, not whole CPU or board.",
+      "homeOwnOffOn": {
+        "LUT": [
+          10817,
+          11563
+        ],
+        "MUX": [
+          2929,
+          3720
+        ],
+        "FF": [
+          5719,
+          5719
+        ],
+        "CARRY": [
+          10,
+          10
+        ],
+        "RAM": [
+          0,
+          0
+        ]
+      },
+      "homeOwnDelta": {
+        "LUT": 746,
+        "MUX": 791,
+        "FF": 0,
+        "CARRY": 0,
+        "RAM": 0
+      },
+      "homeIncludingChildrenHasSameDelta": true,
+      "fullFabricDelta": {
+        "LUT": 762,
+        "MUX": 813,
+        "FF": 0,
+        "CARRY": 0,
+        "RAM": 0
+      },
+      "byteIdenticalNonHomeMapperVariation": {
+        "LUT": 16,
+        "MUX": 22,
+        "FF": 0,
+        "CARRY": 0,
+        "RAM": 0
+      },
+      "localGraphDepthOffOn": {
+        "A_ready": [
+          11,
+          12
+        ],
+        "maintenance_D": [
+          18,
+          20
+        ]
+      },
+      "depthIsNsOrFmax": false,
+      "flattenedRamCarryAncestorsRemainUnknown": true
+    },
+    "decisionReason": "Only 6\u20137 Home-cycle terminal/drain improvement and no measured CPU gain, versus +746 Home LUT, +791 MUXF and deeper admission/maintenance logic; do not advance or integrate into production.",
+    "cpuOrSystemSimulationRun": false,
+    "physicalTimingQualified": false,
+    "retainedBaseline": {
+      "manifestKey": "realA1CdcFabricDualOwnerDdr",
+      "unchanged": true,
+      "firstSourceStoreToPassCpuCyclesOffOn": [
+        669,
+        606
+      ],
+      "dmaStartToFinalBNsOffOn": [
+        1508,
+        804
+      ]
+    },
+    "limits": [
+      "Finite component coverage does not prove all new-window Release concurrency.",
+      "Earlier Acquires can contend for downstream capacity and change DMA phase; no global DMA non-regression claim.",
+      "No CPU/cache/CDC/external-DDR runtime or physical-timing qualification transfers from this overlay."
+    ],
+    "evidence": {
+      "recovery-1106-probe-window-component/REPORT.md": "967f8b0c60c2d62fa1a57211a0bfec966f5b08a5c7a1de16a655288258f26e7e",
+      "recovery-1106-probe-window-component/RESULT.json": "94812eda6b812403d541f22dbd6f9e2ee90438e7a619865eff22b73c442cda10",
+      "recovery-1106-probe-window-component/PERFORMANCE.json": "e1585cf14d98acd18f921377d3e045037ccb321865ac1dc70df4f67c38c7c234",
+      "recovery-1106-probe-window-component/BINDING.json": "44ef589e1a6fa4518aea99c95d07932f8bca1436d1275949a2427672feeb5cb6",
+      "recovery-1106-probe-window-review/REPORT.md": "1c194e45615c8d2fdbf9cc72407086d5c89f441f3951e9dae860036df47dd0c4",
+      "recovery-1106-probe-window-review/VERIFICATION.json": "87aa3da840e4f9883379c1174f4ce697f632dff34525bc0263196eee243ee576",
+      "recovery-1106-probe-window-review/SOURCE_REVIEW.json": "cd5597964dbcd3efcf7d48a7148a4f7dfafdbd01b3cda0623977ba23311afa3c",
+      "recovery-1106-probe-window-coordination/SOURCE_BOUNDARY_REVIEW.json": "ba11d55a064f592420dcd8024320e06fbe68e6089a5c2468f49d9b75d67817ea",
+      "recovery-1106-probe-window-docs/PARENT_DECISION.txt": "dd0b7743dfca5136ee88f7041ae1e79d693cc16e37ed7fc4e870c230ec273902",
+      "recovery-1106-probe-window-resource/REPORT.md": "1ff2c1f1e20a90bbc7081785feb29a9d3106e26a6a453a5788ca979d8dbbd088",
+      "recovery-1106-probe-window-resource/FINAL_RESULT.json": "672af134fdd3fc63cf2a59a495167e84b66fac649e0ac959fb570a9585ee39c7",
+      "recovery-1106-probe-window-resource/ANALYSIS_RESULT.json": "b649bb532f9a370bf754c757f201701a53ba91c829f08f260f5e94215e590d00",
+      "recovery-1106-probe-window-resource/candidate-mapped-evidence.tar.gz": "e2f8c790b88942c26cf8caa303b2eac13c7d6cb3472bb8c06fdd52ed94226f5a"
+    }
+  }
+}

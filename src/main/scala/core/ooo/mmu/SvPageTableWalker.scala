@@ -58,8 +58,11 @@ class SvPageTableWalker(maxLevels: Int = 4, pmpEntries: Int = 16, decodedNatural
     for (i <- 0 until maxLevels) { vpn(i) := walk.virtualAddress(12 + 9 * i + 8, 12 + 9 * i) }
     val pteAddress = Cat(table, 0.U(12.W)) + (vpn(level(log2Ceil(maxLevels) - 1, 0)) << 3)
     // Implicit page-table reads retain S-mode physical permissions and their own gate.
+    // This stateless checker's reset controls assertions only. Its address has
+    // an owner in issue, including denied and backpressured reads; idle/finish
+    // need not have initialized table/index payload. Permission data stays live.
     val pmpDenied = NaturalPmpEvaluation.denied(pmpEntries, decodedNaturalPmp, true, io.pmpState,
-        pteAddress, 3.U, 1.U, PmpAccess.read)
+        pteAddress, 3.U, 1.U, PmpAccess.read, assertionReset = Some(reset.asBool || state =/= issue))
 
     io.start.ready          := state === idle
     io.complete.valid       := state === finish

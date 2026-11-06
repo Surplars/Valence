@@ -83,6 +83,8 @@ class MatchingManagedBoard(config: FpgaNextConfig, jtagRamDownload: Boolean = tr
     val sharedTwoWordFetchPmp: Boolean = false, val disjointEvictionStoreOverlap: Boolean = false,
     val proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false,
     val factorPreparedStorePool: Boolean = false, combinedTimingR1Audit: Boolean = false, val registerNextLineDecision: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val dataTlbMissCacheEntries: Int = 0, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    require(!config.dmaLineThresholdRewrite && !config.dmaSingleReadWait,
+        "DMA schedule experiments require CommonFabricDmaScheduleGsimMain; this legacy board wrapper is not qualified for them")
     require(config.experimentalTriSpeedEthernet && jtagRamDownload,
         "this final assembly requires tri-speed GMAC and the real JTAG RAM loader")
     private val p = config.coreParams

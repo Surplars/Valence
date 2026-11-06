@@ -2926,3 +2926,17 @@ production CPU configuration, are documented in
 See [`docs/storage-query-experiments.md`](../../docs/storage-query-experiments.md)
 for bounded CPU qualification, structural resource tradeoffs and unverified
 physical-timing scope. Generated models and tool installations are not committed.
+
+### Default-off DMA Probe / older Acquire experiment
+
+See [candidate configuration, evidence boundaries and promotion checklist](../../docs/dma-probe-acquire-overlap.md). Its [profile/evidence manifest](../../docs/data/dma-probe-acquire-overlap-candidate.json) is descriptive only and is not consumed by a runner. Existing entry points cover source/elaboration and fabric emission; the measured full-CPU results use a retained W16 composition, not a portable current-source CPU rebuild. All public defaults remain false.
+
+
+### Opt-in banked indirect storage
+
+`make gsim-banked-indirect-storage-test` compares the maintained logical-16 register and
+writer-banked predictor using the same independent training oracle and four reached
+negative controls per mode. It is component acceptance only. The core experiment is
+explicitly opt-in and leaves all production profiles/defaults unchanged. See
+[`docs/banked-indirect-storage.md`](../../docs/banked-indirect-storage.md) for geometry,
+CLI flags, source lineage and qualification limits.

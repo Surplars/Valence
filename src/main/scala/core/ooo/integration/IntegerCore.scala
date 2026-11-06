@@ -17,8 +17,10 @@ import soc.isa.Compressed
 class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("80000000", 16),
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false,
+    bankedIndirectStorage: Boolean = false) extends Module {
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
+    require(!bankedIndirectStorage || p.indirectTargetEntries > 0, "banked indirect storage requires an indirect table")
     val io = IO(new Bundle {
         val fetchSpeculationCancel = if (p.contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
@@ -226,7 +228,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     }
     val predictor = Module(new BranchPredictor(p))
     val indirectPredictor = if (p.indirectTargetEntries > 0)
-        Some(Module(new IndirectTargetPredictor(p))) else None
+        Some(Module(new IndirectTargetPredictor(p, bankedStorage = bankedIndirectStorage))) else None
     val predictionTraining = Module(new CommitPredictionTraining(p))
     for (lane <- 0 until p.commitWidth) {
         val commit = io.commit(lane)

@@ -93,7 +93,10 @@ class CommonMachineFabric(
     uartFastDivisorOne: Boolean = false,
     val externalTimer: Boolean = false,
     val runtimeDebugAdmission: Boolean = false,
-    val runtimeNetworkAdmission: Boolean = false
+    val runtimeNetworkAdmission: Boolean = false,
+    val dmaMaintenanceCompletionFlow: Boolean = false,
+    val dmaReadAcquireOverlap: Boolean = false,
+    val dmaProbeAcquireOverlap: Boolean = false
 ) extends Module {
     import CommonFabricObligations._
     private val ramBase = CommonPlatformAbi.ramBase
@@ -280,7 +283,8 @@ class CommonMachineFabric(
     val dmaLineEntries = if (dmaLineTransfers) fpga.dmaLineEntries else 1
     val dma = if (features.memoryCopyDma) Some(Module(new MemoryCopyDma(ramBase = ramBase, ramBytes = ramBytes,
         lineTransfers = dmaLineTransfers, lineYieldCycles = fpga.dmaLineYieldCycles,
-        lineEntries = dmaLineEntries))) else None
+        lineEntries = dmaLineEntries, lineThresholdRewrite = fpga.dmaLineThresholdRewrite,
+        singleReadWait = fpga.dmaSingleReadWait))) else None
     val packetDma = if (features.networkDma) Some(Module(new EthernetPacketDma(
         ramBase = ramBase, ramBytes = ramBytes, maxFrameBytes = fpga.network.maxFrameBytes,
         postedRxSlots = fpga.network.postedRxSlots, memoryCredits = fpga.network.memoryCredits,
@@ -376,7 +380,8 @@ class CommonMachineFabric(
         parallelQualification = physical.parallelHomeQualification, tagConfig = fpga.tags,
         dmaLineTransfers = dmaLineTransfers, dmaLineEntries = dmaLineEntries,
         lineTransferDispatchFlow = fpga.lineTransferDispatchFlow, lineReadChannel = ddr.lineReadChannel,
-        internalLineGrant = true)
+        internalLineGrant = true, dmaMaintenanceCompletionFlow = dmaMaintenanceCompletionFlow,
+        dmaReadAcquireOverlap = dmaReadAcquireOverlap, dmaProbeAcquireOverlap = dmaProbeAcquireOverlap)
     def finalHome: CoherentLineHomeModule = home
     // Preserve the public platform's two-slot physical request cut. Ready is
     // local occupancy, so scalar/MMIO/Atomic arbitration does not traverse the

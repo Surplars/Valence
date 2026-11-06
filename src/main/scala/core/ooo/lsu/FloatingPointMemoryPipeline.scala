@@ -65,9 +65,13 @@ class FloatingPointMemoryPipeline(p: OooParams) extends Module {
     val alignmentMask = Mux(prepared.size === 2.U, 3.U(3.W), 7.U(3.W))
     // Valid/cancel never select size or any address bits. Idle contents do not
     // authorize an access; the checker sees a stable, aligned old payload.
+    // The checker is combinational: its reset controls assertions only. Check
+    // the complete prepared-owner lifetime, including backpressure, without
+    // assigning meaning to uninitialized idle payload or gating permission data.
     val pmpDenied = NaturalPmpEvaluation.denied(p.pmpEntries, p.decodedNaturalPmp, true, io.pmpState,
         Cat(prepared.address(63, 3), prepared.address(2, 0) & ~alignmentMask), prepared.size,
-        io.dataPrivilege, Mux(prepared.store, PmpAccess.write, PmpAccess.read))
+        io.dataPrivilege, Mux(prepared.store, PmpAccess.write, PmpAccess.read),
+        assertionReset = Some(reset.asBool || !preparedValid))
     lsu.io.start.valid := io.execute.valid && preparedValid && !io.trap
     lsu.io.start.bits := prepared
     lsu.io.start.bits.accessDenied := pmpDenied && !io.virtualized

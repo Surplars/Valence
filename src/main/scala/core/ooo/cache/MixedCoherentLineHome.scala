@@ -66,9 +66,20 @@ class MixedCoherentLineHome(
     val memoryScheduleOverlap: Boolean = false,
     val futureWayReservation: Boolean = false,
     val sharedLookupMatch: Boolean = false,
-    val nClients: Int = 1
+    val nClients: Int = 1,
+    val dmaMaintenanceCompletionFlow: Boolean = false,
+    val dmaReadAcquireOverlap: Boolean = false,
+    val dmaProbeAcquireOverlap: Boolean = false
 ) extends CoherentLineHomeModule(params, nClients, dmaLineTransfers, dmaLineEntries, lineReadChannel, internalLineGrant) {
     require(nClients >= 1 && nClients <= 2)
+    require(!dmaProbeAcquireOverlap || dmaReadAcquireOverlap,
+        "DMA Probe/Acquire overlap requires bounded DMA read/Acquire overlap")
+    require(!dmaReadAcquireOverlap || (dmaLineTransfers && dmaLineEntries == 2 && nClients == 2 &&
+        acquireEntries == 2 && writebackEntries == 2 && trackedLines == 1024 && trackedWays == 4 &&
+        mixedReadWrite && lineReadChannel && internalLineGrant),
+        "DMA read/Acquire overlap requires the bounded two-client, two-tag independent-line Home")
+    require(!dmaMaintenanceCompletionFlow || (dmaLineTransfers && dmaLineEntries == 2),
+        "maintenance completion flow requires the two-tag DMA line path")
     require(nClients == 1 || (!memoryScheduleOverlap && !futureWayReservation && !sharedLookupMatch &&
         !distinctWayRelease), "multi-client Home uses the generic ownership path")
     require(!sharedLookupMatch || (trackedLines == 512 && trackedWays == 2 && acquireEntries == 2 &&
@@ -141,6 +152,27 @@ class MixedCoherentLineHome(
     private def setOf(address: UInt): UInt = address(5 + setBits, 6)
     private def inRam(address: UInt): Bool = address >= base.U(65.W) && address < (base + bytes).U(65.W)
     private val owned = RegInit(VecInit(Seq.fill(trackedLines)(false.B)))
+    // Expose a single set/clear update for each directory bit in the bounded
+    // overlap profile. GrantAck sets retain priority over every same-cycle
+    // clear, including event combinations rejected by the protocol assertions.
+    private val ownedClearValid = if (dmaReadAcquireOverlap) Seq.fill(3)(WireDefault(false.B)) else Seq.empty
+    private val ownedClearSlot = if (dmaReadAcquireOverlap)
+        Seq.fill(3)(WireDefault(0.U(directoryBits.W))) else Seq.empty
+    private val ownedSetValid = if (dmaReadAcquireOverlap) WireDefault(false.B) else false.B
+    private val ownedSetSlot = if (dmaReadAcquireOverlap) WireDefault(0.U(directoryBits.W)) else 0.U
+    private def clearOwned(slot: UInt, event: Int): Unit = {
+        if (dmaReadAcquireOverlap) {
+            ownedClearValid(event) := true.B
+            ownedClearSlot(event) := slot
+        } else owned(slot) := false.B
+    }
+    if (dmaReadAcquireOverlap) {
+        for (i <- 0 until trackedLines) {
+            val set = ownedSetValid && ownedSetSlot === i.U
+            val clear = (0 until 3).map(e => ownedClearValid(e) && ownedClearSlot(e) === i.U).reduce(_ || _)
+            when(set || clear) { owned(i) := set }
+        }
+    }
     private val ownerClients = Reg(Vec(trackedLines, UInt(clientBits.W)))
     // The directory index already identifies the set; tags need not store
     // those bits again. Keep ownership metadata separately resettable.
@@ -327,7 +359,7 @@ class MixedCoherentLineHome(
             releaseBeat := 1.U
             when(port.c.bits.opcode === TLOpcode.ReleaseData) {
                 releasePhases(newRelease) := rCapture; capturing := true.B
-            }.otherwise { owned(ownedSlot(port.c.bits.address, releaseTags)) := false.B; releasePhases(newRelease) := rAck }
+            }.otherwise { clearOwned(ownedSlot(port.c.bits.address, releaseTags), 0); releasePhases(newRelease) := rAck }
         }.otherwise {
             assert(releasePhase === rCapture && port.c.bits.opcode === TLOpcode.ReleaseData &&
                 port.c.bits.address === releaseAddresses(captureSlot) && port.c.bits.source === releaseSources(captureSlot) &&
@@ -336,7 +368,7 @@ class MixedCoherentLineHome(
             releaseData(captureSlot)(releaseBeat) := port.c.bits.data
             when(releaseBeat === 7.U) {
                 releasePhases(captureSlot) := rSend; capturing := false.B
-                if (mixedReadWrite) owned(releaseDirectories(captureSlot)) := false.B
+                if (mixedReadWrite) clearOwned(releaseDirectories(captureSlot), 1)
             }
                 .otherwise { releaseBeat := releaseBeat + 1.U }
         }
@@ -466,7 +498,12 @@ class MixedCoherentLineHome(
     else 0.U(directoryBits.W)
     private val acquireOwned = if (nClients > 1) lineOwned(port.a.bits.address, acquireTags) else false.B
     private val acquireDirectory = if (nClients > 1) ownedSlot(port.a.bits.address, acquireTags) else 0.U
-    private val canAcquire = !io.drainRequest && !anyDmaLine && maintenance === mIdle && reads === 0.U && !directHeld &&
+    // The optional permit is driven only by retained read owners below. All
+    // existing admission, directory, arbitration and drain guards remain.
+    private val dmaReadAcquirePermit = if (dmaReadAcquireOverlap) WireDefault(false.B) else false.B
+    private val canAcquire = !io.drainRequest &&
+        (if (dmaReadAcquireOverlap) !anyDmaLine || dmaReadAcquirePermit else !anyDmaLine) &&
+        maintenance === mIdle && reads === 0.U && !directHeld &&
         ((!upperWaiting && !io.upstream.request.valid && !linePending) || preferAcquire) &&
         freeMask.asUInt.orR && fillQueue.io.enq.ready && !sourceBusy &&
         (if (memoryScheduleOverlap) !(0 until acquireEntries).map(i => active(i) &&
@@ -525,6 +562,12 @@ class MixedCoherentLineHome(
     }
     private val lineAdmissionOpen = !io.drainRequest && maintenance === mIdle && !anyAcquire &&
         (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
+    // The optional early capture is DMA-only. Scalar/atomic traffic retains
+    // the original all-Acquire barrier; all other admission guards are shared.
+    private val dmaLineAdmissionOpen = if (dmaProbeAcquireOverlap)
+        !io.drainRequest && maintenance === mIdle &&
+            (!releaseBusy || directHeld) && (!port.a.valid || !preferAcquire) && !releaseOffer
+    else lineAdmissionOpen
     private val upperOpen = lineAdmissionOpen && !anyDmaLine
     private val directRead = io.upstream.request.valid && !selectLine && !needsMaintenance &&
         (directHeld || (upperOpen && reads < 8.U))
@@ -585,7 +628,7 @@ class MixedCoherentLineHome(
     probe.io.response.ready := maintenance === mProbeWait && !releaseBusy && !releaseOffer
     when(probe.io.response.fire) {
         assert(!probe.io.response.bits.corrupt, "dirty probe data must not be corrupt")
-        owned(maintenanceDirectory) := false.B
+        clearOwned(maintenanceDirectory, 2)
         maintenanceData := probe.io.response.bits.data
         maintenance := Mux(probe.io.response.bits.hasData, mWriteSend, accessSend)
     }
@@ -601,7 +644,11 @@ class MixedCoherentLineHome(
     releaseQueue.io.deq.ready := writes.io.in(0).ready
     writes.io.in(1).valid := maintenance === mWriteSend || maintenance === mLineWriteSend
     writes.io.in(1).bits.address := Cat(access.address(63, 6), 0.U(6.W))
-    writes.io.in(1).bits.data := Mux(maintenance === mLineWriteSend, lineWriteData.getOrElse(0.U), maintenanceData)
+    // Offered DATA depends only on the retained maintenance owner. Completion
+    // qualifies VALID/tag below, never the 512-bit payload selection fanout.
+    writes.io.in(1).bits.data := (if (dmaMaintenanceCompletionFlow)
+        Mux(maintenance === mWriteSend, maintenanceData, lineWriteData.get)
+    else Mux(maintenance === mLineWriteSend, lineWriteData.getOrElse(0.U), maintenanceData))
     writes.io.in(1).bits.tag := Mux(maintenance === mLineWriteSend, (writebackEntries + 1).U, writebackEntries.U)
     transfer.io.writeRequest <> writes.io.out
     when(writes.io.in(0).fire) { releasePhases(sendReleaseSlot) := rWait }
@@ -684,18 +731,33 @@ class MixedCoherentLineHome(
         val lineWrites = Reg(Vec(dmaLineEntries, Bool()))
         val accessTag = Reg(UInt(slotBits.W))
         anyDmaLine := ownedLines.asUInt.orR
+        if (dmaReadAcquireOverlap) {
+            // Only an already-dispatched DMA read may coexist with a fresh,
+            // disjoint refill. A competing committed owner would need Probe
+            // maintenance and therefore keeps the original drain barrier.
+            dmaReadAcquirePermit := !acquireOwned && (0 until dmaLineEntries).map(i =>
+                !ownedLines(i) || (!lineWrites(i) &&
+                    lineAddresses(i)(63, 6) =/= port.a.bits.address(63, 6))).reduce(_ && _)
+            assert(!(port.a.fire && line.request.fire),
+                "DMA and Acquire must retain exclusive admission arbitration")
+        }
         val preferLine = RegInit(true.B)
         selectLine := line.request.valid && !directHeld && (preferLine || !io.upstream.request.valid)
         when(io.upstream.request.fire) { preferLine := true.B }
         // Only bounded occupancy/tag state enters admission. Address hazards
         // are resolved after capture, outside the upstream READY path.
-        line.request.ready := selectLine && lineAdmissionOpen && reads === 0.U &&
+        line.request.ready := selectLine && dmaLineAdmissionOpen && reads === 0.U &&
             !ownedLines(line.request.bits.tag)
         when(line.request.fire) {
             assert(line.request.bits.tag < dmaLineEntries.U && !ownedLines(line.request.bits.tag),
                 "home line tag reused before response")
-            assert(!anyAcquire && reads === 0.U && !releaseBusy && !directHeld,
-                "line DMA crossed a coherence owner")
+            if (dmaProbeAcquireOverlap) {
+                assert(reads === 0.U && !releaseBusy && !directHeld && !maintenanceForAcquire,
+                    "staged line DMA crossed a scalar, release or maintenance owner")
+            } else {
+                assert(!anyAcquire && reads === 0.U && !releaseBusy && !directHeld,
+                    "line DMA crossed a coherence owner")
+            }
             assert(line.request.bits.address(5, 0) === 0.U && inRam(line.request.bits.address) &&
                 (line.request.bits.address +& 64.U) <= (base + bytes).U(65.W),
                 "line DMA only accepts a complete naturally aligned RAM line")
@@ -716,7 +778,10 @@ class MixedCoherentLineHome(
                 val incomingConflict = (0 until dmaLineEntries).map(i => ownedLines(i) &&
                     lineAddresses(i)(63, 6) === line.request.bits.address(63, 6)).reduce(_ || _)
                 val incomingOwned = functionalLookupOwned(line.request.bits.address)
-                maintenance := Mux(incomingConflict || incomingOwned, mLineHazard,
+                // An older Acquire may not have committed ownership yet.
+                // Always recheck its set and the committed lookup after capture.
+                maintenance := Mux(if (dmaProbeAcquireOverlap) incomingConflict || incomingOwned || anyAcquire
+                    else incomingConflict || incomingOwned, mLineHazard,
                     Mux(line.request.bits.write, mLineWriteSend, mLineReadSend))
             } else maintenance := mLineHazard
             preferLine := false.B
@@ -725,15 +790,50 @@ class MixedCoherentLineHome(
         }
         val olderSameLine = (0 until dmaLineEntries).map(i => ownedLines(i) && accessTag =/= i.U &&
             lineAddresses(i)(63, 6) === access.address(63, 6)).reduce(_ || _)
-        when(maintenance === mLineHazard && !olderSameLine && !releaseBusy && !releaseOffer) {
+        // In the bounded profile setOf is PA[13:6]. This check uses only
+        // saved addresses, outside DMA READY and the functional tag-address mux.
+        when(if (dmaProbeAcquireOverlap)
+            maintenance === mLineHazard && !transientSet(access.address) &&
+                !olderSameLine && !releaseBusy && !releaseOffer
+        else maintenance === mLineHazard && !olderSameLine && !releaseBusy && !releaseOffer) {
             maintenanceDirectory := functionalLookupSlot(access.address)
             maintenanceClient := ownerClients(functionalLookupSlot(access.address))
             maintenanceForAcquire := false.B
             maintenance := Mux(functionalLookupOwned(access.address), mProbeSend, accessSend)
         }
-        when(maintenance === mLineReadSend) {
-            assert(!fillQueue.io.deq.valid && !anyAcquire && ownedLines(accessTag),
-                "pipelined DMA read lost exclusive admission")
+        // Only the retained, successful internal dirty-writeback completion
+        // may expose the dependent access. For this exact full tag the response
+        // READY below is unconditional (!writeIsLine), independent of dispatch.
+        // Writer response validity/tag/error are registered completion state.
+        val dmaMaintenanceComplete = if (dmaMaintenanceCompletionFlow)
+            transfer.io.writeResponse.fire && transfer.io.writeResponse.bits.tag === writebackEntries.U &&
+                !transfer.io.writeResponse.bits.error && maintenance === mWriteWait &&
+                lineAccess && !maintenanceForAcquire
+        else false.B
+        if (dmaMaintenanceCompletionFlow) {
+            when(dmaMaintenanceComplete) {
+                assert(transfer.io.writeResponse.ready && ownedLines(accessTag) && !olderSameLine,
+                    "DMA maintenance completion lost its retained exclusive owner")
+            }
+        }
+        // These accepted-dispatch assignments deliberately follow the generic
+        // completion handler: acceptance wins over its accessSend fallback.
+        // A queued old fill retains VALID/address/tag and its dequeue. Once
+        // empty, blocked fresh A keeps the selected DMA offer stable under stall.
+        when(if (dmaProbeAcquireOverlap)
+            !fillQueue.io.deq.valid && (if (dmaMaintenanceCompletionFlow)
+                maintenance === mLineReadSend || (dmaMaintenanceComplete && !access.write)
+            else maintenance === mLineReadSend)
+        else if (dmaMaintenanceCompletionFlow)
+            maintenance === mLineReadSend || (dmaMaintenanceComplete && !access.write)
+        else maintenance === mLineReadSend) {
+            if (dmaProbeAcquireOverlap) {
+                assert(!fillQueue.io.deq.valid && ownedLines(accessTag) && lineAccess && !maintenanceForAcquire,
+                    "staged DMA read lost its retained owner or overwrote a queued fill")
+            } else {
+                assert(!fillQueue.io.deq.valid && !anyAcquire && ownedLines(accessTag),
+                    "pipelined DMA read lost exclusive admission")
+            }
             transfer.io.readRequest.valid := true.B
             transfer.io.readRequest.bits.address := access.address
             transfer.io.readRequest.bits.tag := acquireEntries.U(writeTagBits.W) + accessTag
@@ -744,7 +844,15 @@ class MixedCoherentLineHome(
                 maintenance := mIdle; lineAccess := false.B
             }
         }
-        when(maintenance === mLineWriteSend) {
+        when(if (dmaMaintenanceCompletionFlow)
+            maintenance === mLineWriteSend || (dmaMaintenanceComplete && access.write)
+        else maintenance === mLineWriteSend) {
+            if (dmaMaintenanceCompletionFlow) {
+                // Still input 1 of the original RR/queue dispatch, never a
+                // bypass of Release arbitration or writer capacity. A blocked
+                // completion-edge offer falls into mLineWriteSend unchanged.
+                writes.io.in(1).valid := true.B
+            }
             writes.io.in(1).bits.tag := (writebackEntries + 1).U(writeTagBits.W) + accessTag
             when(writes.io.in(1).fire) {
                 assert(writes.io.in(1).bits.tag > writebackEntries.U &&
@@ -782,9 +890,60 @@ class MixedCoherentLineHome(
             replyHeld := false.B
             preferWrite := !chooseWrite
         }
+        if (dmaProbeAcquireOverlap) {
+            when(lineAccess) {
+                assert(ownedLines(accessTag) && maintenance =/= mIdle && !maintenanceForAcquire,
+                    "staged DMA maintenance lost its pending tag")
+            }
+            when(port.a.fire && anyDmaLine) {
+                assert((0 until dmaLineEntries).map(i => !ownedLines(i) || !lineWrites(i)).reduce(_ && _),
+                    "fresh Acquire crossed a live DMA write")
+            }
+        }
         when(anyDmaLine) {
-            assert(!anyAcquire && reads === 0.U && !directHeld,
-                "live DMA line crossed refill or scalar owner")
+            if (dmaReadAcquireOverlap) {
+                assert(reads === 0.U && !directHeld, "live DMA line crossed scalar owner")
+                when(anyAcquire) {
+                    if (dmaProbeAcquireOverlap) {
+                        assert(!maintenanceForAcquire,
+                            "staged DMA overlap crossed Acquire maintenance ownership")
+                    } else {
+                        assert(maintenance === mIdle && !lineAccess && !maintenanceForAcquire,
+                            "DMA read/Acquire overlap crossed maintenance ownership")
+                    }
+                    for (i <- 0 until dmaLineEntries) {
+                        when(ownedLines(i)) {
+                            if (!dmaProbeAcquireOverlap)
+                                assert(!lineWrites(i), "DMA write crossed an Acquire owner")
+                            for (j <- 0 until acquireEntries) {
+                                when(active(j)) {
+                                    if (dmaProbeAcquireOverlap) {
+                                        when(lineAccess && accessTag === i.U) {
+                                            // Only the parked captured owner may alias an old
+                                            // Acquire. Progressed maintenance is different-set.
+                                            when(maintenance =/= mLineHazard) {
+                                                assert(setOf(lineAddresses(i)) =/= setOf(addresses(j)),
+                                                    "progressed DMA maintenance shares an Acquire set")
+                                            }
+                                        }.otherwise {
+                                            // Keep the existing read-first same-set/different-line
+                                            // case and permit an old Acquire beside a dispatched write.
+                                            assert(lineAddresses(i)(63, 6) =/= addresses(j)(63, 6),
+                                                "dispatched DMA and Acquire own the same physical line")
+                                        }
+                                    } else {
+                                        assert(lineAddresses(i)(63, 6) =/= addresses(j)(63, 6),
+                                            "DMA read and Acquire own the same physical line")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                assert(!anyAcquire && reads === 0.U && !directHeld,
+                    "live DMA line crossed refill or scalar owner")
+            }
         }
     }
     when(transfer.io.readResponse.fire) {
@@ -911,7 +1070,10 @@ class MixedCoherentLineHome(
                     tagBanks(way).write(directory(eEntry)(setBits - 1, 0), tagGeometry.tag(addresses(eEntry)))
                 }
             }
-            owned(directory(eEntry)) := true.B
+            if (dmaReadAcquireOverlap) {
+                ownedSetValid := true.B
+                ownedSetSlot := directory(eEntry)
+            } else owned(directory(eEntry)) := true.B
             ownerClients(directory(eEntry)) := eClient
         }
         phase(eEntry) := free

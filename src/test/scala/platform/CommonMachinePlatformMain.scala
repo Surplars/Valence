@@ -15,6 +15,7 @@ object CommonMachinePlatformMain extends App {
     val output = Paths.get(args(0)).toAbsolutePath.normalize
     require(!Files.exists(output), "fresh output directory required")
     val options = args.drop(2)
+    val fabricExperiment = CommonFabricDmaExperiment.fromOptions(args(1), options.toSeq)
     val configurationPath = if (args(1).startsWith("--soc-config="))
         Some(Paths.get(args(1).stripPrefix("--soc-config=")).toAbsolutePath.normalize) else None
     val configurationBytes = configurationPath.map(Files.readAllBytes(_))
@@ -27,6 +28,8 @@ object CommonMachinePlatformMain extends App {
     val peripheralConfig = socConfig.peripherals
     val selected = socConfig.a1Experimental
     val cpuSpec = socConfig.cpuSpec
+    require(fabricExperiment.isEmpty || (selected.isEmpty && cpuSpec.isEmpty),
+        "fabric DMA experiment initially requires generic A1 CPU configuration")
     val chirrtlOnly = options.contains("--emit-chirrtl-only")
     val dynamic = clockProfile == "boot50-dynamic"
     peripheralConfig.validateRuntime(dynamic, dynamic)
@@ -36,7 +39,8 @@ object CommonMachinePlatformMain extends App {
     val legalFlags = Set("--programmable", "--vivado-memories", "--emit-chirrtl-only", diagnosticOption)
     require(options.forall(x => legalFlags(x) || x.startsWith("--compile-receipt=") ||
         x.startsWith("--clock-profile=") || x.startsWith("--experimental-a1-profile=") ||
-        x.startsWith("--jtag-download=") || x.startsWith("--a1-lsu-owners=")))
+        x.startsWith("--jtag-download=") || x.startsWith("--a1-lsu-owners=") ||
+        x.startsWith("--experimental-fabric-dma=")))
     val compileReceipt = Paths.get(options.find(_.startsWith("--compile-receipt=")).get
         .stripPrefix("--compile-receipt=")).toAbsolutePath.normalize
     require(ujson.read(Files.readString(compileReceipt))("exit").num == 0,
@@ -48,10 +52,21 @@ object CommonMachinePlatformMain extends App {
     CommonSocConfigFile.validateFirmware(socConfig, vivado)
     val boundary = if (dynamic) profile.boundary.copy(
         runtimeMaintenance = true, runtimeCancellation = true, runtimeInterruptHold = true) else profile.boundary
+    val resolvedFabric = CommonFabricDmaExperiment.resolve(profile, peripheralConfig, boundary, fabricExperiment,
+        runtime = dynamic)
     val actualCpuConfig = socConfig.cpuConfig(boundary)
     val identity = CommonCpuMicroarchitectureIdentity.build(profile, selected, boundary, cpuSpec = cpuSpec)
+    fabricExperiment.foreach { selection =>
+        identity("sharedFabricConfig") = CommonCpuMicroarchitectureIdentity.configuration(resolvedFabric.fpga)
+        identity("fabricDmaExperiment") = ujson.Obj("selection" -> selection.name,
+            "completionFlow" -> resolvedFabric.completionFlow, "readOverlap" -> resolvedFabric.readOverlap,
+            "probeOverlap" -> resolvedFabric.probeOverlap)
+        identity("qualification") = "SOURCE_ELABORATION_ONLY_NOT_RUNTIME_OR_BOARD_QUALIFIED"
+        identity.obj.remove("identitySha256")
+        identity("identitySha256") = CommonCpuMicroarchitectureIdentity.digest(identity)
+    }
     val root = Paths.get(sys.props.getOrElse("chisel.project.root", ".")).toAbsolutePath.normalize
-    val compileBinding = if (selected.nonEmpty || cpuSpec.nonEmpty)
+    val compileBinding = if (selected.nonEmpty || cpuSpec.nonEmpty || fabricExperiment.nonEmpty)
         Some(CommonCpuMicroarchitectureIdentity.verifyCompileReceipt(compileReceipt, root)) else None
     def walk(directory: Path): Seq[Path] = {
         val stream = Files.walk(directory)
@@ -86,7 +101,7 @@ object CommonMachinePlatformMain extends App {
         runtimeFixedQualification = dynamic, runtimeControlQualification = dynamic,
         runtimeFixedMac = dynamic, runtimeRateControl = dynamic, externalIrqsAbsent = dynamic,
         diagnosticRateAdmission = diagnostic, performanceTelemetry = diagnostic, a1Experimental = selected,
-        peripheralConfig = peripheralConfig, cpuSpec = cpuSpec)
+        peripheralConfig = peripheralConfig, cpuSpec = cpuSpec, fabricDmaExperiment = fabricExperiment)
     if (chirrtlOnly) ChiselStage.emitCHIRRTLFile(platform(), Array("--target-dir", output.toString))
     else ChiselStage.emitSystemVerilogFile(platform(), Array("--target-dir", output.toString),
         Array("--split-verilog", "--strip-debug-info", "--disable-all-randomization",
@@ -101,8 +116,15 @@ object CommonMachinePlatformMain extends App {
     CommonCpuMicroarchitectureIdentity.write(output.resolve("microarchitecture-identity.json"), identity)
     val artifacts = hashes(walk(output))
     def objectOf(m: Map[String, String]): ujson.Obj = ujson.Obj.from(m.toSeq.sortBy(_._1).map { case (k, v) => k -> ujson.Str(v) })
+    val fabricMetadata = ujson.Obj(
+        "selection" -> fabricExperiment.map(x => ujson.Str(x.name)).getOrElse(ujson.Null),
+        "qualification" -> "source-elaboration-only-not-retained-W16-runtime-or-board-qualification",
+        "defaultEnabled" -> false, "dmaMaintenanceCompletionFlow" -> resolvedFabric.completionFlow,
+        "dmaReadAcquireOverlap" -> resolvedFabric.readOverlap, "dmaProbeAcquireOverlap" -> resolvedFabric.probeOverlap,
+        "effectiveFpgaConfig" -> CommonCpuMicroarchitectureIdentity.configuration(resolvedFabric.fpga),
+        "effectiveFabricCoreParameters" -> CommonCpuMicroarchitectureIdentity.value(resolvedFabric.fpga.coreParams))
     val manifest = ujson.Obj(
-        "schema" -> 1, "top" -> "CommonMachinePlatform", "cpu" -> profile.kind,
+        "schema" -> 1, "top" -> "CommonMachinePlatform", "fabricDmaExperiment" -> fabricMetadata, "cpu" -> profile.kind,
         "cpuMicroarchitectureProfile" -> identity("microarchitectureProfile"),
         "cpuQualification" -> identity("qualification"), "cpuMicroarchitecture" -> identity,
         "rtlFormat" -> (if (chirrtlOnly) "CHIRRTL" else "SystemVerilog"),
@@ -150,7 +172,7 @@ object CommonMachinePlatformMain extends App {
             "storeBufferEntries" -> actualCpuConfig.coreParams.storeBufferEntries) else ujson.Null),
         "homeClients" -> 2, "homeLines" -> 1024, "homeWays" -> 4,
         "homeAcquireEntries" -> 2, "homeWritebackEntries" -> 2,
-        "ddrSlots" -> profile.fpga.ddr.maxOutstanding, "ddrWriteSlots" -> profile.fpga.ddr.maxOutstandingWrites,
+        "ddrSlots" -> resolvedFabric.fpga.ddr.maxOutstanding, "ddrWriteSlots" -> resolvedFabric.fpga.ddr.maxOutstandingWrites,
         "heldFifo" -> "HeldResponseCdcDataFifo", "fifoDepth" -> 16,
         "triSpeedEthernet" -> peripheralConfig.network,
         "triSpeedTxFrameSlots" -> (if (peripheralConfig.network) ujson.Num(2) else ujson.Null),
@@ -177,6 +199,7 @@ object CommonMachinePlatformMain extends App {
     val resolved = ujson.Obj(
         "schema" -> 1, "purpose" -> "resolved-soc-configuration-not-performance-qualification",
         "requested" -> CommonSocConfigFile.requested(socConfig),
+        "fabricDmaExperiment" -> fabricMetadata,
         "configurationFile" -> configurationPath.map(p => ujson.Str(p.toString)).getOrElse(ujson.Null),
         "configurationSha256" -> configurationHash.map(ujson.Str(_)).getOrElse(ujson.Null),
         "effective" -> ujson.Obj.from(Seq("cpu", "clockProfile", "cpuMicroarchitectureProfile", "cpuQualification",

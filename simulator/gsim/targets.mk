@@ -43,6 +43,11 @@ gsim-core-word-bypass-test:
 gsim-core-indirect-test:
 	python3 simulator/gsim/run.py core-indirect
 
+# Source-backed storage experiment only; no whole-CPU or board simulation.
+.PHONY: gsim-banked-indirect-storage-test
+gsim-banked-indirect-storage-test:
+	python3 -B simulator/gsim/banked_indirect_storage.py
+
 gsim-test:
 	python3 simulator/gsim/run.py test
 

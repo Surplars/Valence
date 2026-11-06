@@ -145,7 +145,9 @@ final case class FpgaNextConfig(
     loadPayloadNomination: Boolean = false,
     registeredMulLoadOperandCapture: Boolean = false,
     // None preserves the exact selected topology; this is not a new public default.
-    branchPredictorEntriesOverride: Option[Int] = None
+    branchPredictorEntriesOverride: Option[Int] = None,
+    dmaLineThresholdRewrite: Boolean = false,
+    dmaSingleReadWait: Boolean = false
 ) {
     require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
         registeredMemoryOperandCapture && sharedMulDivOperandReads &&
@@ -324,6 +326,9 @@ final case class FpgaNextConfig(
     require(!splitPrefetchTracking || storeNextLinePrefetch,
         "split prefetch tracking requires checked store prefetch")
     require(Set(2, 4).contains(lsuEntries), "FPGA-next LSU experiment uses two or four owners")
+    require(!dmaLineThresholdRewrite || dmaLineTransfers, "line threshold rewrite requires line transfers")
+    require(!dmaSingleReadWait || (dmaLineTransfers && dmaLineEntries == 2),
+        "single read-wait scheduling requires exactly two line tags")
     require(Set(1, 2, 4, 8).contains(dmaLineEntries) && (dmaLineTransfers || dmaLineEntries == 1))
     require(Set(0, 4, 8, 16, 32, 64).contains(dmaLineYieldCycles) && (dmaLineTransfers || dmaLineYieldCycles == 0))
     require(!precheckedDataRequestFlow || virtualRamLoadPrecheck,
@@ -421,6 +426,8 @@ final case class FpgaNextConfig(
         (if (dmaLineTransfers) "-dma-lines" else "") +
         (if (dmaLineEntries > 1) s"-owners${dmaLineEntries}" else "") +
         (if (dmaLineYieldCycles > 0) s"-yield${dmaLineYieldCycles}" else "") +
+        (if (dmaLineThresholdRewrite) "-dma-line-threshold" else "") +
+        (if (dmaSingleReadWait) "-dma-single-read-wait" else "") +
         (if (ddrWriteCollectionFlow) "-ddr-write-collection-flow" else "") +
         (if (lineTransferDispatchFlow) "-line-transfer-dispatch-flow" else "") +
         (if (lineReadChannel) "-line-read-channel" else "") +
@@ -624,6 +631,7 @@ final case class FpgaNextConfig(
         registeredPmpRegions = registeredPmpRegions, publishedPmpChanges = publishedPmpChanges,
         bankedInstructionData = bankedInstructionData, jtagRamDownload = jtagRamDownload,
         dmaLineTransfers = dmaLineTransfers, dmaLineYieldCycles = dmaLineYieldCycles, dmaLineEntries = dmaLineEntries,
+        dmaLineThresholdRewrite = dmaLineThresholdRewrite, dmaSingleReadWait = dmaSingleReadWait,
         precheckedDataRequestFlow = precheckedDataRequestFlow, physicalLoadIngressFlow = physicalLoadIngressFlow,
         translatedResponseEmptyFlow = translatedResponseEmptyFlow,
         loadOrderOlderRetire = loadOrderOlderRetire, fetchPreviousPacket = fetchPreviousPacket,
@@ -692,7 +700,7 @@ object FpgaNextConfig {
     val RegisteredPmpCandidate = Selected.copy(registeredPmpRegions = true)
 
     def fromOptions(options: Set[String], defaultSelected: Boolean): FpgaNextConfig = {
-        for (flag <- Set("--posted-younger-load-seal-deferral", "--frozen-store-proof-transport", "--pending-virtual-store-proof",
+        for (flag <- Set("--dma-line-threshold-rewrite", "--dma-single-read-wait", "--posted-younger-load-seal-deferral", "--frozen-store-proof-transport", "--pending-virtual-store-proof",
             "--registered-pending-store-query", "--aligned-fetch-permission-stage", "--registered-canonical-store-event", "--shared-lane1-owner-match", "--direct-rank1-memory-source-ids", "--memory-preparation-head-mask", "--direct-rank0-memory-source-ids", "--direct-registered-execution-operands", "--shared-canonical-store-owner-match", "--local-payload-write-row",
             "--bound-head-store-overlap", "--pending-ready-store-bypass", "--tagged-store-returns", "--read-prefetch-store-hold",
             "--durable-read-prefetch-candidate", "--read-prefetch-behind-store",
@@ -815,6 +823,8 @@ object FpgaNextConfig {
             dmaLineEntries = lineDepth,
             dmaLineYieldCycles = lineYield,
             dmaLineTransfers = options.contains("--dma-line-transfers"),
+            dmaLineThresholdRewrite = options.contains("--dma-line-threshold-rewrite"),
+            dmaSingleReadWait = options.contains("--dma-single-read-wait"),
             prefetchCandidateCycles = lifetime,
             precheckedDataRequestFlow = options.contains("--prechecked-data-flow"),
             physicalLoadIngressFlow = options.contains("--physical-load-ingress-flow"),

@@ -102,12 +102,18 @@ class DecodedNaturalPmpChecker(val entries: Int = 16, val exportDecision: Boolea
 
 /** Caller-local selection: disabled callers still instantiate the old checker.
   * The bridge only projects already-decoded fields; it adds no PMP state.
+  * Optional assertionReset qualifies only the stateless checker's address-domain
+  * assertions. The decoded-state bridge keeps its original reset and invariants.
   */
 object NaturalPmpEvaluation {
     def denied(entries: Int, decoded: Boolean, sharedBounds: Boolean, state: PmpState,
-        address: UInt, size: UInt, privilege: UInt, access: UInt): Bool = {
+        address: UInt, size: UInt, privilege: UInt, access: UInt,
+        assertionReset: Option[Reset] = None): Bool = {
         if (decoded) {
-            val pmp = Module(new DecodedNaturalPmpChecker(entries))
+            val pmp = assertionReset match {
+                case Some(r) => withReset(r) { Module(new DecodedNaturalPmpChecker(entries)) }
+                case None => Module(new DecodedNaturalPmpChecker(entries))
+            }
             pmp.io.state := DecodedPmpGranuleState.fromDecoded(state, entries)
             pmp.io.address := address
             pmp.io.size := size
@@ -115,7 +121,13 @@ object NaturalPmpEvaluation {
             pmp.io.access := access
             pmp.io.denied
         } else {
-            val pmp = Module(new PmpChecker(entries, naturalAlignedAccess = true, sharedAlignedBounds = sharedBounds))
+            val pmp = assertionReset match {
+                case Some(r) => withReset(r) {
+                    Module(new PmpChecker(entries, naturalAlignedAccess = true, sharedAlignedBounds = sharedBounds))
+                }
+                case None =>
+                    Module(new PmpChecker(entries, naturalAlignedAccess = true, sharedAlignedBounds = sharedBounds))
+            }
             pmp.io.state := state
             pmp.io.address := address
             pmp.io.size := size

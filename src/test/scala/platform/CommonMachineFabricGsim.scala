@@ -92,8 +92,13 @@ class CommonFabricFlatPort(fields: Seq[(String, Data)]) extends Record {
     }: _*)
 }
 class CommonMachineFabricFlatGsim(runtime: Boolean, cancellation: Boolean = false,
-    jtagDownload: Boolean = true, memoryCopyDma: Boolean = true, network: Boolean = true) extends Module {
+    jtagDownload: Boolean = true, memoryCopyDma: Boolean = true, network: Boolean = true,
+    fpga: soc.core.ooo.FpgaNextConfig = soc.core.ooo.FpgaNextConfig.Selected,
+    dmaMaintenanceCompletionFlow: Boolean = false, dmaReadAcquireOverlap: Boolean = false,
+    dmaProbeAcquireOverlap: Boolean = false) extends Module {
     val fabric = Module(new CommonMachineFabric(
+        fpga = fpga, dmaMaintenanceCompletionFlow = dmaMaintenanceCompletionFlow,
+        dmaReadAcquireOverlap = dmaReadAcquireOverlap, dmaProbeAcquireOverlap = dmaProbeAcquireOverlap,
         boundary = CommonCpuTilePortParams(runtimeMaintenance = runtime, runtimeCancellation = cancellation),
         features = CommonPeripheralConfig(jtagDownload = jtagDownload, memoryCopyDma = memoryCopyDma,
             network = network).features,

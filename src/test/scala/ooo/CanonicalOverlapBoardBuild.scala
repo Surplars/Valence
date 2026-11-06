@@ -5,7 +5,10 @@ import soc.core.ooo.FpgaNextConfig
 
 /** Shared by the CLI emitter and the actual ON/OFF elaboration test. */
 object CanonicalOverlapBoardBuild {
-    def build(c: FpgaNextConfig, overlap: Boolean, lineageProbes: Boolean = false): CanonicalOverlapBoardGsim = new CanonicalOverlapBoardGsim(
+    def build(c: FpgaNextConfig, overlap: Boolean, lineageProbes: Boolean = false): CanonicalOverlapBoardGsim = {
+        require(!c.dmaLineThresholdRewrite && !c.dmaSingleReadWait,
+            "DMA schedule experiments require CommonFabricDmaScheduleGsimMain; this legacy board wrapper is not qualified for them")
+        new CanonicalOverlapBoardGsim(
         externalDdr = true, clockHz = c.cpuHz, timingProfile = c.timingProfile,
         uartBaud = c.uartBaud, dataCacheWays = c.cacheWays, issueWidth = c.issueWidth,
         instructionPrefetch = c.instructionPrefetch, isaProfile = c.isaProfile,
@@ -32,5 +35,6 @@ object CanonicalOverlapBoardBuild {
         pendingReadyStoreBypass = c.pendingReadyStoreBypass,
         backendCapacity = c.backendCapacity,
         lineageProfile = if (lineageProbes) Some(c) else None)
+    }
 }
 

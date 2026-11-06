@@ -97,7 +97,7 @@ object CommonCpuMicroarchitectureIdentity {
         .digest(ujson.write(canonical(entry), indent = -1, escapeUnicode = false).getBytes(StandardCharsets.UTF_8))
         .map(b => f"${b & 255}%02x").mkString
 
-    private def configuration(config: FpgaNextConfig): ujson.Value = {
+    def configuration(config: FpgaNextConfig): ujson.Value = {
         val fields = value(config).obj
         fields("_derived") = ujson.Obj(
             "isaProfile" -> value(config.isaProfile), "issueWidth" -> value(config.issueWidth),
