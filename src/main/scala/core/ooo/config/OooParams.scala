@@ -256,6 +256,8 @@ case class OooParams(
     registeredMulLoadOperandCapture: Boolean = false,
     // Optional owner-carried H fault/context fields. Does not advertise misa.H.
     hypervisorExperiment: Boolean = false,
+    // Default-off, fixed real-core qualification route; never general H+FP enablement.
+    guardedGuestFpQualification: Boolean = false,
     // RV64 cycle/instret and retirement-owned writes, only in the explicit H experiment.
     basicCounters: Boolean = false
 ) {
@@ -595,6 +597,8 @@ case class OooParams(
         registeredStoreResponseOwners && !fastBufferedStoreRetire && !fastHeadLoadRetire),
         "tagged store returns retain registered request/owner boundaries and actual LSU completion")
     require(!fpEnabled || machineSystem, "FP requires machine-system mode")
+    require(!guardedGuestFpQualification || GuardedGuestFpCoreProfile.accepts(this),
+        "guarded guest FP qualification requires the exact frozen native ROB16/PRF48 moves-memory profile")
     require(!advertiseFloatingPoint || (fpEnabled && fpConfig.complete),
         "ISA advertisement requires every instruction group of the selected F/D extension")
     def misaValue: BigInt = (BigInt(2) << 62) | (BigInt(1) << 8) | (BigInt(1) << 12) |
@@ -791,4 +795,27 @@ case class OooParams(
     val countBits: Int  = log2Ceil(robEntries + 1)
 
     private def isPow2(value: Int): Boolean = value > 0 && (value & (value - 1)) == 0
+}
+
+/** One deliberately frozen qualification recipe, not a production preset or an ISA claim.
+  * Exact equality also excludes unrelated pipeline/memory experiments under this name.
+  * The unselected recipe never admits H+FP: both consumers still require the selector.
+  */
+object GuardedGuestFpCoreProfile {
+    val floatingPoint: FloatingPointConfig = FloatingPointConfig.fullFD.copy(
+        addSubtract = false, multiply = false, divide = false, squareRoot = false,
+        fusedMultiplyAdd = false, compareMinMax = false, conversions = false,
+        signClassMove = true, memory = true, resources = FloatingPointResourceConfig.fpga)
+
+    private val unselected = OooParams(
+        renameWidth = 2, commitWidth = 2, completionWidth = 2,
+        robEntries = 16, physicalRegs = 48, tagBits = 64, memoryEntries = 2,
+        machineSystem = true, hypervisorExperiment = true,
+        virtualMemoryLevels = 3, pmpEntries = 16, compressedInstructions = true,
+        floatingPoint = floatingPoint)
+
+    def params: OooParams = unselected.copy(guardedGuestFpQualification = true)
+
+    // Clear only the admission selector for comparison, not any measured option.
+    def accepts(p: OooParams): Boolean = p.copy(guardedGuestFpQualification = false) == unselected
 }

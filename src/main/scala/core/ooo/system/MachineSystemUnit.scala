@@ -38,7 +38,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         "experimental H state requires a supervisor translation configuration")
     require(experimentalHypervisor || guestFiles == 0)
     require(experimentalHypervisor == p.hypervisorExperiment, "H state and precise metadata must be enabled together")
-    require(!experimentalHypervisor || !p.fpEnabled, "guest FP state is not yet integrated")
+    require(!experimentalHypervisor || !p.fpEnabled || p.guardedGuestFpQualification,
+        "guest FP state is not yet integrated outside the guarded qualification profile")
     private def alignedEpc(value: UInt): UInt =
         if (p.compressedInstructions) Cat(value(63, 1), 0.U(1.W)) else Cat(value(63, 2), 0.U(2.W))
     val io = IO(new Bundle {
@@ -83,7 +84,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     private val systemStates = Enum(if (p.hypervisorExperiment) 9 else 8)
     val Seq(idle, execute, send, waitResponse, waitVmFlush, waitFenceI, waitFp, finish) = systemStates.take(8)
     val waitHMemory = if (p.hypervisorExperiment) systemStates(8) else idle
-    val floatingPoint = if (p.fpEnabled) Some(Module(new FloatingPointSystem(p))) else None
+    val floatingPoint = if (p.fpEnabled)
+        Some(Module(new FloatingPointSystem(p, dualFs = p.guardedGuestFpQualification))) else None
     val basicCounterBank = if (p.basicCounters) Some(Module(new BasicCounterBank(p))) else None
     val fpFs = floatingPoint.map(_.io.fs).getOrElse(0.U(2.W))
     val fpFcsr = floatingPoint.map(_.io.fcsr).getOrElse(0.U(8.W))
@@ -95,7 +97,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val privilege                                     = RegInit(3.U(2.W))
     val hLsu = if (p.hypervisorExperiment) Some(Module(new LoadStoreUnit(p))) else None
     val hypervisor = if (experimentalHypervisor)
-        Some(Module(new HypervisorState(p.compressedInstructions, guestFiles))) else None
+        Some(Module(new HypervisorState(p.compressedInstructions, guestFiles,
+            floatingPoint = p.guardedGuestFpQualification))) else None
     val virtualized = hypervisor.map(_.io.virtualized).getOrElse(false.B)
     io.virtualized.foreach(_ := virtualized)
     val mie                                           = RegInit(false.B)
@@ -452,8 +455,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val virtualTimerCsr = virtualized && timerCompareCsr && stimecmpAccessAllowed &&
         (address === "h24d".U || privilege === 0.U || !guestTimerAccessAllowed)
     val fpCsr = address === 1.U || address === 2.U || address === 3.U
-    // Shared permission policy, but dual-FS plumbing remains dormant: the H+FP
-    // guard above is retained and HypervisorState's FP contract is not enabled.
+    // The fixed qualification route shares architectural V/VS FS with FP state.
+    // Effective memory translation remains a separate contract below.
     val fpAccessAllowed = FloatingPointStatus.accessAllowed(fpFs,
         hypervisor.flatMap(_.io.floatingPoint).map(_.fs).getOrElse(0.U(2.W)), virtualized)
     val csrPrivilegeAllowed = privilege >= address(9, 8) ||
@@ -522,6 +525,11 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val pmpRawStateChange = if (p.pmpChangePublicationEnabled)
         VecInit(pmpChanges.map { case (cfg, addr, _) => cfg || addr }).asUInt.orR else false.B
     floatingPoint.foreach { fp =>
+        fp.io.guestContext.foreach { context =>
+            context.virtualized := virtualized
+            context.fs := hypervisor.get.io.floatingPoint.get.fs
+            hypervisor.get.io.floatingPoint.get.mutation := fp.io.mutation.get
+        }
         io.fpMemory.get <> fp.io.memory
         io.fpMemoryBusy.get := fp.io.memoryBusy
         fp.io.pmpState := io.pmpState

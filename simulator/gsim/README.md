@@ -1,5 +1,8 @@
 # 新乱序核的 GSIM 仿真入口
 
+2026-11-07：[Guarded guest FP core qualification](../../docs/guarded-guest-fp-core.md) introduces an explicit default-off, fixed-shape actual translated-core profile and software-driven validation entry. Other H+FP configurations remain rejected. Earlier component-only results below retain their historical scope; actual execution outcomes require the new source-bound receipt. No full numerical F/D, IRQ/cancellation, independent-clock, OS/PPA or board claim.
+
+
 2026-11-07：[Guarded FP memory/fault recovery](../../docs/guarded-fp-fault-recovery.md) adds a bounded real-system moves/memory qualification with a protected owner, existing selector and nested guest translation. Four synchronous faults use drained external trap stimulus; this is not automatic MSU/ROB trap admission. Production sources, defaults and both H+FP guards remain unchanged. No software isolation, IRQ/cancellation, independent-clock, full F/D/OS/PPA or board claim.
 
 2026-10-27：[第五批 A1 load payload nomination](../../docs/a1-efficiency-refactor-5.md)：默认 OFF，宽 payload 选择与完整授权分离。

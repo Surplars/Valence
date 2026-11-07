@@ -1,5 +1,12 @@
 # H/M, fence and translation-coherence qualification boundaries
 
+The later [guarded guest FP core profile](guarded-guest-fp-core.md) adds one
+explicit, default-off fixed-shape H+FP constructor exception. All other H+FP
+combinations remain rejected. Component entries below describe their original
+coverage and did not exercise actual ROB/MSU automatic trap admission. The new
+software-driven entry has its own source-bound results and exclusions.
+
+
 This is a clean, opt-in RV64 H/AIA implementation candidate, not a declaration of complete H support. The tested assembly is `HypervisorMachineCore`, with two-issue maintenance sources and a conservative parcel/translation path. Existing production `MachinePlatform`, BoardSoC and generated W16 configurations are not switched to it. `misa.H` remains clear.
 
 ## Implemented and exercised

@@ -1,5 +1,11 @@
 # Guarded FP memory and fault recovery
 
+Historical component result: the subsequent [guarded guest FP core
+qualification](guarded-guest-fp-core.md) introduces a separate, explicit narrow
+constructor exception and real software-driven test. The component evidence
+and external-trap limitations documented here remain unchanged.
+
+
 This test-only system contract composes genuine `FloatingPointSystem(dualFs = true)`,
 `ProtectedSystemOwner`, `MemoryDomainSelector`, `HypervisorState(floatingPoint = true)`,
 `GuestDataTranslationAdapter` and `GuestTranslationService`. Production hardware,
