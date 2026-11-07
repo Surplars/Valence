@@ -72,8 +72,10 @@ reservation behavior and translated memory. Separate guest-origin exception
 programs check VS/G write protection, atomic ROM/MMIO rejection and alignment.
 All interrupt sources and enables are disabled in these atomic programs. A
 separate ordinary ECALL scenario exercises the existing trap-clear policy.
-The new cases do not add a directed final-SPA PMP denial; the inherited PMP
-path is retained, and that additional atomic-specific negative is deferred.
+This original entry does not add a directed final-SPA PMP denial. The separate
+[guest atomic permission entry](guest-atomic-permissions.md) covers that boundary
+and actual atomic-instruction execution on the A-disabled profile, without
+changing production RTL or the original entry's coverage.
 
 The entry requires every named case under both schedules and a complete marker.
 `--wrong-atomic` deliberately changes an independent expected atomic result; exit

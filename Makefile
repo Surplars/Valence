@@ -177,3 +177,7 @@ gsim-guest-sstc-test:
 .PHONY: gsim-guest-atomics-test
 gsim-guest-atomics-test:
 	python3 simulator/gsim/guest_atomics.py
+
+.PHONY: gsim-guest-atomic-permissions-test
+gsim-guest-atomic-permissions-test:
+	python3 simulator/gsim/guest_atomic_permissions.py
