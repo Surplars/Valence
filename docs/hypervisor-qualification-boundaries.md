@@ -81,3 +81,14 @@ public defaults and ISA/firmware declarations remain unchanged. This stage
 does not qualify guest F/D execution, actual-core trap precision, software
 FPR/fcsr context isolation or whole-core throughput/PPA. It does not reopen the
 restricted M-origin fault review or add IRQ/cancellation/independent-clock work.
+
+## Protected SYSTEM owner boundary probes
+
+The separate [owner-boundary component entry](system-owner-boundaries.md) adds
+drained accepted exceptional release, simultaneous release/capture priority and
+inactive reset/retained-success-token matching probes. A helper `retired` pulse
+is not an architectural retirement or evidence of FP/counter consumer effects.
+The simultaneous exception/capture case does not claim actual MSU reachability.
+No exceptional token is retired, and no H+FP guard/default changes, guest F/D,
+IRQ/cancellation, live-owner reset, independent-clock or restricted M-origin
+fault-review work is included. The prior selector evidence remains separate.

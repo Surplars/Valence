@@ -123,6 +123,17 @@ object `IonSoC` extends CommonNS {
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 
+    object systemOwnerBoundaries extends SbtTests with TestModule.ScalaTest {
+        // Accepted-event component probes only. Keep full production/HardFloat
+        // dependencies and the prior owner/selector guard checks unchanged.
+        override def sources = Task.Sources(
+            pwd / "src/test/scala/ooo/SystemOwnerBoundariesGsim.scala",
+            pwd / "src/test/scala/ooo/SystemOwnerBoundariesConfigSpec.scala",
+            pwd / "src/test/scala/ooo/MemoryDomainSelectorConfigSpec.scala"
+        )
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
+
 }
 
 // Isolated new FPGA five-stage core. Reuses selected CPU-independent bus/IP files,

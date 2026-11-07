@@ -2178,3 +2178,13 @@ dependencies. See [memory-domain-selector.md](memory-domain-selector.md) for
 the exact scope and reproduction commands. Guest arithmetic, real HS trap
 handling, software FP context isolation and physical performance are not
 qualified by this component stage.
+
+## Protected SYSTEM owner boundary probes
+
+A separate test-only [owner-boundary entry](system-owner-boundaries.md) checks
+accepted exceptional release after native drain, simultaneous release/capture
+priority and inactive full-token match semantics on the production owner and
+selector components. The 88/136-cycle schedules do not establish actual CPU
+scheduling, architectural retirement, FP/counter consumer effects or traps.
+Both actual-core H+FP guards, all defaults and production wiring remain unchanged;
+no old selector matrix rerun or new guest F/D/IRQ/cancellation scope is added.

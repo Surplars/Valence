@@ -197,3 +197,7 @@ gsim-fp-guest-memory-test:
 .PHONY: gsim-memory-domain-selector-test
 gsim-memory-domain-selector-test:
 	python3 simulator/gsim/memory_domain_selector.py $(MEMORY_DOMAIN_SELECTOR_ARGS)
+
+.PHONY: gsim-system-owner-boundaries-test
+gsim-system-owner-boundaries-test:
+	python3 simulator/gsim/system_owner_boundaries.py $(SYSTEM_OWNER_BOUNDARIES_ARGS)

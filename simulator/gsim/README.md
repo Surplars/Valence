@@ -3002,3 +3002,15 @@ an existing output directory and has no unverified model-reuse mode.
 See [commands, resource bounds and scope](../../docs/memory-domain-selector.md).
 Both actual-core H+FP guards and all defaults remain unchanged; this is not
 guest F/D execution, a core trap/context proof or physical qualification.
+
+## Protected SYSTEM owner boundary probes
+
+`make gsim-system-owner-boundaries-test` adds one fresh single-clock real
+owner/selector model through `IonSoC.systemOwnerBoundaries`. Its two short
+schedules check drained accepted exceptional release, release/capture priority
+and inactive full-token matches with strict raw replay and nine named controls.
+The 47 host tests mock all builds and native runs; they are not hardware evidence.
+Both actual-core H+FP guards and defaults remain unchanged. FP/counter consumer
+effects and actual CPU retirement/traps remain unqualified. The old selector
+matrix is neither changed nor rerun. See [scope, exact counts and fresh-output
+commands](../../docs/system-owner-boundaries.md).
