@@ -97,6 +97,19 @@ object `IonSoC` extends CommonNS {
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 
+    object guardedGuestFpArithmetic extends SbtTests with TestModule.ScalaTest {
+        // New exact arithmetic variant; include unchanged moves-memory rejection checks.
+        override def sources = Task.Sources(
+            pwd / "src/test/scala/ooo/GuardedGuestFpArithmeticGsim.scala",
+            pwd / "src/test/scala/ooo/GuardedGuestFpArithmeticConfigSpec.scala",
+            pwd / "src/test/scala/ooo/GuardedGuestFpCoreGsim.scala",
+            pwd / "src/test/scala/ooo/GuardedGuestFpCoreConfigSpec.scala",
+            pwd / "src/test/scala/ooo/FloatingPointStateGsim.scala",
+            pwd / "src/test/scala/ooo/DualFsPreparationConfigSpec.scala"
+        )
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
+
     object guardedGuestFpCore extends SbtTests with TestModule.ScalaTest {
         // Genuine translated core qualification; retain all production and HardFloat dependencies.
         override def sources = Task.Sources(

@@ -156,7 +156,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         p.precompleteMispredictedBranch && p.registeredRobRetirement && !p.fastBufferedStoreRetire &&
         !p.fastHeadLoadRetire && !p.moveAlias),
         "operand execution stages require the two-slot, non-aliased, registered redirect/retirement contract")
-    require(!p.hypervisorExperiment || (experimentalHypervisor && (!p.fpEnabled || p.guardedGuestFpQualification) &&
+    require(!p.hypervisorExperiment || (experimentalHypervisor && (!p.fpEnabled || p.guardedGuestFpEnabled) &&
         !p.bufferedRamStores && !p.registeredMemoryRequests && !p.taggedStoreReturns &&
         !p.virtualRamLoadPrecheck && !p.canonicalVirtualStoreOverlap && !p.memoryProofFrontier &&
         !p.dataNextLinePrefetch && !p.identityDataRequestFlow && !p.precheckedDataRequestFlow &&

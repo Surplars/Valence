@@ -16,8 +16,8 @@ object GuardedGuestFpCoreConfig {
   * Architectural state, issue, completions, retirement and traps have no test drivers.
   * One inherited clock/reset; IRQ/MSI/time are inactive and PMA is the fixed RAM window.
   */
-class GuardedGuestFpCoreGsim extends Module {
-    private val p = GuardedGuestFpCoreConfig.params
+class GuardedGuestFpCoreGsim(arithmetic: Boolean = false) extends Module {
+    private val p = if (arithmetic) GuardedGuestFpArithmeticProfile.params else GuardedGuestFpCoreConfig.params
     val io = IO(new Bundle {
         val enable = Input(Bool())
         val commitEnable = Input(Bool())
@@ -116,7 +116,8 @@ class GuardedGuestFpCoreGsim extends Module {
         val fpr_30 = Output(UInt(64.W))
         val fpr_31 = Output(UInt(64.W))
     })
-    val core = Module(new HypervisorMachineCore(guardedGuestFpQualification = true))
+    val core = Module(new HypervisorMachineCore(guardedGuestFpQualification = !arithmetic,
+        guardedGuestFpArithmeticQualification = arithmetic))
     core.io.enable := io.enable
     core.io.commitEnable := io.commitEnable
     io.instruction <> core.io.instruction

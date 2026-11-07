@@ -100,3 +100,7 @@ independent clocks, a stock OS, PPA, synthesis, board operation, Yosys or Verila
 coverage. Generic H+FP admission remains closed after the restricted tests pass.
 Prior component evidence in [guarded fault recovery](guarded-fp-fault-recovery.md)
 remains a distinct external-trap-consumer result, not retroactive CPU evidence.
+
+Follow-on: [guarded guest FP add/sub qualification](guarded-guest-fp-arithmetic.md)
+uses a separate exact default-off selector. It does not change this moves-memory
+recipe or turn the historical result into numerical coverage.

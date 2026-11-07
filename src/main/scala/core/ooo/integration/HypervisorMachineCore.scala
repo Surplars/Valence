@@ -21,15 +21,18 @@ class HypervisorMachineCore(
     ramBase: BigInt = 0,
     ramBytes: BigInt = 0,
     basicCounters: Boolean = false,
-    guardedGuestFpQualification: Boolean = false
+    guardedGuestFpQualification: Boolean = false,
+    guardedGuestFpArithmeticQualification: Boolean = false
 ) extends Module {
-    require(!guardedGuestFpQualification || !platformIntegration,
+    require(!(guardedGuestFpQualification || guardedGuestFpArithmeticQualification) || !platformIntegration,
         "guarded guest FP qualification uses the standalone single-clock core")
     val p = OooParams(hypervisorExperiment = true, robEntries = 16, physicalRegs = 48,
         memoryEntries = 2, compressedInstructions = true, machineSystem = true, virtualMemoryLevels = 3, pmpEntries = 16,
         atomicMemory = atomicMemory, speculativeRamBase = ramBase, speculativeRamBytes = ramBytes,
         basicCounters = basicCounters, guardedGuestFpQualification = guardedGuestFpQualification,
-        floatingPoint = if (guardedGuestFpQualification) GuardedGuestFpCoreProfile.floatingPoint
+        guardedGuestFpArithmeticQualification = guardedGuestFpArithmeticQualification,
+        floatingPoint = if (guardedGuestFpArithmeticQualification) GuardedGuestFpArithmeticProfile.floatingPoint
+            else if (guardedGuestFpQualification) GuardedGuestFpCoreProfile.floatingPoint
             else FloatingPointConfig.disabled)
     val io = IO(new Bundle {
         // The default standalone shape remains unchanged. Platform FENCE.I waits for shared drain.

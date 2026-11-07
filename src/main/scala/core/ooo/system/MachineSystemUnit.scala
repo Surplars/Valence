@@ -38,7 +38,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         "experimental H state requires a supervisor translation configuration")
     require(experimentalHypervisor || guestFiles == 0)
     require(experimentalHypervisor == p.hypervisorExperiment, "H state and precise metadata must be enabled together")
-    require(!experimentalHypervisor || !p.fpEnabled || p.guardedGuestFpQualification,
+    require(!experimentalHypervisor || !p.fpEnabled || p.guardedGuestFpEnabled,
         "guest FP state is not yet integrated outside the guarded qualification profile")
     private def alignedEpc(value: UInt): UInt =
         if (p.compressedInstructions) Cat(value(63, 1), 0.U(1.W)) else Cat(value(63, 2), 0.U(2.W))
@@ -85,7 +85,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val Seq(idle, execute, send, waitResponse, waitVmFlush, waitFenceI, waitFp, finish) = systemStates.take(8)
     val waitHMemory = if (p.hypervisorExperiment) systemStates(8) else idle
     val floatingPoint = if (p.fpEnabled)
-        Some(Module(new FloatingPointSystem(p, dualFs = p.guardedGuestFpQualification))) else None
+        Some(Module(new FloatingPointSystem(p, dualFs = p.guardedGuestFpEnabled))) else None
     val basicCounterBank = if (p.basicCounters) Some(Module(new BasicCounterBank(p))) else None
     val fpFs = floatingPoint.map(_.io.fs).getOrElse(0.U(2.W))
     val fpFcsr = floatingPoint.map(_.io.fcsr).getOrElse(0.U(8.W))
@@ -98,7 +98,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val hLsu = if (p.hypervisorExperiment) Some(Module(new LoadStoreUnit(p))) else None
     val hypervisor = if (experimentalHypervisor)
         Some(Module(new HypervisorState(p.compressedInstructions, guestFiles,
-            floatingPoint = p.guardedGuestFpQualification))) else None
+            floatingPoint = p.guardedGuestFpEnabled))) else None
     val virtualized = hypervisor.map(_.io.virtualized).getOrElse(false.B)
     io.virtualized.foreach(_ := virtualized)
     val mie                                           = RegInit(false.B)
