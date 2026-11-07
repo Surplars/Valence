@@ -201,3 +201,7 @@ gsim-memory-domain-selector-test:
 .PHONY: gsim-system-owner-boundaries-test
 gsim-system-owner-boundaries-test:
 	python3 simulator/gsim/system_owner_boundaries.py $(SYSTEM_OWNER_BOUNDARIES_ARGS)
+
+.PHONY: gsim-protected-fp-retirement-test
+gsim-protected-fp-retirement-test:
+	python3 simulator/gsim/protected_fp_retirement.py $(PROTECTED_FP_RETIREMENT_ARGS)

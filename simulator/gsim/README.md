@@ -3014,3 +3014,14 @@ Both actual-core H+FP guards and defaults remain unchanged. FP/counter consumer
 effects and actual CPU retirement/traps remain unqualified. The old selector
 matrix is neither changed nor rerun. See [scope, exact counts and fresh-output
 commands](../../docs/system-owner-boundaries.md).
+
+### Protected FP retirement consumer
+
+`make gsim-protected-fp-retirement-test` builds one fresh focused GSIM model of
+`ProtectedSystemOwner`, real dual-FS `FloatingPointState` and `HypervisorState`.
+It distinguishes raw owner matches, accepted FP retirement, and actual FPR,
+fflags and FS consequences. Two bounded successful synthetic-producer schedules
+and named checker controls qualify this component wiring only. Actual H+FP
+cores remain rejected and disabled by default. See
+[`docs/protected-fp-retirement.md`](../../docs/protected-fp-retirement.md) for
+contract, freshness, evidence and reproduction details.

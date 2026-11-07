@@ -92,3 +92,12 @@ The simultaneous exception/capture case does not claim actual MSU reachability.
 No exceptional token is retired, and no H+FP guard/default changes, guest F/D,
 IRQ/cancellation, live-owner reset, independent-clock or restricted M-origin
 fault-review work is included. The prior selector evidence remains separate.
+
+## Protected FP retirement consumer
+
+The test-only [FP retirement consumer entry](protected-fp-retirement.md) connects
+the real protected owner to real dual-FS FP state and VS-FS mutation handling.
+It distinguishes raw retained-token matching, accepted completed FP retirement
+and FPR/fflags/FS effects under bounded successful synthetic-producer schedules.
+It does not qualify actual CPU or numerical F/D execution, fault/trap lifetimes
+or software context isolation. Actual H+FP guards and all defaults remain.
