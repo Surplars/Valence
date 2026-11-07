@@ -185,3 +185,7 @@ gsim-guest-atomic-permissions-test:
 .PHONY: gsim-guest-counters-test
 gsim-guest-counters-test:
 	python3 simulator/gsim/guest_counters.py
+
+.PHONY: gsim-dual-fs-preparation-test
+gsim-dual-fs-preparation-test:
+	python3 simulator/gsim/dual_fs_preparation.py

@@ -2960,3 +2960,14 @@ controls and orchestration-only Python tests remain distinct from hardware runs.
 See [`docs/guest-counters.md`](../../docs/guest-counters.md) for the profile,
 precise owner contract and unverified OS, independent-clock and physical scope.
 The entry retains strict pinned GSIM binding; no alternate simulator is used.
+
+## Default-off dual-FS component preparation
+
+`make gsim-dual-fs-preparation-test` qualifies the optional production FP/VS state
+contract and unchanged host state through two genuine GSIM component models.
+It checks joint authorization, independent status aliases/SD, accepted mutation
+ownership and exact-token retirement with independent oracles and named negatives.
+The focused `IonSoC.dualFsPreparation` source set keeps full production dependencies.
+Both actual-core H+FP guards remain intact; no guest F/D, arithmetic, guest memory
+or context-switching CPU is executed by this entry. See [scope and remaining
+integration](../../docs/dual-fs-preparation.md).

@@ -60,14 +60,21 @@ class FloatingPointCsr extends Bundle {
   * issue -> registered execute -> registered completion -> exact-token retirement.
   * No same-cycle refill; throughput is deliberately bounded by retirement.
   * A caller must authorize the oldest instruction and serialize CSR/context access.
+  * dualFs adds permission from HypervisorState's existing VS FS, never a second
+  * FPR/fcsr bank. Architectural V is captured at accepted issue; the mutation
+  * event uses that owner through retirement, not the then-current V. CSR writes
+  * mutate on their accepting cycle, so their event uses that cycle's context.
+  * The caller must not replace the VS context image while an FP owner is live.
   * All architectural changes occur at retirement or an authorized idle CSR/FS access.
   * Flush wins over issue/result/retirement and never rolls back committed FP state.
   * Producers must echo the complete non-reused ROB token; reset must drain/reset them.
   * No board instantiation, misa bit or device-tree F/D advertisement is added by M1.
   */
-class FloatingPointState(val p: OooParams) extends Module {
+class FloatingPointState(val p: OooParams, dualFs: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val headAuthorized = Input(Bool())
+        val guestContext = if (dualFs) Some(Input(new FloatingPointGuestContext)) else None
+        val mutation = if (dualFs) Some(Output(Valid(new FloatingPointMutation))) else None
         val flush = Input(Bool())
         val issue = Flipped(Decoupled(new FloatingPointCommand(p)))
         val execute = Decoupled(new FloatingPointExecution(p))
@@ -78,7 +85,7 @@ class FloatingPointState(val p: OooParams) extends Module {
         val csr = Flipped(Decoupled(new FloatingPointCsr))
         val csrRead = Output(UInt(64.W))
         val csrIllegal = Output(Bool())
-        // Future mstatus/sstatus adapter owns privilege/CSR-mask checks.
+        // Host FS only. The status adapter owns alias, privilege and CSR-mask checks.
         val setFs = Flipped(Decoupled(UInt(2.W)))
         val fs = Output(UInt(2.W))
         val sd = Output(Bool())
@@ -104,6 +111,10 @@ class FloatingPointState(val p: OooParams) extends Module {
     val idle :: send :: waiting :: completed :: Nil = Enum(4)
     val state = RegInit(idle)
     val pending = Reg(new FloatingPointExecution(p))
+    private val pendingGuest = if (dualFs) Some(Reg(Bool())) else None
+    private val guestContext = io.guestContext.map(_.virtualized).getOrElse(false.B)
+    private val guestFs = io.guestContext.map(_.fs).getOrElse(0.U(2.W))
+    private val accessAllowed = FloatingPointStatus.accessAllowed(fs, guestFs, guestContext)
     val response = Reg(new FloatingPointResult(p))
     val destination = Reg(UInt(FloatingPointBits.registers.W))
     // Architectural retirement remains immediate. Only the physical array
@@ -158,22 +169,30 @@ class FloatingPointState(val p: OooParams) extends Module {
     val csrKnown = io.csr.bits.address === 1.U || io.csr.bits.address === 2.U || io.csr.bits.address === 3.U
     io.csrRead := MuxLookup(io.csr.bits.address, 0.U(64.W))(Seq(
         1.U -> flags.pad(64), 2.U -> frm.pad(64), 3.U -> Cat(frm, flags).pad(64)))
-    io.csrIllegal := !csrKnown || fs === 0.U || io.csr.bits.operation === 3.U
+    io.csrIllegal := !csrKnown || !accessAllowed || io.csr.bits.operation === 3.U
     val csrWritten = MuxLookup(io.csr.bits.operation, io.csr.bits.value)(Seq(
         1.U -> (io.csrRead | io.csr.bits.value), 2.U -> (io.csrRead & ~io.csr.bits.value)))
+    val csrMutation = io.csr.fire && io.csr.bits.write && !io.csrIllegal
+    val retiredMutation = io.retireAccepted && !response.exception &&
+        (pending.command.writesFp || pending.command.writesFlags)
+    io.mutation.foreach { event =>
+        event.valid := csrMutation || retiredMutation
+        event.bits.guest := Mux(csrMutation, guestContext, pendingGuest.get)
+    }
     when(io.setFs.fire) { fs := io.setFs.bits }
-    when(io.csr.fire && io.csr.bits.write && !io.csrIllegal) {
+    when(csrMutation) {
         when(io.csr.bits.address === 1.U) { flags := csrWritten(4, 0) }
         when(io.csr.bits.address === 2.U) { frm := csrWritten(2, 0) }
         when(io.csr.bits.address === 3.U) {
             flags := csrWritten(4, 0)
             frm := csrWritten(7, 5)
         }
-        fs := 3.U
     }
+    when(csrMutation || retiredMutation) { fs := 3.U }
 
     when(io.issue.fire) {
         pending.command := io.issue.bits
+        pendingGuest.foreach(_ := guestContext)
         destination := UIntToOH(io.issue.bits.destination, FloatingPointBits.registers)
         for (lane <- 0 until 3) {
             val source = io.issue.bits.sources(lane)
@@ -184,7 +203,7 @@ class FloatingPointState(val p: OooParams) extends Module {
         }
         val effectiveRounding = Mux(io.issue.bits.rounding === 7.U, frm, io.issue.bits.rounding)
         pending.rounding := effectiveRounding
-        val illegal = fs === 0.U || (io.issue.bits.usesRounding && effectiveRounding > 4.U)
+        val illegal = !accessAllowed || (io.issue.bits.usesRounding && effectiveRounding > 4.U)
         state := Mux(illegal, completed, send)
         response := 0.U.asTypeOf(new FloatingPointResult(p))
         response.token := io.issue.bits.token
@@ -203,7 +222,6 @@ class FloatingPointState(val p: OooParams) extends Module {
             // f0 is writable. Its committed array write/forwarding above is
             // independent of the high-fanout same-cycle ROB retirement grant.
             when(pending.command.writesFlags) { flags := flags | response.flags }
-            when(pending.command.writesFp || pending.command.writesFlags) { fs := 3.U }
         }
         state := idle
     }

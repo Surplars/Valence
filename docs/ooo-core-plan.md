@@ -2142,3 +2142,13 @@ owner's retirement; it reuses the existing SYSTEM serialization. See
 GSIM entry and shared-counter scope. Time/Sstc, production defaults and ISA
 advertisements stay unchanged. No guest-specific accounting, OS boot, independent
 clock, throughput or FPGA PPA qualification is implied.
+
+## Dual-FS state-component preparation
+
+Optional joint host/VS FP authorization, captured-owner mutation events and shared
+status alias/SD logic are prepared in genuine state components. Actual MSU host
+status routing uses the same helper. Both actual H+FP guards and all defaults remain
+unchanged; the optional combined state wiring is exercised by a focused GSIM
+component fixture, not by an enabled guest CPU. FP/H memory ownership, guest fault
+transport and real software context qualification remain open. See
+[dual-FS preparation](dual-fs-preparation.md).

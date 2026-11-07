@@ -85,7 +85,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val basicCounterBank = if (p.basicCounters) Some(Module(new BasicCounterBank(p))) else None
     val fpFs = floatingPoint.map(_.io.fs).getOrElse(0.U(2.W))
     val fpFcsr = floatingPoint.map(_.io.fcsr).getOrElse(0.U(8.W))
-    val fpStatus = (fpFs << 13) | ((fpFs === 3.U).asUInt << 63)
+    val fpStatus = FloatingPointStatus.bits(fpFs)
     val state                                         = RegInit(idle)
     val request                                       = Reg(new SystemRequest(p))
     val result                                        = RegInit(0.U.asTypeOf(new SystemResult(p)))
@@ -450,6 +450,10 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val virtualTimerCsr = virtualized && timerCompareCsr && stimecmpAccessAllowed &&
         (address === "h24d".U || privilege === 0.U || !guestTimerAccessAllowed)
     val fpCsr = address === 1.U || address === 2.U || address === 3.U
+    // Shared permission policy, but dual-FS plumbing remains dormant: the H+FP
+    // guard above is retained and HypervisorState's FP contract is not enabled.
+    val fpAccessAllowed = FloatingPointStatus.accessAllowed(fpFs,
+        hypervisor.flatMap(_.io.floatingPoint).map(_.fs).getOrElse(0.U(2.W)), virtualized)
     val csrPrivilegeAllowed = privilege >= address(9, 8) ||
         (experimentalHypervisor.B && !virtualized && privilege === 1.U && address(9, 8) === 2.U)
     val selectedIndirect = Mux(guestImsic, hypervisor.map(_.io.vsiselect).getOrElse(0.U),
@@ -475,7 +479,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val hostTvmCsr = !virtualized && privilege === 1.U && (address === "h180".U || address === "h680".U) &&
         hypervisor.map(_.io.tvm).getOrElse(false.B)
     val invalidGuestFile = guestImsic && hypervisor.map(_.io.vgein === 0.U).getOrElse(false.B)
-    val legalCsr = (!fpCsr || fpFs =/= 0.U) && exists && csrPrivilegeAllowed &&
+    val legalCsr = (!fpCsr || fpAccessAllowed) && exists && csrPrivilegeAllowed &&
         !(write && address(11, 10) === 3.U) && !virtualCsr && !hostTvmCsr && !invalidGuestFile && !priorityIllegal &&
         (address =/= "hc01".U || timeAccessAllowed) && (!timerCompareCsr || stimecmpAccessAllowed) &&
         (!basicCounterCsr || basicCounterAccessAllowed)
@@ -533,7 +537,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         fp.io.csr.bits.write := write
         fp.io.csr.bits.value := source
         fp.io.setFs.valid := state === execute && csr && legalCsr && write &&
-            (address === "h300".U || address === "h100".U)
+            FloatingPointStatus.writesHost(address, virtualized)
         fp.io.setFs.bits := newValue(14, 13)
         when(fp.io.start.valid) { assert(fp.io.start.ready, "FP head command credit") }
         when(fp.io.csr.valid) { assert(fp.io.csr.ready, "FP CSR serialization") }

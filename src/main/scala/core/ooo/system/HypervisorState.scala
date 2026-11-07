@@ -17,7 +17,15 @@ class HypervisorFault extends Bundle {
   * Integration is experimental until owner-context, G-stage and H memory instructions qualify.
   */
 class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boolean = false) extends Module {
+    private val floatingPointEnabled = floatingPoint
     val io = IO(new Bundle {
+        // Optional component contract only; actual H+FP cores remain rejected.
+        // FS lives here, while the one physical FPR/fcsr bank stays in FP state.
+        val floatingPoint = if (floatingPointEnabled) Some(new Bundle {
+            val fs = Output(UInt(2.W))
+            val sd = Output(Bool())
+            val mutation = Input(Valid(new FloatingPointMutation))
+        }) else None
         val privilege = Input(UInt(2.W))
         val mpp = Input(UInt(2.W))
         val mprv = Input(Bool())
@@ -94,6 +102,10 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
     val vsie = RegInit(false.B); val vspie = RegInit(false.B); val vspp = RegInit(false.B)
     val vssum = RegInit(false.B); val vsmxr = RegInit(false.B)
     val vsfs = if (floatingPoint) RegInit(0.U(2.W)) else 0.U(2.W)
+    io.floatingPoint.foreach { fp =>
+        fp.fs := vsfs
+        fp.sd := vsfs === 3.U
+    }
     val vstvec = RegInit(0.U(64.W)); val vsscratch = RegInit(0.U(64.W))
     val vsepc = RegInit(0.U(64.W)); val vscause = RegInit(0.U(64.W)); val vstval = RegInit(0.U(64.W))
     val vsatp = RegInit(0.U(64.W)); val vsiselect = RegInit(0.U(12.W))
@@ -110,8 +122,8 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
         (spvp.asUInt << 8) | (hu.asUInt << 9) | (guest.io.vgein << 12) |
         (vtvm.asUInt << 20) | (vtw.asUInt << 21) | (vtsr.asUInt << 22)
     val vsstatus = (BigInt(2) << 32).U(64.W) | (vsie.asUInt << 1) | (vspie.asUInt << 5) |
-        (vspp.asUInt << 8) | (vsfs << 13) | (vssum.asUInt << 18) | (vsmxr.asUInt << 19) |
-        ((vsfs === 3.U).asUInt << 63)
+        (vspp.asUInt << 8) | FloatingPointStatus.bits(vsfs) |
+        (vssum.asUInt << 18) | (vsmxr.asUInt << 19)
     val reads = Seq(0x600.U -> hstatus, 0x602.U -> hedeleg, 0x603.U -> hideleg,
         0x604.U -> ie, 0x605.U -> htimedelta, 0x606.U -> hcounteren.pad(64),
         0x608.U -> 0.U(64.W), 0x646.U -> 0.U(64.W), 0x647.U -> 0.U(64.W),
@@ -186,7 +198,6 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
             is(0x34b.U) { mtval2 := data }
             is(0x200.U) { vsie := data(1); vspie := data(5); vspp := data(8)
                 vssum := data(18); vsmxr := data(19)
-                if (floatingPoint) { vsfs := data(14, 13) }
             }
             is(0x205.U) { vstvec := Cat(data(63, 2), 0.U(1.W), data(1, 0) === 1.U) }
             is(0x240.U) { vsscratch := data }
@@ -202,6 +213,15 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
         when(writeAddress === 0x680.U) {
             hgatp := Mux(data(63, 60) === 8.U, Cat(8.U(4.W), 0.U(16.W), data(43, 2), 0.U(2.W)), 0.U)
         }
+    }
+    io.floatingPoint.foreach { fp =>
+        when(io.write.valid && FloatingPointStatus.writesGuest(io.write.bits.address, v)) {
+            vsfs := io.write.bits.data(14, 13)
+        }
+        // The producer captured ownership on issue, or uses the accepting CSR
+        // cycle. Never select an owner from live V at FP retirement. Serialized
+        // status writes and FP mutations must not coincide; Dirty wins if they do.
+        when(fp.mutation.valid && fp.mutation.bits.guest) { vsfs := 3.U }
     }
     // Choose zero for H STCE whenever M STCE disables the field, including the disabling write.
     when(!io.machineStce || (io.write.valid && writeAddress === 0x30a.U && !io.write.bits.data(63))) {

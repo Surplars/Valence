@@ -59,3 +59,5 @@ the four finite IRQ/cold-reset cases, three VS-origin PMA exception cases, compl
 selector elaborations, source identities and hard remaining qualification gates.
 No dynamic H-enabled CDC/DDR/DMA, runtime parking, board or OS qualification is
 claimed, and the restricted independent M-origin fault review remains unverified.
+
+- [Dual-FS preparation](dual-fs-preparation.md) is a state-component contract only. Both actual-core H+FP guards remain; no guest F/D or guest FP memory is enabled.
