@@ -165,3 +165,7 @@ gsim-hypervisor-platform-test:
 .PHONY: gsim-aia-guest-claims-test
 gsim-aia-guest-claims-test:
 	python3 simulator/gsim/aia_guest_claims.py
+
+.PHONY: gsim-hypervisor-root-switch-test
+gsim-hypervisor-root-switch-test:
+	python3 simulator/gsim/hypervisor_root_switch.py
