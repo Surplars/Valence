@@ -63,8 +63,11 @@ class CommonMachinePlatform(
     val peripheralConfig: CommonPeripheralConfig = CommonPeripheralConfig(),
     val cpuSpec: Option[CommonA1CpuSpec] = None,
     val fabricDmaExperiment: Option[CommonFabricDmaExperiment] = None,
-    val experimentalHypervisor: Boolean = false
+    val experimentalHypervisor: Boolean = false,
+    val experimentalHypervisorAtomics: Boolean = false
 ) extends RawModule {
+    require(!experimentalHypervisorAtomics || experimentalHypervisor,
+        "guest atomics require the explicit experimental H tile")
     require(!experimentalHypervisor || (profile.kind == "a1" && !runtimeDebugAdmission &&
         !runtimeNetworkAdmission && !runtimeRateControl && !performanceTelemetry &&
         !experimentalA1Runtime && a1Experimental.isEmpty && cpuSpec.isEmpty && fabricDmaExperiment.isEmpty),
@@ -580,7 +583,7 @@ class CommonMachinePlatform(
         // retains its independent caches, concurrent owners and throughput profile.
         val cpu = withClockAndReset(cpuClock, cpuRelease.resetOut) {
             Module(new CommonHypervisorCpuTile(boundary = boundary, ramBytes = fabric.ramBytes,
-                romBytes = CommonPlatformAbi.romBytes,
+                romBytes = CommonPlatformAbi.romBytes, atomicMemory = experimentalHypervisorAtomics,
                 mmioRegions = CommonPlatformAbi.cpuMmioRegions(peripheralConfig.features)))
         }
         crossing.cpu <> cpu.io.bus

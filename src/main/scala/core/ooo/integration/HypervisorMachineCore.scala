@@ -11,11 +11,19 @@ import soc.ip.memory.NativeMemoryPort
   * PMA: fetchPhysicalCheck requires executable side-effect-free memory; data
   * checking uses SPA and forceExecute, with classification captured before the
   * offer. Both PTE ports must connect only to a side-effect-free physical read
-  * endpoint that rejects non-memory PMA. No TLB or cache is instantiated here.
+  * endpoint that rejects non-memory PMA. Optional A support requires an explicit
+  * RAM window and the existing external atomic endpoint; no reservation lives
+  * here. No TLB or cache is instantiated here.
   */
-class HypervisorMachineCore(platformIntegration: Boolean = false) extends Module {
+class HypervisorMachineCore(
+    platformIntegration: Boolean = false,
+    atomicMemory: Boolean = false,
+    ramBase: BigInt = 0,
+    ramBytes: BigInt = 0
+) extends Module {
     val p = OooParams(hypervisorExperiment = true, robEntries = 16, physicalRegs = 48,
-        memoryEntries = 2, compressedInstructions = true, machineSystem = true, virtualMemoryLevels = 3, pmpEntries = 16)
+        memoryEntries = 2, compressedInstructions = true, machineSystem = true, virtualMemoryLevels = 3, pmpEntries = 16,
+        atomicMemory = atomicMemory, speculativeRamBase = ramBase, speculativeRamBytes = ramBytes)
     val io = IO(new Bundle {
         // The default standalone shape remains unchanged. Platform FENCE.I waits for shared drain.
         val platformFence = if (platformIntegration) Some(Output(Bool())) else None
@@ -60,7 +68,13 @@ class HypervisorMachineCore(platformIntegration: Boolean = false) extends Module
     core.io.guestDataFault.get := data.io.guestFault
     io.dataPhysicalCheck := data.io.physicalCheck
     io.fetchPhysicalCheck := fetch.io.physicalCheck
-    data.io.pmaDenied := io.dataPmaDenied
+    // Atomics use the existing single physical reservation owner. The complete
+    // translated SPA interval must be RAM before any physical offer, even when
+    // VS/G translation changes the address from the original virtual request.
+    val dc = data.io.physicalCheck.bits
+    val atomicRamDenied = dc.atomic &&
+        (!atomicMemory.B || !SpeculativeRamRange.contains(p, dc.address, dc.size))
+    data.io.pmaDenied := io.dataPmaDenied || atomicRamDenied
     fetch.io.pmaDenied := io.fetchPmaDenied
     val physicalUncached = RegEnable(io.dataPmaUncached, data.io.physicalCheck.valid)
     io.data.request.bits.uncached := physicalUncached

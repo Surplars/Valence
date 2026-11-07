@@ -2940,3 +2940,12 @@ negative controls per mode. It is component acceptance only. The core experiment
 explicitly opt-in and leaves all production profiles/defaults unchanged. See
 [`docs/banked-indirect-storage.md`](../../docs/banked-indirect-storage.md) for geometry,
 CLI flags, source lineage and qualification limits.
+
+### Opt-in guest atomics
+
+`make gsim-guest-atomics-test` exercises explicit RV64 guest LR/SC and AMO.W/D
+on the actual same-clock H tile and common fabric, including physical RAM atomic
+ownership, two-stage translation and separate guest-origin protection failures.
+The new atomic selector and H selector remain default-off. See
+[`docs/guest-atomics.md`](../../docs/guest-atomics.md) for the configuration,
+independent-oracle contract and deferred OS, DMA, multicore and physical claims.

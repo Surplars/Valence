@@ -173,3 +173,7 @@ gsim-hypervisor-root-switch-test:
 .PHONY: gsim-guest-sstc-test
 gsim-guest-sstc-test:
 	python3 simulator/gsim/guest_sstc.py
+
+.PHONY: gsim-guest-atomics-test
+gsim-guest-atomics-test:
+	python3 simulator/gsim/guest_atomics.py

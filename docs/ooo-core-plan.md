@@ -2123,3 +2123,11 @@ ROB storage constructor and test-only queried-recovery overlay. Existing generic
 CPU defaults remain unchanged. Matched finite CPU traces show no cycle regression;
 query shortens selected mapped control cones with additional LUT/MUXF cost, not a
 proven whole-CPU or physical-timing improvement.
+
+## Experimental guest atomic integration
+
+An explicit default-off H atomic profile connects LR/SC and AMO.W/D to the
+existing physical atomic engine, with final-SPA RAM-only authorization before
+physical offers. See [guest-atomics.md](guest-atomics.md) for its focused actual
+tile/fabric GSIM entry and configuration. This is a software-functionality
+increment, not an OS, multi-hart/DMA, throughput or FPGA PPA qualification.

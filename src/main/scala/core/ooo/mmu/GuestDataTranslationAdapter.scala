@@ -16,6 +16,7 @@ class GuestPhysicalAccess extends Bundle {
     val address = UInt(64.W)
     val size = UInt(2.W)
     val access = UInt(2.W)
+    val atomic = Bool() // Final-SPA PMA must distinguish LR from an ordinary read.
     val forceExecute = Bool() // HLVX requires physical PMA read AND execute.
 }
 
@@ -78,6 +79,7 @@ class GuestDataTranslationAdapter(returnHandleBits: Int = 0) extends Module {
     io.physicalCheck.bits.address := request.address
     io.physicalCheck.bits.size := request.size
     io.physicalCheck.bits.access := context.access
+    io.physicalCheck.bits.atomic := request.atomic
     io.physicalCheck.bits.forceExecute := context.forceExecute
 
     def cancelledReply(): Unit = {

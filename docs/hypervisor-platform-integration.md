@@ -57,7 +57,7 @@ Run the reproducible scripts under `simulator/gsim/platform_acceptance.py` and `
 - No guest OS boot, architectural conformance suite, multi-hart interrupt/VM consistency, nested hypervisor software stack, firmware/DT integration or broad reset/security matrix is claimed.
 - The tile has no TLB or private cache, so HFENCE uses conservative local drain and subsequent real page walks. Production TLB/cache owner-context, VMID/ASID and high-throughput proof integration remains separate work.
 - The chosen base Sv39/Sv39x4/Bare, ASIDLEN/VMIDLEN zero, Svade and RV64 integer/compressed scope remains unchanged. Optional paging extensions and FP/vector virtualization are not added.
-- Ordered reservation-clear transport is tested; this platform program does not execute LR/SC or AMO, and does not qualify atomic reservation invalidation semantics.
+- Ordered reservation-clear transport is tested; this original platform program does not execute LR/SC or AMO. The separate explicit [guest atomic profile and entry](guest-atomics.md) exercise the actual physical atomic engine; they do not extend the original program's coverage or qualify DMA/multi-hart atomic interference.
 - Synthesis, routed timing, bandwidth/IPC and FPGA resource effects remain unmeasured. Finite GSIM cycle counts are test observations, not performance claims.
 
 Accordingly, `misa.H` remains clear, normal platform defaults remain unchanged, and this is an opt-in source candidate rather than a complete production virtualization claim.

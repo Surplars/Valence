@@ -16,14 +16,17 @@ class CommonHypervisorCpuTile(
     romBytes: Int,
     mmioRegions: Seq[CommonAddressRegion],
     boundary: CommonCpuTilePortParams = CommonCpuTilePortParams(),
-    guestFiles: Int = 3
+    guestFiles: Int = 3,
+    atomicMemory: Boolean = false
 ) extends Module {
     require(ramBytes > 0 && romBytes > 0 && guestFiles == 3)
     require(CommonPlatformAbi.romBase + romBytes <= CommonPlatformAbi.ramBase)
     require(CommonPlatformAbi.ramBase + ramBytes <= (BigInt(1) << 64))
     require(!boundary.runtimeMaintenance && !boundary.runtimeCancellation && !boundary.runtimeInterruptHold,
         "H platform profile supports cold start only, not runtime parking")
-    val core = Module(new HypervisorMachineCore(platformIntegration = true))
+    val core = Module(new HypervisorMachineCore(platformIntegration = true,
+        atomicMemory = atomicMemory, ramBase = if (atomicMemory) CommonPlatformAbi.ramBase else BigInt(0),
+        ramBytes = if (atomicMemory) ramBytes else BigInt(0)))
     val io = IO(new Bundle {
         val bus = new CommonCpuTilePort(boundary)
         val enable = Input(Bool())
@@ -68,7 +71,10 @@ class CommonHypervisorCpuTile(
         .foldLeft(false.B)(_ || _)
     val dataAllowed = inRam(dc.address, dc.size) ||
         (inRom(dc.address, dc.size) && dc.access === PmpAccess.read) || (dataMmio && !dc.forceExecute)
-    core.io.dataPmaDenied := !dataAllowed
+    // Permission (including LR read vs SC write) is separate from atomic PMA.
+    // ROM and MMIO never accept atomics, regardless of decoder capabilities.
+    val atomicAllowed = atomicMemory.B && inRam(dc.address, dc.size)
+    core.io.dataPmaDenied := !dataAllowed || (dc.atomic && !atomicAllowed)
     core.io.dataPmaUncached := dataMmio
 
     val dataOwner = Module(new CommonNativeOwnerAdapter(boundary, carriesClear = true))

@@ -76,6 +76,7 @@ class GuestFetchTranslationAdapter(parcelBytes: Int = 4) extends Module {
     io.physicalCheck.bits.address := physicalAddress
     io.physicalCheck.bits.size := log2Ceil(parcelBytes).U
     io.physicalCheck.bits.access := PmpAccess.execute
+    io.physicalCheck.bits.atomic := false.B
     io.physicalCheck.bits.forceExecute := false.B
 
     def cancelledReply(): Unit = {
