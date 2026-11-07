@@ -2165,3 +2165,16 @@ and trap handling, and complete host/guest software context round trips are
 still separate release gates. Defaults and ISA declarations are unchanged.
 See `docs/fp-guest-memory-preparation.md`; component results are not CPU or guest
 software execution, timing, throughput, resource or compliance claims.
+
+## Three-domain memory-selector preparation
+
+Protected SYSTEM ownership and integer/H/FP memory routing have a shared
+production surface for focused component checks. The combinational selector
+adds no queue or mandatory cycle; the existing captured full-token owner keeps
+successful memory epochs through matching retirement, and memory drain uses
+each memory pipeline's busy state. The bounded single-clock GSIM entry retains
+actual-core H+FP guards, default profiles and full production/HardFloat
+dependencies. See [memory-domain-selector.md](memory-domain-selector.md) for
+the exact scope and reproduction commands. Guest arithmetic, real HS trap
+handling, software FP context isolation and physical performance are not
+qualified by this component stage.

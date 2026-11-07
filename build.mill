@@ -111,6 +111,18 @@ object `IonSoC` extends CommonNS {
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 
+    object memoryDomainSelector extends SbtTests with TestModule.ScalaTest {
+        // Three-domain component preparation only. SbtTests keeps every
+        // production and HardFloat source; only affected test sources are narrow.
+        override def sources = Task.Sources(
+            pwd / "src/test/scala/ooo/MemoryDomainSelectorGsim.scala",
+            pwd / "src/test/scala/ooo/MemoryDomainSelectorConfigSpec.scala",
+            pwd / "src/test/scala/ooo/FpGuestMemoryConfigSpec.scala",
+            pwd / "src/test/scala/ooo/DualFsPreparationConfigSpec.scala"
+        )
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
+
 }
 
 // Isolated new FPGA five-stage core. Reuses selected CPU-independent bus/IP files,

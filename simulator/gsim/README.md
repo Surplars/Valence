@@ -2988,3 +2988,17 @@ This default-off preparation does not remove either actual-core H+FP guard or
 claim guest F/D, CPU retirement, HS trap CSR execution, software context
 switching, OS boot, performance, PPA or board qualification. No IRQ, cancellation,
 reset-while-owner or independent-clock scenario is added.
+
+## Three-domain memory-selector component preparation
+
+`make gsim-memory-domain-selector-test` uses `IonSoC.memoryDomainSelector` and
+strict pinned repaired GSIM for one fresh owner/selector component model. The
+focused test module retains full production/HardFloat compilation. Baseline and
+staggered service schedules, an eight-request continuous integer stream,
+exact raw-trace totals and named negative controls
+check integer/H/FP routing, protected-owner lifetime, complete guest metadata
+and existing host-only return handles with fatal ASan/UBSan. The entry rejects
+an existing output directory and has no unverified model-reuse mode.
+See [commands, resource bounds and scope](../../docs/memory-domain-selector.md).
+Both actual-core H+FP guards and all defaults remain unchanged; this is not
+guest F/D execution, a core trap/context proof or physical qualification.

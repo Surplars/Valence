@@ -265,18 +265,20 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val shadowProofBindMask = WireDefault(0.U(p.pendingVirtualStoreProofSlots.W))
     val shadowProofBindOffer = WireDefault(false.B)
     val systemStart     = WireDefault(false.B)
-    val systemProtected = RegInit(false.B)
-    // pending(head) clears at start, before CSR execution updates the context.
-    // Retain this owner through real retirement so a younger LSU cannot capture
-    // old MPRV/SATP/PMP authorization in that intervening cycle. Ordinary FP
-    // arithmetic does not change memory context and retains its prior overlap.
-    val systemContextBarrier = RegInit(false.B)
-    val contextMemoryEpoch = systemProtected && systemContextBarrier
-    val systemOwner     = RegInit(0.U.asTypeOf(new RobToken(p)))
-    val systemFpMemory = if (p.fpEnabled) Some(RegInit(false.B)) else None
-    val fpMemoryEpoch = systemProtected && systemFpMemory.getOrElse(false.B)
-    val systemHMemory = if (p.hypervisorExperiment) Some(RegInit(false.B)) else None
-    val hMemoryEpoch = systemProtected && systemHMemory.getOrElse(false.B)
+    val protectedSystem = Module(new ProtectedSystemOwner(p))
+    protectedSystem.io.start.valid := false.B
+    protectedSystem.io.start.bits := 0.U.asTypeOf(new ProtectedSystemStart(p))
+    protectedSystem.io.complete.valid := systemComplete.fire
+    protectedSystem.io.complete.bits := systemComplete.bits
+    for (lane <- 0 until p.commitWidth) {
+        protectedSystem.io.commits(lane).valid := ledger.io.commit(lane).valid
+        protectedSystem.io.commits(lane).bits := ledger.io.commit(lane).bits.token
+    }
+    val systemProtected = protectedSystem.io.active
+    val contextMemoryEpoch = protectedSystem.io.contextMemoryEpoch
+    val systemOwner = protectedSystem.io.token
+    val fpMemoryEpoch = protectedSystem.io.fpMemoryEpoch
+    val hMemoryEpoch = protectedSystem.io.hMemoryEpoch
     val automaticTrap   = WireDefault(false.B)
     val headTrapRequest = WireDefault(false.B)
     ledger.io.headTrap.foreach(_.valid := headTrapRequest)
@@ -298,7 +300,6 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     systemComplete.bits  := 0.U.asTypeOf(new BackendCompletion(p))
     val mCompleteValid = mulDiv.io.complete.valid || multiplier.io.complete.valid
     // Irrevocable head memory ownership survives the response until retirement, including commit backpressure.
-    lsu.io.guestFault.foreach(_ := io.guestDataFault.get)
     val memoryProtected = RegInit(false.B)
     val memoryOwner     = Reg(new RobToken(p))
     val integerMemory = Wire(new DataPort(p.dataReturnHandleBits))
@@ -376,53 +377,25 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     } else {
         integerMemory <> lsu.io.memory
     }
-    if (p.fpEnabled) {
-        val fpMemory = systemUnit.get.io.fpMemory.get
-        // Dormant provenance plumbing only: both H+FP guards remain in force.
-        // Three-domain integer/FP/explicit-H arbitration is not integrated here.
-        systemUnit.get.io.fpMemoryFault.foreach(_ := io.guestDataFault.get)
-        // Head system launch drains the complete integer path (including queued
-        // buffered writes). Hold this exclusive owner through real retirement,
-        // not just through its response, and prohibit younger LSU launches below.
-        io.memory.request.valid := Mux(fpMemoryEpoch, fpMemory.request.valid, integerMemory.request.valid)
-        CpuReturnTransport.requestPayload(io.memory.request.bits,
-            Mux(fpMemoryEpoch, fpMemory.request.bits, {
-                val payload = Wire(new DataRequest)
-                CpuReturnTransport.requestPayload(payload, integerMemory.request.bits)
-                payload
-            }))
-        io.memory.request.bits.returnHandle.foreach(_ := Mux(fpMemoryEpoch,
-            p.cpuReturnConfig.get.fpHandle.U, integerMemory.request.bits.returnHandle.get))
-        fpMemory.request.ready := fpMemoryEpoch && io.memory.request.ready
-        integerMemory.request.ready := !fpMemoryEpoch && io.memory.request.ready
-        fpMemory.response.valid := fpMemoryEpoch && io.memory.response.valid
-        CpuReturnTransport.responsePayload(fpMemory.response.bits, io.memory.response.bits)
-        integerMemory.response.valid := !fpMemoryEpoch && io.memory.response.valid
-        integerMemory.response.bits := io.memory.response.bits
-        io.memory.response.ready := Mux(fpMemoryEpoch, fpMemory.response.ready, integerMemory.response.ready)
-        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy || io.externalPrefetchBusy.getOrElse(false.B)
-        cpuAcceptedMemoryBusy.foreach(_ := integerMemoryBusy || systemUnit.get.io.fpMemoryBusy.get || postedBusy)
-        when(fpMemoryEpoch) { assert(!integerMemoryBusy, "integer memory drained before FP ownership") }
-        p.cpuReturnConfig.foreach { config =>
-            when(fpMemoryEpoch && io.memory.response.valid) {
-                assert(io.memory.response.bits.returnHandle.get === config.fpHandle.U,
-                    "exclusive FP response lost its drained domain")
-            }
-        }
-    } else if (p.hypervisorExperiment) {
-        val hMemory = systemUnit.get.io.hMemory.get
-        io.memory.request.valid := Mux(hMemoryEpoch, hMemory.request.valid, integerMemory.request.valid)
-        io.memory.request.bits := Mux(hMemoryEpoch, hMemory.request.bits, integerMemory.request.bits)
-        hMemory.request.ready := hMemoryEpoch && io.memory.request.ready
-        integerMemory.request.ready := !hMemoryEpoch && io.memory.request.ready
-        hMemory.response.valid := hMemoryEpoch && io.memory.response.valid
-        hMemory.response.bits := io.memory.response.bits
-        integerMemory.response.valid := !hMemoryEpoch && io.memory.response.valid
-        integerMemory.response.bits := io.memory.response.bits
-        io.memory.response.ready := Mux(hMemoryEpoch, hMemory.response.ready, integerMemory.response.ready)
-        systemUnit.get.io.hMemoryFault.get := io.guestDataFault.get
-        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.hMemoryBusy.get
-        when(hMemoryEpoch) { assert(!integerMemoryBusy, "H memory owns the drained physical port") }
+    if (p.fpEnabled || p.hypervisorExperiment) {
+        val domains = Module(new MemoryDomainSelector(p))
+        domains.io.integer <> integerMemory
+        domains.io.h.foreach(_ <> systemUnit.get.io.hMemory.get)
+        domains.io.fp.foreach(_ <> systemUnit.get.io.fpMemory.get)
+        io.memory <> domains.io.memory
+        domains.io.hMemoryEpoch := hMemoryEpoch
+        domains.io.fpMemoryEpoch := fpMemoryEpoch
+        domains.io.integerBusy := integerMemoryBusy
+        domains.io.hBusy := systemUnit.get.io.hMemoryBusy.getOrElse(false.B)
+        domains.io.fpMemoryBusy := systemUnit.get.io.fpMemoryBusy.getOrElse(false.B)
+        domains.io.postedBusy := postedBusy
+        domains.io.prefetchBusy := io.externalPrefetchBusy.getOrElse(false.B)
+        domains.io.guestFault.foreach(_ := io.guestDataFault.get)
+        lsu.io.guestFault.foreach(_ := domains.io.integerGuestFault.get)
+        systemUnit.get.io.hMemoryFault.foreach(_ := domains.io.hGuestFault.get)
+        systemUnit.get.io.fpMemoryFault.foreach(_ := domains.io.fpGuestFault.get)
+        io.memoryBusy := domains.io.busy
+        cpuAcceptedMemoryBusy.foreach(_ := domains.io.cpuBusy)
     } else {
         io.memory <> integerMemory
     }
@@ -2729,10 +2702,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                 "held or exceptional system completion must retain the protected full token")
         }
     }
-    when(systemComplete.fire && systemComplete.bits.exception) { systemProtected := false.B }
-    val systemRetireMatches = ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === systemOwner.asUInt)
-    val systemRetired = systemRetireMatches.reduce(_ || _)
-    when(systemRetired) { systemProtected := false.B }
+    val systemRetireMatches = protectedSystem.io.retireMatches
+    val systemRetired = protectedSystem.io.retired
     systemUnit.foreach { unit =>
         unit.io.fpRetire.foreach { retire =>
             retire.valid := systemRetired
@@ -2820,15 +2791,10 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         unit.io.start.bits.operand     := readPhysical(source)
         unit.io.start.bits.operand2.foreach(_ := readPhysical(source2))
         systemStart                    := unit.io.start.fire
-        when(unit.io.start.fire) {
-            systemFpMemory.foreach(_ := FloatingPointSubset.memory(headInst))
-            systemHMemory.foreach(_ := HypervisorInstruction.memory(headInst))
-            systemContextBarrier := !(p.fpEnabled.B && FloatingPointDecode.supported(headInst, p.fpConfig) &&
-                !FloatingPointDecode.memory(headInst))
-            pending(head)   := false.B
-            systemProtected := true.B
-            systemOwner     := issueEntries(head).renamed.token
-        }
+        protectedSystem.io.start.valid := unit.io.start.fire
+        protectedSystem.io.start.bits.token := unit.io.start.bits.token
+        protectedSystem.io.start.bits.instruction := unit.io.start.bits.instruction
+        when(unit.io.start.fire) { pending(head) := false.B }
         systemComplete.valid   := unit.io.complete.valid
         systemComplete.bits    := unit.io.complete.bits.completion
         // Compressed FP memory uses the expanded encoding for execution, but

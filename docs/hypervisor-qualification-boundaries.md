@@ -70,3 +70,14 @@ translation and FP memory components, plus an independent response-buffer
 matrix. Both actual-core H+FP guards remain; this is not guest F/D availability,
 HS trap CSR execution, real-core precise retirement or software context proof.
 See [scope and remaining gates](fp-guest-memory-preparation.md).
+
+## Three-domain memory-selector component preparation
+
+The [memory-domain selector](memory-domain-selector.md) prepares shared
+protected-owner classification, integer/H/FP routing and complete response
+metadata transport in a focused single-clock component. Host-only tagged
+return compatibility does not admit tagged H. Both actual-core H+FP guards,
+public defaults and ISA/firmware declarations remain unchanged. This stage
+does not qualify guest F/D execution, actual-core trap precision, software
+FPR/fcsr context isolation or whole-core throughput/PPA. It does not reopen the
+restricted M-origin fault review or add IRQ/cancellation/independent-clock work.
