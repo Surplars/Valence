@@ -16,8 +16,10 @@ object GuardedGuestFpCoreConfig {
   * Architectural state, issue, completions, retirement and traps have no test drivers.
   * One inherited clock/reset; IRQ/MSI/time are inactive and PMA is the fixed RAM window.
   */
-class GuardedGuestFpCoreGsim(arithmetic: Boolean = false) extends Module {
-    private val p = if (arithmetic) GuardedGuestFpArithmeticProfile.params else GuardedGuestFpCoreConfig.params
+class GuardedGuestFpCoreGsim(arithmetic: Boolean = false, multiply: Boolean = false) extends Module {
+    require(!(arithmetic && multiply), "qualification selectors are mutually exclusive")
+    private val p = if (multiply) GuardedGuestFpMultiplyProfile.params
+        else if (arithmetic) GuardedGuestFpArithmeticProfile.params else GuardedGuestFpCoreConfig.params
     val io = IO(new Bundle {
         val enable = Input(Bool())
         val commitEnable = Input(Bool())
@@ -116,8 +118,8 @@ class GuardedGuestFpCoreGsim(arithmetic: Boolean = false) extends Module {
         val fpr_30 = Output(UInt(64.W))
         val fpr_31 = Output(UInt(64.W))
     })
-    val core = Module(new HypervisorMachineCore(guardedGuestFpQualification = !arithmetic,
-        guardedGuestFpArithmeticQualification = arithmetic))
+    val core = Module(new HypervisorMachineCore(guardedGuestFpQualification = !(arithmetic || multiply),
+        guardedGuestFpArithmeticQualification = arithmetic, guardedGuestFpMultiplyQualification = multiply))
     core.io.enable := io.enable
     core.io.commitEnable := io.commitEnable
     io.instruction <> core.io.instruction

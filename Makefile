@@ -206,6 +206,10 @@ gsim-system-owner-boundaries-test:
 gsim-protected-fp-retirement-test:
 	python3 simulator/gsim/protected_fp_retirement.py $(PROTECTED_FP_RETIREMENT_ARGS)
 
+.PHONY: gsim-guarded-guest-fp-multiply-test
+gsim-guarded-guest-fp-multiply-test:
+	python3 simulator/gsim/guarded_guest_fp_multiply.py $(GUARDED_GUEST_FP_MULTIPLY_ARGS)
+
 .PHONY: gsim-guarded-guest-fp-arithmetic-test
 gsim-guarded-guest-fp-arithmetic-test:
 	python3 simulator/gsim/guarded_guest_fp_arithmetic.py $(GUARDED_GUEST_FP_ARITHMETIC_ARGS)

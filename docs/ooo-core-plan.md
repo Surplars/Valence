@@ -1,5 +1,7 @@
 # OoO Core 架构草案
 
+2026-11-07：[Guarded guest FP multiplication qualification](guarded-guest-fp-multiply.md) adds a separate exact default-off FMUL.S/D profile, retaining both earlier profiles and generic H+FP rejection. Genuine fetched HS/VS software checks multiplication, inexact underflow, tininess after rounding and retirement-owned flags using independent integer/rational oracles. Source-bound execution receipts are required before claiming a pass; no full F/D, FMA, OS/isolation, PPA or board claim.
+
 2026-11-07：[Guarded guest FP add/sub qualification](guarded-guest-fp-arithmetic.md) adds a separate exact default-off real-core numerical profile. The previous moves-memory profile remains frozen and generic H+FP stays rejected. Focused instruction-fetched HS/VS software checks rounding, NaN boxing, retirement-owned flags and real illegal-instruction recovery; source-bound execution receipts are required before claiming a pass. No full F/D, general guest isolation, multi-clock, OS/PPA or board claim.
 
 2026-11-07：[Guarded guest FP core qualification](guarded-guest-fp-core.md) introduces an explicit default-off, fixed-shape actual translated-core profile and software-driven validation entry. Other H+FP configurations remain rejected. Earlier component-only results below retain their historical scope; actual execution outcomes require the new source-bound receipt. No full numerical F/D, IRQ/cancellation, independent-clock, OS/PPA or board claim.

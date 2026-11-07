@@ -93,3 +93,7 @@ OS/isolation, IRQ/fault overlap, in-flight fault cancellation, M-origin guest
 fault review, live reset, independent clocks, PPA, board, synthesis, Yosys or
 Verilator claim follows. Pinned RISC-V v20250508 F 2.2, D 2.2, H 1.0 and Machine
 1.13 references continue to apply.
+
+Follow-on: [guarded guest FP multiplication](guarded-guest-fp-multiply.md) adds
+FMUL.S/D under another exact default-off selector. This add/sub recipe remains
+unchanged and does not admit an unselected multiply change.

@@ -260,6 +260,8 @@ case class OooParams(
     guardedGuestFpQualification: Boolean = false,
     // Separate exact numerical add/sub qualification; the moves-memory recipe stays frozen.
     guardedGuestFpArithmeticQualification: Boolean = false,
+    // Separate exact multiplication increment; earlier qualification recipes stay frozen.
+    guardedGuestFpMultiplyQualification: Boolean = false,
     // RV64 cycle/instret and retirement-owned writes, only in the explicit H experiment.
     basicCounters: Boolean = false
 ) {
@@ -599,13 +601,17 @@ case class OooParams(
         registeredStoreResponseOwners && !fastBufferedStoreRetire && !fastHeadLoadRetire),
         "tagged store returns retain registered request/owner boundaries and actual LSU completion")
     require(!fpEnabled || machineSystem, "FP requires machine-system mode")
-    def guardedGuestFpEnabled: Boolean = guardedGuestFpQualification || guardedGuestFpArithmeticQualification
-    require(!(guardedGuestFpQualification && guardedGuestFpArithmeticQualification),
+    def guardedGuestFpEnabled: Boolean =
+        guardedGuestFpQualification || guardedGuestFpArithmeticQualification || guardedGuestFpMultiplyQualification
+    require(Seq(guardedGuestFpQualification, guardedGuestFpArithmeticQualification,
+        guardedGuestFpMultiplyQualification).count(identity) <= 1,
         "guarded guest FP qualification selectors are mutually exclusive")
     require(!guardedGuestFpQualification || GuardedGuestFpCoreProfile.accepts(this),
         "guarded guest FP qualification requires the exact frozen native ROB16/PRF48 moves-memory profile")
     require(!guardedGuestFpArithmeticQualification || GuardedGuestFpArithmeticProfile.accepts(this),
         "guarded guest FP arithmetic qualification requires the exact frozen native ROB16/PRF48 add-sub profile")
+    require(!guardedGuestFpMultiplyQualification || GuardedGuestFpMultiplyProfile.accepts(this),
+        "guarded guest FP multiply qualification requires the exact frozen native ROB16/PRF48 multiply profile")
     require(!advertiseFloatingPoint || (fpEnabled && fpConfig.complete),
         "ISA advertisement requires every instruction group of the selected F/D extension")
     def misaValue: BigInt = (BigInt(2) << 62) | (BigInt(1) << 8) | (BigInt(1) << 12) |
@@ -838,4 +844,15 @@ object GuardedGuestFpArithmeticProfile {
     def params: OooParams = unselected.copy(guardedGuestFpArithmeticQualification = true)
 
     def accepts(p: OooParams): Boolean = p.copy(guardedGuestFpArithmeticQualification = false) == unselected
+}
+
+/** Explicit multiplication increment, without widening either earlier qualification recipe. */
+object GuardedGuestFpMultiplyProfile {
+    val floatingPoint: FloatingPointConfig = GuardedGuestFpArithmeticProfile.floatingPoint.copy(multiply = true)
+    private val unselected = GuardedGuestFpArithmeticProfile.params.copy(
+        guardedGuestFpArithmeticQualification = false, floatingPoint = floatingPoint)
+
+    def params: OooParams = unselected.copy(guardedGuestFpMultiplyQualification = true)
+
+    def accepts(p: OooParams): Boolean = p.copy(guardedGuestFpMultiplyQualification = false) == unselected
 }
