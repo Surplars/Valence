@@ -46,6 +46,8 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
         val vtw = Output(Bool())
         val vtsr = Output(Bool())
         val counterEnable = Output(UInt(3.W))
+        val machineStce = Input(Bool())
+        val stce = Output(Bool())
         val time = Input(UInt(64.W))
         val guestTime = Output(UInt(64.W))
         val guestExternal = Input(UInt(math.max(1, guestFiles).W))
@@ -84,6 +86,8 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
     val ie = RegInit(0.U(64.W))
     val hcounteren = RegInit(0.U(3.W))
     val htimedelta = RegInit(0.U(64.W))
+    val hstce = RegInit(false.B)
+    val vstimecmp = RegInit("hffffffffffffffff".U(64.W))
     val hgatp = RegInit(0.U(64.W))
     val htval = RegInit(0.U(64.W)); val htinst = RegInit(0.U(64.W))
     val mtval2 = RegInit(0.U(64.W)); val mtinst = RegInit(0.U(64.W))
@@ -95,7 +99,8 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
     val vsatp = RegInit(0.U(64.W)); val vsiselect = RegInit(0.U(12.W))
     val guest = Module(new HypervisorGuestInterrupts(guestFiles))
     private val interruptMask = (if (guestFiles == 0) 0x444 else 0x1444).U(64.W)
-    private val shadows = Seq(0x100, 0x104, 0x105, 0x140, 0x141, 0x142, 0x143, 0x144, 0x150, 0x151, 0x15c, 0x180)
+    private val shadows = Seq(0x100, 0x104, 0x105, 0x140, 0x141, 0x142, 0x143, 0x144, 0x14d,
+        0x150, 0x151, 0x15c, 0x180)
     def shadow(address: UInt): Bool = v && shadows.map(a => address === a.U).reduce(_ || _)
     def mapped(address: UInt): UInt = Mux(shadow(address), address + 0x100.U, address)
     def epc(data: UInt): UInt = if (compressed) Cat(data(63, 1), 0.U(1.W)) else Cat(data(63, 2), 0.U(2.W))
@@ -109,10 +114,11 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
         ((vsfs === 3.U).asUInt << 63)
     val reads = Seq(0x600.U -> hstatus, 0x602.U -> hedeleg, 0x603.U -> hideleg,
         0x604.U -> ie, 0x605.U -> htimedelta, 0x606.U -> hcounteren.pad(64),
-        0x608.U -> 0.U(64.W), 0x646.U -> 0.U(64.W), 0x647.U -> 0.U(64.W), 0x60a.U -> 0.U(64.W), 0x643.U -> htval, 0x64a.U -> htinst, 0x680.U -> hgatp,
+        0x608.U -> 0.U(64.W), 0x646.U -> 0.U(64.W), 0x647.U -> 0.U(64.W),
+        0x60a.U -> ((io.machineStce && hstce).asUInt << 63), 0x643.U -> htval, 0x64a.U -> htinst, 0x680.U -> hgatp,
         0x34a.U -> mtinst, 0x34b.U -> mtval2, 0x200.U -> vsstatus,
         0x204.U -> ((ie & hideleg) >> 1), 0x205.U -> vstvec, 0x240.U -> vsscratch,
-        0x241.U -> vsepc, 0x242.U -> vscause, 0x243.U -> vstval, 0x244.U -> guest.io.vsip,
+        0x241.U -> vsepc, 0x242.U -> vscause, 0x243.U -> vstval, 0x244.U -> guest.io.vsip, 0x24d.U -> vstimecmp,
         0x250.U -> vsiselect.pad(64), 0x251.U -> 0.U(64.W), 0x25c.U -> 0.U(64.W), 0x280.U -> vsatp)
     guest.io.readAddress := address
     io.readKnown := guest.io.readKnown || reads.map { case (a, _) => address === a }.reduce(_ || _)
@@ -129,10 +135,14 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
     io.vsatp := vsatp; io.hgatp := hgatp; io.vsSum := vssum; io.vsMxr := vsmxr
     io.hu := hu; io.spvp := spvp; io.tvm := tvm; io.tw := tw; io.tsr := tsr
     io.vtvm := vtvm; io.vtw := vtw; io.vtsr := vtsr; io.counterEnable := hcounteren
+    io.stce := io.machineStce && hstce
     io.guestTime := io.time + htimedelta
+    // Unsigned modulo-64 guest time; compare updates become pending one cycle later.
+    val timerPending = RegNext(io.guestTime >= vstimecmp, false.B)
     io.vgein := guest.io.vgein; io.vsiselect := vsiselect
     guest.io.guestExternal := io.guestExternal
-    guest.io.platformVirtualExternal := false.B; guest.io.virtualTimer := false.B
+    guest.io.platformVirtualExternal := false.B
+    guest.io.virtualTimer := io.stce && timerPending
     guest.io.commit := true.B
     guest.io.setVgein.valid := io.write.valid && writeAddress === 0x600.U
     guest.io.setVgein.bits := io.write.bits.data(17, 12)
@@ -169,6 +179,7 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
             is(0x204.U) { ie := (ie & ~hideleg) | ((data << 1) & hideleg) }
             is(0x605.U) { htimedelta := data }
             is(0x606.U) { hcounteren := data(2, 0) }
+            is(0x60a.U) { hstce := io.machineStce && data(63) }
             is(0x643.U) { htval := data }
             is(0x64a.U) { htinst := Mux(data === 0x3000.U, data, 0.U) }
             is(0x34a.U) { mtinst := Mux(data === 0x3000.U, data, 0.U) }
@@ -182,6 +193,7 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
             is(0x241.U) { vsepc := epc(data) }
             is(0x242.U) { vscause := data }
             is(0x243.U) { vstval := data }
+            is(0x24d.U) { vstimecmp := data }
             is(0x250.U) { vsiselect := data(11, 0) }
         }
         when(writeAddress === 0x280.U && (data(63, 60) === 0.U || data(63, 60) === 8.U)) {
@@ -190,6 +202,10 @@ class HypervisorState(compressed: Boolean, guestFiles: Int, floatingPoint: Boole
         when(writeAddress === 0x680.U) {
             hgatp := Mux(data(63, 60) === 8.U, Cat(8.U(4.W), 0.U(16.W), data(43, 2), 0.U(2.W)), 0.U)
         }
+    }
+    // Choose zero for H STCE whenever M STCE disables the field, including the disabling write.
+    when(!io.machineStce || (io.write.valid && writeAddress === 0x30a.U && !io.write.bits.data(63))) {
+        hstce := false.B
     }
     when(io.mret) { v := mpv && io.mpp =/= 3.U; mpv := false.B }
     when(io.sret) {

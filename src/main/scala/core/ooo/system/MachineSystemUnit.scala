@@ -148,7 +148,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val siselect                                      = RegInit(0.U(12.W))
     hypervisor.foreach { h =>
         h.io.privilege := privilege; h.io.mpp := mpp; h.io.mprv := mprv
-        h.io.hsGlobalEnable := sie; h.io.time := io.timeValue
+        h.io.hsGlobalEnable := sie; h.io.time := io.timeValue; h.io.machineStce := stce
         h.io.guestExternal := io.guestExternal.get
         h.io.readAddress := request.instruction(31, 20)
         h.io.write.valid := false.B
@@ -423,6 +423,11 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val exists = hostExists || hypervisor.map(_.io.readKnown).getOrElse(false.B)
     val timeAccessAllowed = privilege === 3.U || (mcounterenTm && (privilege === 1.U || scounterenTm))
     val stimecmpAccessAllowed = privilege === 3.U || (stce && mcounterenTm)
+    val timerCompareCsr = address === "h14d".U || address === "h24d".U
+    val guestTimerAccessAllowed = hypervisor.map(h => h.io.stce && h.io.counterEnable(1)).getOrElse(false.B)
+    // Compare CSRs must pass M qualification before any virtual-instruction classification.
+    val virtualTimerCsr = virtualized && timerCompareCsr && stimecmpAccessAllowed &&
+        (address === "h24d".U || privilege === 0.U || !guestTimerAccessAllowed)
     val fpCsr = address === 1.U || address === 2.U || address === 3.U
     val csrPrivilegeAllowed = privilege >= address(9, 8) ||
         (experimentalHypervisor.B && !virtualized && privilege === 1.U && address(9, 8) === 2.U)
@@ -435,8 +440,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     // Do not reclassify arbitrary IMSIC errors: other extension windows remain illegal.
     val oddImsicBitmap = indirect && selectedIndirect >= 0x80.U && selectedIndirect <= 0xff.U &&
         selectedIndirect(0)
-    val virtualCsr = hypervisor.map(_.io.virtualCsr).getOrElse(false.B) ||
-        (virtualized && exists && address(9, 8) === 2.U) ||
+    val virtualCsr = (hypervisor.map(_.io.virtualCsr).getOrElse(false.B) && !timerCompareCsr) ||
+        (virtualized && exists && address(9, 8) === 2.U && !timerCompareCsr) ||
         (virtualized && guestImsic && (priorityWindow || oddImsicBitmap)) ||
         (virtualized && aia.io.vti && (address === 0x104.U || address === 0x144.U ||
             (address === 0x14d.U && write && stimecmpAccessAllowed))) ||
@@ -444,14 +449,14 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
             (address =/= "h14d".U || stimecmpAccessAllowed)) ||
         (virtualized && address === "hc01".U && mcounterenTm &&
             (!hypervisor.map(_.io.counterEnable(1)).getOrElse(true.B) || (privilege === 0.U && !scounterenTm))) ||
-        (virtualized && address === "h14d".U && stimecmpAccessAllowed) ||
+        virtualTimerCsr ||
         (virtualized && guestImsic && hypervisor.map(_.io.vgein === 0.U).getOrElse(false.B))
     val hostTvmCsr = !virtualized && privilege === 1.U && (address === "h180".U || address === "h680".U) &&
         hypervisor.map(_.io.tvm).getOrElse(false.B)
     val invalidGuestFile = guestImsic && hypervisor.map(_.io.vgein === 0.U).getOrElse(false.B)
     val legalCsr = (!fpCsr || fpFs =/= 0.U) && exists && csrPrivilegeAllowed &&
         !(write && address(11, 10) === 3.U) && !virtualCsr && !hostTvmCsr && !invalidGuestFile && !priorityIllegal &&
-        (address =/= "hc01".U || timeAccessAllowed) && (address =/= "h14d".U || stimecmpAccessAllowed)
+        (address =/= "hc01".U || timeAccessAllowed) && (!timerCompareCsr || stimecmpAccessAllowed)
     // MIP.SEIP CSR RMW operates on the software bit, never latches the external wire.
     val readForWrite = Mux(address === "h344".U,
         (readValue & "hfffffffffffffdff".U) | (seipSoftware.asUInt << 9), readValue)

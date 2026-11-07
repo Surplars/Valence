@@ -6,6 +6,10 @@
 依据 [RISC-V Sstc 1.0](https://docs.riscv.org/reference/isa/v20250508/priv/sstc.html)。
 本阶段为单 hart RV64 实现，不含 H/VS 定时器，也不构成完整 RVA23 合规声明。
 
+以上是原 M/S 基线范围。默认关闭的 H 实验路径现另有
+[RV64 guest Sstc](guest-sstc.md)，包含独立 guest compare、分层权限和虚拟定时中断。
+该扩展不改变本页的主机定时器合同，也不等于生产配置或完整 H 合规。
+
 平台沿用 `MachineTimer` 的同步 64 位 `mtime`；新增只读时间输出，经机器核封装送入
 `MachineSystemUnit`。独立机器核的集成方须提供同一时钟域、与平台时间一致的 64 位时间值。
 `time` CSR（0xC01）读取该值。`stimecmp`（0x14D）复位为全 1；M 态始终可读写，

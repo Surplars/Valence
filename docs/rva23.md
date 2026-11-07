@@ -30,7 +30,7 @@ MCU 产品的 ISA 另行定义，不把应用级 profile 强加给 MCU。
 | 取指同步 | Zifencei | 机器核已实现队首排空、前端及整行 I-cache 失效与重取；定向 GSIM 已验证脏 D-cache 写回后执行 RAM 代码，尚未完成多 hart 软件同步与合规验收 |
 | 特权基础 | Ss1p13、Svbare、Sstvecd、Sstvala、Sscounterenw、Ssu64xl | 机器平台已接16条目PMP和MPRV，机器核已接 MRET/SRET、同步异常委托、少量 S CSR、M/S 外部中断、SSI 及 STI；完整 M/S/U 特权语义与 VS 中断仍待补 |
 | 地址转换 | Sv39、Svade、Ssccptr、Svpbmt、Svinval、Svnapot | 参数化 Sv39/Sv48/Sv57 遍历、双路 TLB、SoC TileLink 页表读取及机器核 satp/SFENCE 全局失效已通过 GSIM；可选 I/D 译址、MPRV=S 数据访问和 S-mode 跨页取指故障已有固件验证；完整 PMA/PBMT、吞吐与扩展合规仍待实现，不能宣称虚拟内存已合规，见[虚拟内存合同](virtual-memory.md) |
-| 定时 / 计数过滤 | Sstc、Sscofpmf | 已接机器 mtime/mtimecmp、MTIP 及单 hart RV64 的 Sstc M/S 路径；Sscofpmf、VS 定时及完整合规验证仍待完成 |
+| 定时 / 计数过滤 | Sstc、Sscofpmf | 已接机器 mtime/mtimecmp、MTIP 及单 hart RV64 的 Sstc M/S 路径；[VS 定时器](guest-sstc.md)仅在默认关闭的 H 实验路径实现，Sscofpmf 与完整合规验证仍待完成 |
 | 监督指针掩码 | Ssnpm | 待实现 |
 | 虚拟化 | Sha | 待实现；包含 H、Ssstateen、Shcounterenw、Shvstvala、Shtvala、Shvstvecd、Shvsatpa、Shgatpa |
 
