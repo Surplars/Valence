@@ -2131,3 +2131,14 @@ existing physical atomic engine, with final-SPA RAM-only authorization before
 physical offers. See [guest-atomics.md](guest-atomics.md) for its focused actual
 tile/fabric GSIM entry and configuration. This is a software-functionality
 increment, not an OS, multi-hart/DMA, throughput or FPGA PPA qualification.
+
+## Experimental guest basic counters
+
+A separate default-off H `basicCounters` profile adds RV64 cycle/instret aliases,
+M counter/inhibit state and M/S/H access gates. The counter bank consumes actual
+ROB retirements and publishes counter writes only at the protected full-token
+owner's retirement; it reuses the existing SYSTEM serialization. See
+[guest-counters.md](guest-counters.md) for the explicit profile, independent
+GSIM entry and shared-counter scope. Time/Sstc, production defaults and ISA
+advertisements stay unchanged. No guest-specific accounting, OS boot, independent
+clock, throughput or FPGA PPA qualification is implied.

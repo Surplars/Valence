@@ -2727,15 +2727,28 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }
     }
     when(systemComplete.fire && systemComplete.bits.exception) { systemProtected := false.B }
-    when(ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === systemOwner.asUInt).reduce(_ || _)) {
-        systemProtected := false.B
-    }
+    val systemRetireMatches = ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === systemOwner.asUInt)
+    val systemRetired = systemRetireMatches.reduce(_ || _)
+    when(systemRetired) { systemProtected := false.B }
     systemUnit.foreach { unit =>
         unit.io.fpRetire.foreach { retire =>
-            val matches = ledger.io.commit.map(c => c.valid && c.bits.token.asUInt === systemOwner.asUInt)
-            retire.valid := matches.reduce(_ || _)
+            retire.valid := systemRetired
             retire.bits := systemOwner
-            assert(PopCount(matches) <= 1.U, "one real ROB retirement per protected FP owner")
+            assert(PopCount(systemRetireMatches) <= 1.U, "one real ROB retirement per protected FP owner")
+        }
+        unit.io.counterRetire.foreach { retire =>
+            // The reset owner token can equal the first ordinary instruction.
+            // Only the live protected SYSTEM owner is a counter-write retirement.
+            retire.valid := systemProtected && systemRetired
+            retire.bits := systemOwner
+            when(retire.valid) {
+                assert(PopCount(systemRetireMatches) === 1.U,
+                    "counter retirement matches exactly one full protected SYSTEM owner")
+            }
+        }
+        unit.io.acceptedCommits.foreach { count =>
+            // Only successful ledger commits count, never issue, completion or a trap.
+            count := acceptedCommits
         }
         pmpState := unit.io.pmpState
         dataPrivilege := unit.io.dataPrivilege

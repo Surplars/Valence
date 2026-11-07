@@ -100,10 +100,11 @@ def build_opensbi():
 
 
 def test(gsim, cxx, name, main, top, harness, parameters=(), runtime_args=(), defines=None,
-         sanitizer=True, timeout=120, interactive=False, run_log="test.log", gsim_options=(), cxx_flags=()):
+         sanitizer=True, timeout=120, interactive=False, run_log="test.log", gsim_options=(), cxx_flags=(),
+         *, mill_module="IonSoC.test"):
     output = BUILD / name
     output.mkdir(parents=True, exist_ok=True)
-    run(["mill", "-i", "IonSoC.test.runMain", main, output, *parameters], log=output / "elaborate.log")
+    run(["mill", "-i", f"{mill_module}.runMain", main, output, *parameters], log=output / "elaborate.log")
     if name.startswith("cached-") and "module SharedReadCache" not in (output / f"{top}.fir").read_text():
         raise RuntimeError("cached target was elaborated without SharedReadCache")
     # GSIM can emit a different number of translation units after a source edit.

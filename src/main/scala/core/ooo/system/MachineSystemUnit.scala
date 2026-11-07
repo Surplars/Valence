@@ -57,6 +57,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         val trap                        = Input(Valid(new HeadException(p)))
         val trapReady                   = Output(Bool())
         val fpRetire = if (p.fpEnabled) Some(Input(Valid(new RobToken(p)))) else None
+        val counterRetire = if (p.basicCounters) Some(Input(Valid(new RobToken(p)))) else None
+        val acceptedCommits = if (p.basicCounters) Some(Input(UInt(log2Ceil(p.commitWidth + 1).W))) else None
         val fpMemory = if (p.fpEnabled) Some(new DataPort) else None
         val fpMemoryBusy = if (p.fpEnabled) Some(Output(Bool())) else None
         val trapTarget                  = Output(UInt(64.W))
@@ -80,6 +82,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val Seq(idle, execute, send, waitResponse, waitVmFlush, waitFenceI, waitFp, finish) = systemStates.take(8)
     val waitHMemory = if (p.hypervisorExperiment) systemStates(8) else idle
     val floatingPoint = if (p.fpEnabled) Some(Module(new FloatingPointSystem(p))) else None
+    val basicCounterBank = if (p.basicCounters) Some(Module(new BasicCounterBank(p))) else None
     val fpFs = floatingPoint.map(_.io.fs).getOrElse(0.U(2.W))
     val fpFcsr = floatingPoint.map(_.io.fcsr).getOrElse(0.U(8.W))
     val fpStatus = (fpFs << 13) | ((fpFs === 3.U).asUInt << 63)
@@ -107,6 +110,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
     val stce                                          = RegInit(false.B)
     val mcounterenTm                                  = RegInit(false.B)
     val scounterenTm                                  = RegInit(false.B)
+    val mcounterenBasic = if (p.basicCounters) Some(RegInit(0.U(3.W))) else None
+    val scounterenBasic = if (p.basicCounters) Some(RegInit(0.U(3.W))) else None
     val mpie                                          = RegInit(false.B)
     val mpp                                           = RegInit(0.U(2.W))
     val mprv                                          = RegInit(false.B)
@@ -377,7 +382,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
                 Mux(stideleg, stip.asUInt << 5, 0.U) |
                 Mux(ssideleg, ssip.asUInt << 1, 0.U)),
             "h14d".U -> stimecmp,
-            "h106".U -> (scounterenTm.asUInt << 1),
+            "h106".U -> ((scounterenTm.asUInt << 1) | scounterenBasic.getOrElse(0.U)),
             "h150".U -> siselect,
             "h305".U -> mtvec,
             "h304".U -> ((meie.asUInt << 11) | (seie.asUInt << 9) | (mtie.asUInt << 7) |
@@ -385,7 +390,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
             "h344".U -> ((io.externalInterrupt.asUInt << 11) | (supervisorExternalPending.asUInt << 9) |
                 (io.timerInterrupt.asUInt << 7) | (stip.asUInt << 5) | (ssip.asUInt << 1) |
                 hypervisor.map(_.io.mipBits).getOrElse(0.U)),
-            "h306".U -> (mcounterenTm.asUInt << 1),
+            "h306".U -> ((mcounterenTm.asUInt << 1) | mcounterenBasic.getOrElse(0.U)),
             "h30a".U -> (stce.asUInt << 63),
             "hc01".U -> Mux(virtualized, hypervisor.map(_.io.guestTime).getOrElse(io.timeValue), io.timeValue),
             "h340".U -> mscratch,
@@ -400,6 +405,10 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         ) ++ (if (experimentalHypervisor) Seq(
             "h609".U -> aia.io.hvictl, "heb0".U -> aia.io.vstopi
         ) else Seq.empty) ++
+        basicCounterBank.toSeq.flatMap(bank => Seq(
+            "hb00".U -> bank.io.cycle, "hc00".U -> bank.io.cycle,
+            "hb02".U -> bank.io.instret, "hc02".U -> bank.io.instret,
+            "h320".U -> bank.io.inhibit.pad(64))) ++
         (if (p.fpEnabled) Seq(
             1.U -> fpFcsr(4, 0).pad(64), 2.U -> fpFcsr(7, 5).pad(64), 3.U -> fpFcsr.pad(64)
         ) else Seq.empty) ++
@@ -415,6 +424,7 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         0x300, 0x301, 0x302, 0x303, 0x304, 0x305, 0x306, 0x30a, 0x340, 0x341, 0x342, 0x343, 0x344, 0x350,
         0x351, 0x35c, 0xc01, 0xf11, 0xf12, 0xf13, 0xf14) ++
         (if (experimentalHypervisor) Seq(0x609, 0xeb0) else Seq.empty) ++
+        (if (p.basicCounters) Seq(0xb00, 0xb02, 0x320, 0xc00, 0xc02) else Seq.empty) ++
         (if (p.fpEnabled) Seq(1, 2, 3) else Seq.empty) ++
         (if (p.virtualMemoryLevels > 0) Seq(0x180) else Seq.empty) ++
         (if (p.pmpEntries > 0) Seq(0x3a0, 0x3a2) ++ (0 until p.pmpEntries).map(0x3b0 + _) else Seq.empty))
@@ -422,6 +432,17 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         .reduce(_ || _)
     val exists = hostExists || hypervisor.map(_.io.readKnown).getOrElse(false.B)
     val timeAccessAllowed = privilege === 3.U || (mcounterenTm && (privilege === 1.U || scounterenTm))
+    val basicCounterCsr = p.basicCounters.B && (address === "hc00".U || address === "hc02".U)
+    val basicCounterBit = Mux(address === "hc00".U, 0.U, 2.U)
+    val machineCounterEnabled = mcounterenBasic.map(_(basicCounterBit)).getOrElse(false.B)
+    val supervisorCounterEnabled = scounterenBasic.map(_(basicCounterBit)).getOrElse(false.B)
+    val hypervisorCounterEnabled = hypervisor.map(_.io.counterEnable(basicCounterBit)).getOrElse(false.B)
+    val basicCounterAccessAllowed = privilege === 3.U ||
+        (machineCounterEnabled && (privilege === 1.U || supervisorCounterEnabled))
+    // Machine denial has priority. With M enabled, VU S denial is virtual just
+    // like H denial; encoded writes to read-only aliases still fault illegally.
+    val virtualBasicCounterCsr = virtualized && basicCounterCsr && machineCounterEnabled &&
+        (!hypervisorCounterEnabled || (privilege === 0.U && !supervisorCounterEnabled))
     val stimecmpAccessAllowed = privilege === 3.U || (stce && mcounterenTm)
     val timerCompareCsr = address === "h14d".U || address === "h24d".U
     val guestTimerAccessAllowed = hypervisor.map(h => h.io.stce && h.io.counterEnable(1)).getOrElse(false.B)
@@ -449,18 +470,30 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
             (address =/= "h14d".U || stimecmpAccessAllowed)) ||
         (virtualized && address === "hc01".U && mcounterenTm &&
             (!hypervisor.map(_.io.counterEnable(1)).getOrElse(true.B) || (privilege === 0.U && !scounterenTm))) ||
-        virtualTimerCsr ||
+        virtualTimerCsr || virtualBasicCounterCsr ||
         (virtualized && guestImsic && hypervisor.map(_.io.vgein === 0.U).getOrElse(false.B))
     val hostTvmCsr = !virtualized && privilege === 1.U && (address === "h180".U || address === "h680".U) &&
         hypervisor.map(_.io.tvm).getOrElse(false.B)
     val invalidGuestFile = guestImsic && hypervisor.map(_.io.vgein === 0.U).getOrElse(false.B)
     val legalCsr = (!fpCsr || fpFs =/= 0.U) && exists && csrPrivilegeAllowed &&
         !(write && address(11, 10) === 3.U) && !virtualCsr && !hostTvmCsr && !invalidGuestFile && !priorityIllegal &&
-        (address =/= "hc01".U || timeAccessAllowed) && (!timerCompareCsr || stimecmpAccessAllowed)
+        (address =/= "hc01".U || timeAccessAllowed) && (!timerCompareCsr || stimecmpAccessAllowed) &&
+        (!basicCounterCsr || basicCounterAccessAllowed)
     // MIP.SEIP CSR RMW operates on the software bit, never latches the external wire.
     val readForWrite = Mux(address === "h344".U,
         (readValue & "hfffffffffffffdff".U) | (seipSoftware.asUInt << 9), readValue)
     val newValue = MuxLookup(operation, source)(Seq(2.U -> (readForWrite | source), 3.U -> (readForWrite & ~source)))
+    basicCounterBank.foreach { bank =>
+        bank.io.acceptedCommits := io.acceptedCommits.get
+        bank.io.retire := io.counterRetire.get
+        // Existing SYSTEM serialization protects this exact owner until retire.
+        // CSR result is sampled below into result, not re-read during completion stalls.
+        bank.io.write.valid := state === execute && csr && legalCsr && write &&
+            (address === "hb00".U || address === "hb02".U || address === "h320".U)
+        bank.io.write.bits.token := request.token
+        bank.io.write.bits.address := address
+        bank.io.write.bits.data := newValue
+    }
     val sfenceVma = inst(31, 25) === "b0001001".U && inst(14, 7) === 0.U && inst(6, 0) === "h73".U
     // Share each filtered, lock-qualified local comparison between fetch
     // permission invalidation and exact raw-image change publication. OFF-mode
@@ -645,7 +678,10 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
                         }
                         is("h144".U) { when(ssideleg) { ssip := newValue(1) } }
                         is("h14d".U) { stimecmp := newValue }
-                        is("h106".U) { scounterenTm := newValue(1) }
+                        is("h106".U) {
+                            scounterenTm := newValue(1)
+                            scounterenBasic.foreach(_ := newValue(2, 0) & 5.U)
+                        }
                         is("h105".U) { stvec := Cat(newValue(63, 2), Mux(newValue(1, 0) === 1.U, 1.U(2.W), 0.U(2.W))) }
                         is("h140".U) { sscratch := newValue }
                         is("h141".U) { sepc := alignedEpc(newValue) }
@@ -679,7 +715,10 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
                             ssip := newValue(1)
                             when(!stce) { stipSoftware := newValue(5) }
                         }
-                        is("h306".U) { mcounterenTm := newValue(1) }
+                        is("h306".U) {
+                            mcounterenTm := newValue(1)
+                            mcounterenBasic.foreach(_ := newValue(2, 0) & 5.U)
+                        }
                         is("h30a".U) { stce := newValue(63) }
                         is("h340".U) { mscratch := newValue }
                         is("h341".U) { mepc := alignedEpc(newValue) }

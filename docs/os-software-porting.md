@@ -94,7 +94,7 @@ OUT2 不门控 SoC IRQ；详见 [UART 合同](uart.md)。
 | M/S/U | 有返回、委托、中断和分页开发路径；没有完整特权规范合规声明 |
 | F/D | 已接入可选完整基础指令功能候选，默认关闭且 misa/DT 不声明；Linux 浮点上下文和新完整 F/D FPGA 时序待验收，详见 [阶段记录](ooo-core-plan.md) |
 | V/H | 未实现；不能使用向量或虚拟化内核路径 |
-| Zicntr / Zihpm | 不能声明支持：只有 `time`，没有 `cycle/instret` 或 HPM CSR |
+| Zicntr / Zihpm | 本页默认配置只有 `time`，没有 `cycle/instret` 或 HPM CSR；默认关闭的 [H basicCounters profile](guest-counters.md) 另行提供基础计数器，不改变现有板级声明 |
 | WFI | 作为可立即继续执行的 hint；不保证睡眠、省电或阻塞到下次中断 |
 | 非对齐访问 | load/store 不做硬件拆分，产生地址非对齐异常；软件应自然对齐 |
 
@@ -109,7 +109,8 @@ OUT2 不门控 SoC IRQ；详见 [UART 合同](uart.md)。
 库和运行时，应选择相应的工具链选项并做针对性验证。不要直接使用 `rv64gc/lp64d`：
 其中 F/D 在现有上板配置关闭；实验功能候选并不允许直接改现有 Linux 到硬浮点 ABI。
 需先验收上下文保存/恢复、匹配 misa/DT 及新 bit，再选择 lp64f/lp64d。
-时间测量使用 `rdtime`，不能把 `rdcycle` 当作可用的便利指令。
+本页默认配置的时间测量使用 `rdtime`，不能把 `rdcycle` 当作可用的便利指令。
+显式 H basicCounters 配置的计数语义、权限与边界见[独立合同](guest-counters.md)。
 
 ## 当前 CSR 清单
 

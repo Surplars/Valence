@@ -17,7 +17,8 @@ class CommonHypervisorCpuTile(
     mmioRegions: Seq[CommonAddressRegion],
     boundary: CommonCpuTilePortParams = CommonCpuTilePortParams(),
     guestFiles: Int = 3,
-    atomicMemory: Boolean = false
+    atomicMemory: Boolean = false,
+    basicCounters: Boolean = false
 ) extends Module {
     require(ramBytes > 0 && romBytes > 0 && guestFiles == 3)
     require(CommonPlatformAbi.romBase + romBytes <= CommonPlatformAbi.ramBase)
@@ -26,7 +27,7 @@ class CommonHypervisorCpuTile(
         "H platform profile supports cold start only, not runtime parking")
     val core = Module(new HypervisorMachineCore(platformIntegration = true,
         atomicMemory = atomicMemory, ramBase = if (atomicMemory) CommonPlatformAbi.ramBase else BigInt(0),
-        ramBytes = if (atomicMemory) ramBytes else BigInt(0)))
+        ramBytes = if (atomicMemory) ramBytes else BigInt(0), basicCounters = basicCounters))
     val io = IO(new Bundle {
         val bus = new CommonCpuTilePort(boundary)
         val enable = Input(Bool())

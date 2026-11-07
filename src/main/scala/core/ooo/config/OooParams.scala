@@ -255,8 +255,12 @@ case class OooParams(
     // Default-off numerical capture into the existing MUL operand register; DIV is unchanged.
     registeredMulLoadOperandCapture: Boolean = false,
     // Optional owner-carried H fault/context fields. Does not advertise misa.H.
-    hypervisorExperiment: Boolean = false
+    hypervisorExperiment: Boolean = false,
+    // RV64 cycle/instret and retirement-owned writes, only in the explicit H experiment.
+    basicCounters: Boolean = false
 ) {
+    require(!basicCounters || (hypervisorExperiment && machineSystem),
+        "basic counters require the explicit experimental H machine-system profile")
     require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
         sharedMulDivOperandReads && registeredMulDivOperands && registeredLoadIssueForwarding &&
         registeredMemoryOperandCapture && ownerLocalOperandReady && parallelPrfReadyUpdates &&

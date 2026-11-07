@@ -2949,3 +2949,14 @@ ownership, two-stage translation and separate guest-origin protection failures.
 The new atomic selector and H selector remain default-off. See
 [`docs/guest-atomics.md`](../../docs/guest-atomics.md) for the configuration,
 independent-oracle contract and deferred OS, DMA, multicore and physical claims.
+
+### Opt-in guest basic counters
+
+`make gsim-guest-counters-test` checks a default-off H cycle/instret profile using
+small counter-bank/MSU fixtures and one actual H tile/common-fabric fixture.
+Independent edge and retirement oracles check counter publication, held reads,
+inhibit/overflow, permissions and disabled-profile CSR absence. Named negative
+controls and orchestration-only Python tests remain distinct from hardware runs.
+See [`docs/guest-counters.md`](../../docs/guest-counters.md) for the profile,
+precise owner contract and unverified OS, independent-clock and physical scope.
+The entry retains strict pinned GSIM binding; no alternate simulator is used.

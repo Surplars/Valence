@@ -181,3 +181,7 @@ gsim-guest-atomics-test:
 .PHONY: gsim-guest-atomic-permissions-test
 gsim-guest-atomic-permissions-test:
 	python3 simulator/gsim/guest_atomic_permissions.py
+
+.PHONY: gsim-guest-counters-test
+gsim-guest-counters-test:
+	python3 simulator/gsim/guest_counters.py

@@ -19,11 +19,13 @@ class HypervisorMachineCore(
     platformIntegration: Boolean = false,
     atomicMemory: Boolean = false,
     ramBase: BigInt = 0,
-    ramBytes: BigInt = 0
+    ramBytes: BigInt = 0,
+    basicCounters: Boolean = false
 ) extends Module {
     val p = OooParams(hypervisorExperiment = true, robEntries = 16, physicalRegs = 48,
         memoryEntries = 2, compressedInstructions = true, machineSystem = true, virtualMemoryLevels = 3, pmpEntries = 16,
-        atomicMemory = atomicMemory, speculativeRamBase = ramBase, speculativeRamBytes = ramBytes)
+        atomicMemory = atomicMemory, speculativeRamBase = ramBase, speculativeRamBytes = ramBytes,
+        basicCounters = basicCounters)
     val io = IO(new Bundle {
         // The default standalone shape remains unchanged. Platform FENCE.I waits for shared drain.
         val platformFence = if (platformIntegration) Some(Output(Bool())) else None

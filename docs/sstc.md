@@ -28,7 +28,9 @@ STCE=0 时，M 软件可写 `mip.STIP`，`sip.STIP` 仍只读。
 64 位比较器、时间扇出和新增 CSR 译码的 FPGA Fmax/面积尚未实测。
 MachinePlatform 的定时器依赖同步 `timerTick`；当前 BoardSocTop 将其固定为 true，每个 40 MHz
 SoC 时钟递增一次，因此板级 `timebase-frequency=40000000`。它不是独立 RTC，不跨时钟域。
-`time`（0xC01）可用，但 `cycle/instret` 及相应机器计数 CSR 不存在。其他 GSIM 配置可能使用不同 tick。
+本页默认配置可用 `time`（0xC01），但没有 `cycle/instret` 及相应机器计数 CSR。
+默认关闭的 [H basicCounters profile](guest-counters.md) 另行提供这些计数器和访问门控，
+不改变此处主机基线的 CSR 集合与时间源。其他 GSIM 配置可能使用不同 tick。
 定向测试覆盖 S/U 态 STCE/TM 访问门控、时间到期、SIE 屏蔽、Direct/Vectored 入口、
 `stimecmp` 清除和 STCE=0 的软件 STIP 回退。平台固件 `machine-sstc.S` 在
 `make gsim-sstc-platform-test` 下使用真实同步 `mtime`：第 5 次 tick 触发一次 STI，
