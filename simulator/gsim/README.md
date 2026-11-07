@@ -3044,3 +3044,14 @@ exact-token retirement and host/guest Dirty ownership with independent native an
 Python input-derived oracles. No synthetic result injection; no CPU H+FP admission,
 full F/D, memory, fault/IRQ or isolation claim. See `docs/guarded-fp-bridge.md` for
 strict tool binding, resources, scopes and reproduction.
+
+### Separate guarded guest fused multiply-add qualification
+
+`make gsim-guarded-guest-fp-fma-test` selects a new exact default-off actual-core
+FMA.S/D profile, with all four fused sign variants and a necessary shared-product
+FMUL preservation slice. Earlier profiles and generic H+FP guards remain frozen.
+See [the FMA contract](../../docs/guarded-guest-fp-fma.md) for independent numeric,
+rs3, retirement/dual-FS, real-software trap and bounded fresh-build requirements.
+This entry point is not itself passing hardware evidence. Old ee5b041 remote
+per-file verification remains incomplete; no full F/D, OS, throughput or physical
+implementation claim is added.

@@ -2202,3 +2202,14 @@ Guarded FP bridge follow-on: FloatingPointSystem has a default-off architectural
 dual-FS context/mutation path, separate from its memory-translation input. Focused
 real arithmetic subsystem qualification is described in `guarded-fp-bridge.md`.
 Both actual core H+FP guards remain; this is not guest F/D CPU admission.
+
+### Separate guarded guest FMA qualification route
+
+The explicit default-off FMA selector extends only the previous exact multiply
+recipe with fused operations; all four S/D sign variants are admitted. Because
+this changes FMUL to the shared multiply/fused producer, new mixed FMUL/FMA
+retention checks are required. Read [the FMA contract](guarded-guest-fp-fma.md).
+No owner/trap/retirement arithmetic algorithm or default advertisement changes.
+The new source route is not a passed run by itself, and previous ee5b041 remote
+all-file byte/mode review remains incomplete. General F/D, OS, multiple clocks,
+throughput and physical implementation remain unqualified.

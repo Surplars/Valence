@@ -23,10 +23,11 @@ class HypervisorMachineCore(
     basicCounters: Boolean = false,
     guardedGuestFpQualification: Boolean = false,
     guardedGuestFpArithmeticQualification: Boolean = false,
-    guardedGuestFpMultiplyQualification: Boolean = false
+    guardedGuestFpMultiplyQualification: Boolean = false,
+    guardedGuestFpFmaQualification: Boolean = false
 ) extends Module {
     require(!(guardedGuestFpQualification || guardedGuestFpArithmeticQualification ||
-        guardedGuestFpMultiplyQualification) || !platformIntegration,
+        guardedGuestFpMultiplyQualification || guardedGuestFpFmaQualification) || !platformIntegration,
         "guarded guest FP qualification uses the standalone single-clock core")
     val p = OooParams(hypervisorExperiment = true, robEntries = 16, physicalRegs = 48,
         memoryEntries = 2, compressedInstructions = true, machineSystem = true, virtualMemoryLevels = 3, pmpEntries = 16,
@@ -34,7 +35,9 @@ class HypervisorMachineCore(
         basicCounters = basicCounters, guardedGuestFpQualification = guardedGuestFpQualification,
         guardedGuestFpArithmeticQualification = guardedGuestFpArithmeticQualification,
         guardedGuestFpMultiplyQualification = guardedGuestFpMultiplyQualification,
-        floatingPoint = if (guardedGuestFpMultiplyQualification) GuardedGuestFpMultiplyProfile.floatingPoint
+        guardedGuestFpFmaQualification = guardedGuestFpFmaQualification,
+        floatingPoint = if (guardedGuestFpFmaQualification) GuardedGuestFpFmaProfile.floatingPoint
+            else if (guardedGuestFpMultiplyQualification) GuardedGuestFpMultiplyProfile.floatingPoint
             else if (guardedGuestFpArithmeticQualification) GuardedGuestFpArithmeticProfile.floatingPoint
             else if (guardedGuestFpQualification) GuardedGuestFpCoreProfile.floatingPoint
             else FloatingPointConfig.disabled)
