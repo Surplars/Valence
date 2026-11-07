@@ -35,7 +35,7 @@ class FloatingPointExecution(p: OooParams) extends Bundle {
     val rounding = UInt(3.W)
 }
 
-/** Result/fault envelope shared by a future arithmetic or FP memory adapter.
+/** Result/fault envelope shared by arithmetic and FP memory adapters.
   * FP flags are accrued data, not traps; memory faults use exception/cause/tval.
   */
 class FloatingPointResult(p: OooParams) extends Bundle {
@@ -45,6 +45,37 @@ class FloatingPointResult(p: OooParams) extends Bundle {
     val exception = Bool()
     val cause = UInt(6.W)
     val tval = UInt(64.W)
+    val guestFault = if (p.hypervisorExperiment) Some(new GuestFaultMetadata) else None
+}
+
+/** Combinational envelope conversions: no owner, credit or latency of their own.
+  * Memory never accrues FP flags. Its complete provenance is preserved verbatim;
+  * arithmetic and illegal producers initialize their guest metadata to zero.
+  * FloatingPointState retains this whole result until exact-token retirement.
+  */
+object FloatingPointResultTransport {
+    def fromMemory(p: OooParams, completion: BackendCompletion): FloatingPointResult = {
+        val result = WireDefault(0.U.asTypeOf(new FloatingPointResult(p)))
+        result.token := completion.token
+        result.value := completion.data
+        result.exception := completion.exception
+        result.cause := completion.cause
+        result.tval := completion.tval
+        result.guestFault.foreach(_ := completion.guestFault.get)
+        result
+    }
+
+    def toBackend(p: OooParams, result: FloatingPointResult, nextPc: UInt): BackendCompletion = {
+        val completion = WireDefault(0.U.asTypeOf(new BackendCompletion(p)))
+        completion.token := result.token
+        completion.data := result.value
+        completion.nextPc := nextPc
+        completion.exception := result.exception
+        completion.cause := result.cause
+        completion.tval := result.tval
+        completion.guestFault.foreach(_ := result.guestFault.get)
+        completion
+    }
 }
 
 class FloatingPointCsr extends Bundle {

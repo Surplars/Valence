@@ -24,6 +24,8 @@ class FloatingPointSystem(p: OooParams) extends Module {
         val pmpState = Input(new PmpState)
         val dataPrivilege = Input(UInt(2.W))
         val virtualized = Input(Bool())
+        val guestAddress = if (p.hypervisorExperiment) Some(Input(Bool())) else None
+        val guestFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
     })
     val fp = Module(new FloatingPointState(p))
     val execute = Module(new FloatingPointExecute(p, p.fpConfig))
@@ -41,6 +43,8 @@ class FloatingPointSystem(p: OooParams) extends Module {
         memory.io.pmpState := io.pmpState
         memory.io.dataPrivilege := io.dataPrivilege
         memory.io.virtualized := io.virtualized
+        memory.io.guestAddress.foreach(_ := io.guestAddress.get)
+        memory.io.guestFault.foreach(_ := io.guestFault.get)
     }
     val pc = Reg(UInt(64.W))
     memoryOption.foreach(_.io.pc := pc)
@@ -93,12 +97,7 @@ class FloatingPointSystem(p: OooParams) extends Module {
         memoryComplete <> memory.io.complete
         when(executeMemory) { fp.io.execute.ready := memory.io.execute.ready }
     }
-    val memoryResult = WireDefault(0.U.asTypeOf(new FloatingPointResult(p)))
-    memoryResult.token := memoryComplete.bits.token
-    memoryResult.value := memoryComplete.bits.data
-    memoryResult.exception := memoryComplete.bits.exception
-    memoryResult.cause := memoryComplete.bits.cause
-    memoryResult.tval := memoryComplete.bits.tval
+    val memoryResult = FloatingPointResultTransport.fromMemory(p, memoryComplete.bits)
     fp.io.result.valid := execute.io.result.valid || memoryComplete.valid
     fp.io.result.bits := Mux(memoryComplete.valid, memoryResult, execute.io.result.bits)
     execute.io.result.ready := fp.io.result.ready && !memoryComplete.valid
@@ -108,12 +107,6 @@ class FloatingPointSystem(p: OooParams) extends Module {
     when(io.trap) { sent := false.B }
 
     io.complete.valid := fp.io.complete.valid && !sent
-    io.complete.bits := 0.U.asTypeOf(new BackendCompletion(p))
-    io.complete.bits.token := fp.io.complete.bits.token
-    io.complete.bits.data := fp.io.complete.bits.value
-    io.complete.bits.nextPc := pc + 4.U
-    io.complete.bits.exception := fp.io.complete.bits.exception
-    io.complete.bits.cause := fp.io.complete.bits.cause
-    io.complete.bits.tval := fp.io.complete.bits.tval
+    io.complete.bits := FloatingPointResultTransport.toBackend(p, fp.io.complete.bits, pc + 4.U)
     when(io.complete.fire) { sent := true.B }
 }

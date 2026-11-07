@@ -60,6 +60,8 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         val counterRetire = if (p.basicCounters) Some(Input(Valid(new RobToken(p)))) else None
         val acceptedCommits = if (p.basicCounters) Some(Input(UInt(log2Ceil(p.commitWidth + 1).W))) else None
         val fpMemory = if (p.fpEnabled) Some(new DataPort) else None
+        val fpMemoryFault = if (p.fpEnabled && p.hypervisorExperiment)
+            Some(Input(new GuestFaultMetadata)) else None
         val fpMemoryBusy = if (p.fpEnabled) Some(Output(Bool())) else None
         val trapTarget                  = Output(UInt(64.W))
         val externalInterrupt           = Input(Bool())
@@ -524,8 +526,11 @@ class MachineSystemUnit(p: OooParams, experimentalHypervisor: Boolean = false,
         io.fpMemoryBusy.get := fp.io.memoryBusy
         fp.io.pmpState := io.pmpState
         fp.io.dataPrivilege := io.dataPrivilege
-        fp.io.virtualized := (if (p.virtualMemoryLevels > 0)
-            io.dataPrivilege =/= 3.U && satp(63, 60) =/= 0.U else false.B)
+        val effectiveGuestAddress = io.guestDataContext.map(_.virtualized).getOrElse(false.B)
+        fp.io.virtualized := FloatingPointMemoryContext.translated(p.virtualMemoryLevels,
+            io.dataPrivilege, satp, effectiveGuestAddress)
+        fp.io.guestAddress.foreach(_ := effectiveGuestAddress)
+        fp.io.guestFault.foreach(_ := io.fpMemoryFault.get)
         fp.io.start.valid := state === execute && FloatingPointDecode.supported(inst, p.fpConfig)
         fp.io.start.bits := request
         fp.io.retire := io.fpRetire.get

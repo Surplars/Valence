@@ -378,6 +378,9 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     }
     if (p.fpEnabled) {
         val fpMemory = systemUnit.get.io.fpMemory.get
+        // Dormant provenance plumbing only: both H+FP guards remain in force.
+        // Three-domain integer/FP/explicit-H arbitration is not integrated here.
+        systemUnit.get.io.fpMemoryFault.foreach(_ := io.guestDataFault.get)
         // Head system launch drains the complete integer path (including queued
         // buffered writes). Hold this exclusive owner through real retirement,
         // not just through its response, and prohibit younger LSU launches below.

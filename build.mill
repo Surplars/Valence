@@ -97,6 +97,20 @@ object `IonSoC` extends CommonNS {
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 
+    object fpGuestMemoryPreparation extends SbtTests with TestModule.ScalaTest {
+        // Real nested memory components, not an enabled H+FP core. Keep the full
+        // production/HardFloat dependency set and compile only affected fixtures.
+        override def sources = Task.Sources(
+            pwd / "src/test/scala/ooo/FpGuestMemoryGsim.scala",
+            pwd / "src/test/scala/ooo/FpGuestResponseBufferGsim.scala",
+            pwd / "src/test/scala/ooo/FpGuestMemoryConfigSpec.scala",
+            pwd / "src/test/scala/ooo/DualFsPreparationConfigSpec.scala",
+            pwd / "src/test/scala/ooo/GuestCountersConfigSpec.scala",
+            pwd / "src/test/scala/ooo/GuestAtomicsConfigSpec.scala"
+        )
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
+
 }
 
 // Isolated new FPGA five-stage core. Reuses selected CPU-independent bus/IP files,

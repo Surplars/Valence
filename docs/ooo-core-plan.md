@@ -2152,3 +2152,16 @@ unchanged; the optional combined state wiring is exercised by a focused GSIM
 component fixture, not by an enabled guest CPU. FP/H memory ownership, guest fault
 transport and real software context qualification remain open. See
 [dual-FS preparation](dual-fs-preparation.md).
+
+## FP guest-memory preparation, after dual FS
+
+The opt-in memory component path now carries effective guest-address provenance
+and buffers the complete response fault envelope with its native payload.
+Shared production FP result converters preserve metadata and full ROB tokens.
+The focused `make gsim-fp-guest-memory-test` entry checks real nested memory
+components and all response-buffer modes, with independent native oracles.
+Actual-core H+FP remains rejected: three-domain ownership, real guest arithmetic
+and trap handling, and complete host/guest software context round trips are
+still separate release gates. Defaults and ISA declarations are unchanged.
+See `docs/fp-guest-memory-preparation.md`; component results are not CPU or guest
+software execution, timing, throughput, resource or compliance claims.

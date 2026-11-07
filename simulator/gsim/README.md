@@ -2971,3 +2971,20 @@ The focused `IonSoC.dualFsPreparation` source set keeps full production dependen
 Both actual-core H+FP guards remain intact; no guest F/D, arithmetic, guest memory
 or context-switching CPU is executed by this entry. See [scope and remaining
 integration](../../docs/dual-fs-preparation.md).
+
+## FP guest-memory component preparation
+
+`make gsim-fp-guest-memory-test` uses strict pinned GSIM and two fresh focused
+component models through `IonSoC.fpGuestMemoryPreparation`, retaining all
+production and HardFloat compilation dependencies. One joins genuine FP state,
+FP memory, guest adapter and nested walker; the other checks all four buffer
+modes with metadata and reservation handles independently enabled/disabled.
+Independent native oracles inspect real PTE/data requests, exact result
+provenance and state mutation, with named negative controls and raw traces.
+ASan/UBSan remain enabled. No unverified-reuse or alternate simulator route is
+provided. See `docs/fp-guest-memory-preparation.md` for boundaries and commands.
+
+This default-off preparation does not remove either actual-core H+FP guard or
+claim guest F/D, CPU retirement, HS trap CSR execution, software context
+switching, OS boot, performance, PPA or board qualification. No IRQ, cancellation,
+reset-while-owner or independent-clock scenario is added.

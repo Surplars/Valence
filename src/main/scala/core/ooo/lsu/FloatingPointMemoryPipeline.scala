@@ -4,11 +4,26 @@ import chisel3._
 import chisel3.util._
 import soc.ip.bus.TwoEntryRegisterQueue
 
+/** Address handling, not architectural V: guest accesses still need the nested
+  * translator when VS is Bare. Final physical PMP/PMA belongs to that translator.
+  */
+object FloatingPointMemoryContext {
+    def translated(virtualMemoryLevels: Int, effectivePrivilege: UInt, hostSatp: UInt,
+        effectiveGuestAddress: Bool): Bool = {
+        val hostTranslation = if (virtualMemoryLevels > 0)
+            effectivePrivilege =/= 3.U && hostSatp(63, 60) =/= 0.U else false.B
+        hostTranslation || effectiveGuestAddress
+    }
+}
+
 /** ROB-head FP memory pipeline; one irrevocable owner, no speculative issue credit.
   * Execute envelope -> registered AGU payload -> live PMP/LSU capture ->
   * registered request -> registered response -> registered completion.
   * The execute handshake is the LSU permission/capture handshake, not the AGU
   * preparation. Privilege/PMP/virtualization remain live until that handshake.
+  * The single LSU owner retains its full ROB token. Response and completion
+  * buffers each have two credits, II=1 and one cycle minimum latency; they do
+  * not create additional architectural owners or permit overlapping execution.
   * Drain all accepted accesses and buffered completions before a precise trap.
   */
 class FloatingPointMemoryPipeline(p: OooParams) extends Module {
@@ -23,11 +38,16 @@ class FloatingPointMemoryPipeline(p: OooParams) extends Module {
         val pmpState = Input(new PmpState)
         val dataPrivilege = Input(UInt(2.W))
         val virtualized = Input(Bool())
+        val guestAddress = if (p.hypervisorExperiment) Some(Input(Bool())) else None
+        val guestFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
     })
     val lsu = Module(new LoadStoreUnit(p, registerStart = true))
-    val responses = Module(new DataResponseBuffer(registerPayload = true, registerHead = true))
+    val responses = Module(new DataResponseBuffer(registerPayload = true, registerHead = true,
+        guestFaultMetadata = p.hypervisorExperiment))
     responses.io.upstream <> lsu.io.memory
     io.memory <> responses.io.downstream
+    responses.io.downstreamGuestFault.foreach(_ := io.guestFault.get)
+    lsu.io.guestFault.foreach(_ := responses.io.upstreamGuestFault.get)
     lsu.io.cancel := false.B
     lsu.io.fastStoreRetire := false.B
     lsu.io.fastLoadRetire := false.B
@@ -76,6 +96,9 @@ class FloatingPointMemoryPipeline(p: OooParams) extends Module {
     lsu.io.start.bits := prepared
     lsu.io.start.bits.accessDenied := pmpDenied && !io.virtualized
     lsu.io.start.bits.virtualized := io.virtualized
+    // Like permission/context, provenance is sampled only at accepted execution,
+    // never at the earlier AGU preparation edge.
+    lsu.io.start.bits.guestAddress.foreach(_ := io.guestAddress.get)
     io.execute.ready := preparedValid && lsu.io.start.ready && !io.trap
     when(lsu.io.start.fire || io.trap) { preparedValid := false.B }
 

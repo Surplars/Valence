@@ -59,6 +59,7 @@ class FloatingPointAdd(p: OooParams) extends Module {
         result.exception := !legal
         result.cause := Mux(legal, 0.U, 2.U)
         result.tval := Mux(legal, 0.U, instruction.pad(64))
+        result.guestFault.foreach(_ := 0.U.asTypeOf(new GuestFaultMetadata))
     }
     when(rawValid) {
         rawValid := false.B

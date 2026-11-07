@@ -61,3 +61,12 @@ No dynamic H-enabled CDC/DDR/DMA, runtime parking, board or OS qualification is
 claimed, and the restricted independent M-origin fault review remains unverified.
 
 - [Dual-FS preparation](dual-fs-preparation.md) is a state-component contract only. Both actual-core H+FP guards remain; no guest F/D or guest FP memory is enabled.
+
+## FP guest-memory component preparation
+
+Optional owned FP response/result metadata and the effective guest-address path
+are prepared by `gsim-fp-guest-memory-test`. The fixture connects genuine nested
+translation and FP memory components, plus an independent response-buffer
+matrix. Both actual-core H+FP guards remain; this is not guest F/D availability,
+HS trap CSR execution, real-core precise retirement or software context proof.
+See [scope and remaining gates](fp-guest-memory-preparation.md).

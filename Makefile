@@ -189,3 +189,7 @@ gsim-guest-counters-test:
 .PHONY: gsim-dual-fs-preparation-test
 gsim-dual-fs-preparation-test:
 	python3 simulator/gsim/dual_fs_preparation.py
+
+.PHONY: gsim-fp-guest-memory-test
+gsim-fp-guest-memory-test:
+	python3 simulator/gsim/fp_guest_memory.py
