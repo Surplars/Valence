@@ -3025,3 +3025,13 @@ and named checker controls qualify this component wiring only. Actual H+FP
 cores remain rejected and disabled by default. See
 [`docs/protected-fp-retirement.md`](../../docs/protected-fp-retirement.md) for
 contract, freshness, evidence and reproduction details.
+
+### Guarded architectural FP bridge
+
+`make gsim-guarded-fp-bridge-test` builds one fresh real FloatingPointSystem +
+HypervisorState + ProtectedSystemOwner model with an explicit partial S/D
+add/move/class/compare profile. It checks real arithmetic, backpressured completion,
+exact-token retirement and host/guest Dirty ownership with independent native and
+Python input-derived oracles. No synthetic result injection; no CPU H+FP admission,
+full F/D, memory, fault/IRQ or isolation claim. See `docs/guarded-fp-bridge.md` for
+strict tool binding, resources, scopes and reproduction.

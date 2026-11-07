@@ -8,7 +8,7 @@ import chisel3.util._
   * retirement. Faulted commands are discarded on the eventual precise trap.
   * CSR/FS requests are already irrevocably authorized by MachineSystemUnit.
   */
-class FloatingPointSystem(p: OooParams) extends Module {
+class FloatingPointSystem(p: OooParams, dualFs: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val start = Flipped(Decoupled(new SystemRequest(p)))
         val complete = Decoupled(new BackendCompletion(p))
@@ -23,11 +23,16 @@ class FloatingPointSystem(p: OooParams) extends Module {
         val memoryBusy = Output(Bool())
         val pmpState = Input(new PmpState)
         val dataPrivilege = Input(UInt(2.W))
+        // Memory translation-active context, not architectural virtualization V.
         val virtualized = Input(Bool())
+        val guestContext = if (dualFs) Some(Input(new FloatingPointGuestContext)) else None
+        val mutation = if (dualFs) Some(Output(Valid(new FloatingPointMutation))) else None
         val guestAddress = if (p.hypervisorExperiment) Some(Input(Bool())) else None
         val guestFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
     })
-    val fp = Module(new FloatingPointState(p))
+    val fp = Module(new FloatingPointState(p, dualFs = dualFs))
+    fp.io.guestContext.foreach(_ := io.guestContext.get)
+    io.mutation.foreach(_ := fp.io.mutation.get)
     val execute = Module(new FloatingPointExecute(p, p.fpConfig))
     // Memory has its own explicit request/response/drain contract. Architectural
     // FP state and arithmetic completion selection do not implement an LSU.

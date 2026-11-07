@@ -96,3 +96,8 @@ Normative references: [H v20250508 §14.2.11](https://docs.riscv.org/reference/i
 [D](https://docs.riscv.org/reference/isa/v20250508/unpriv/d-st-ext.html).
 The ISA allows conservative Dirty tracking; the precise policy above is this
 implementation's selected stronger contract, not the only ISA-permitted policy.
+
+Follow-on: `guarded-fp-bridge.md` adds the default-off architectural context/event
+ports to the genuine FloatingPointSystem and qualifies a limited real arithmetic
+subsystem. The earlier state-only evidence above remains unchanged; actual core
+H+FP guards and software/context-isolation release gates remain.

@@ -2188,3 +2188,8 @@ selector components. The 88/136-cycle schedules do not establish actual CPU
 scheduling, architectural retirement, FP/counter consumer effects or traps.
 Both actual-core H+FP guards, all defaults and production wiring remain unchanged;
 no old selector matrix rerun or new guest F/D/IRQ/cancellation scope is added.
+
+Guarded FP bridge follow-on: FloatingPointSystem has a default-off architectural
+dual-FS context/mutation path, separate from its memory-translation input. Focused
+real arithmetic subsystem qualification is described in `guarded-fp-bridge.md`.
+Both actual core H+FP guards remain; this is not guest F/D CPU admission.

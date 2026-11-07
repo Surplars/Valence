@@ -140,3 +140,7 @@ IRQ/fault interleaving, cancellation, M-origin guest-fault review, live-owner
 reset, independent clocks, Yosys, Verilator, full OS, PPA and board work are
 excluded. Existing pinned RISC-V v20250508 H 1.0, Machine 1.13, F 2.2 and D 2.2
 references apply; no new ISA interpretation is introduced.
+
+Follow-on: `guarded-fp-bridge.md` adds the default-off production FP-system bridge
+and limited genuine arithmetic qualification. This document records the earlier
+synthetic retirement-consumer stage, whose retained evidence remains unchanged.
