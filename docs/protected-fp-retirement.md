@@ -144,3 +144,8 @@ references apply; no new ISA interpretation is introduced.
 Follow-on: `guarded-fp-bridge.md` adds the default-off production FP-system bridge
 and limited genuine arithmetic qualification. This document records the earlier
 synthetic retirement-consumer stage, whose retained evidence remains unchanged.
+
+Follow-on: [guarded FP memory/fault recovery](guarded-fp-fault-recovery.md) joins
+the real FP system and already implemented owner/selector to nested translation
+and H-state trap consumption. Drained traps are external caller stimulus, not
+automatic MSU/ROB admission. This historical stage and its evidence are retained.

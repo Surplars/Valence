@@ -206,6 +206,10 @@ gsim-system-owner-boundaries-test:
 gsim-protected-fp-retirement-test:
 	python3 simulator/gsim/protected_fp_retirement.py $(PROTECTED_FP_RETIREMENT_ARGS)
 
+.PHONY: gsim-guarded-fp-fault-recovery-test
+gsim-guarded-fp-fault-recovery-test:
+	python3 simulator/gsim/guarded_fp_fault_recovery.py $(GUARDED_FP_FAULT_RECOVERY_ARGS)
+
 .PHONY: gsim-guarded-fp-bridge-test
 gsim-guarded-fp-bridge-test:
 	python3 simulator/gsim/guarded_fp_bridge.py $(GUARDED_FP_BRIDGE_ARGS)

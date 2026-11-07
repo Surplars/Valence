@@ -1,0 +1,624 @@
+{
+  "schema": 1,
+  "scope": "Real component consumer composition; no automatic MSU/ROB trap admission",
+  "fcsr": 117,
+  "cycle_limit": 2048,
+  "trace_bytes_limit": 4194304,
+  "native_timeout_seconds": 120,
+  "per_command_completion_wait_limit": 320,
+  "operations": [
+    {
+      "ordinal": 0,
+      "instruction": "0xf2008053",
+      "operand": "0x7ff0123456789abc",
+      "pc": "0x80200000",
+      "token_index": 5,
+      "token_tag": "0x135700020000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": false,
+      "context_vsatp": "0x0",
+      "context_hgatp": "0x0",
+      "exception": false,
+      "cause": 0,
+      "tval": "0x0",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 1,
+      "instruction": "0x0000b087",
+      "operand": "0x12345000",
+      "pc": "0x80200004",
+      "token_index": 5,
+      "token_tag": "0x935700040000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": false,
+      "cause": 5,
+      "tval": "0x12345000",
+      "guest_address": true,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 2,
+      "instruction": "0x0000b027",
+      "operand": "0x12345080",
+      "pc": "0x80200008",
+      "token_index": 5,
+      "token_tag": "0x135700060000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": false,
+      "cause": 7,
+      "tval": "0x12345080",
+      "guest_address": true,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 3,
+      "instruction": "0x0000b087",
+      "operand": "0x12345000",
+      "pc": "0x8020000c",
+      "token_index": 5,
+      "token_tag": "0x935700080000007b",
+      "host_fs": 0,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": true,
+      "cause": 2,
+      "tval": "0xb087",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 4,
+      "instruction": "0xe2008153",
+      "operand": "0x12345000",
+      "pc": "0x80200010",
+      "token_index": 5,
+      "token_tag": "0x1357000a0000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": false,
+      "cause": 0,
+      "tval": "0x0",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 5,
+      "instruction": "0x0000b087",
+      "operand": "0x12345000",
+      "pc": "0x80200014",
+      "token_index": 5,
+      "token_tag": "0x9357000c0000007b",
+      "host_fs": 2,
+      "guest_fs": 0,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": true,
+      "cause": 2,
+      "tval": "0xb087",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 6,
+      "instruction": "0xe2008153",
+      "operand": "0x12345000",
+      "pc": "0x80200018",
+      "token_index": 5,
+      "token_tag": "0x1357000e0000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": false,
+      "cause": 0,
+      "tval": "0x0",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 7,
+      "instruction": "0x0000b087",
+      "operand": "0x12345001",
+      "pc": "0x8020001c",
+      "token_index": 5,
+      "token_tag": "0x935700100000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": true,
+      "cause": 4,
+      "tval": "0x12345001",
+      "guest_address": true,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 8,
+      "instruction": "0xe2008153",
+      "operand": "0x12345000",
+      "pc": "0x80200020",
+      "token_index": 5,
+      "token_tag": "0x135700120000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": false,
+      "cause": 0,
+      "tval": "0x0",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 9,
+      "instruction": "0x0000b087",
+      "operand": "0x112345028",
+      "pc": "0x80200024",
+      "token_index": 5,
+      "token_tag": "0x935700140000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x0",
+      "context_hgatp": "0x8000000000000200",
+      "exception": true,
+      "cause": 21,
+      "tval": "0x112345028",
+      "guest_address": true,
+      "guest_page_fault": true,
+      "gpa": "0x112345028",
+      "implicit_pte": false
+    },
+    {
+      "ordinal": 10,
+      "instruction": "0xe2008153",
+      "operand": "0x12345000",
+      "pc": "0x80200028",
+      "token_index": 5,
+      "token_tag": "0x135700160000007b",
+      "host_fs": 2,
+      "guest_fs": 2,
+      "architectural_guest": true,
+      "context_vsatp": "0x8000000000000100",
+      "context_hgatp": "0x8000000000000200",
+      "exception": false,
+      "cause": 0,
+      "tval": "0x0",
+      "guest_address": false,
+      "guest_page_fault": false,
+      "gpa": "0x0",
+      "implicit_pte": false
+    }
+  ],
+  "ptes": [
+    [
+      2097152,
+      268435539
+    ],
+    [
+      2097168,
+      1054721
+    ],
+    [
+      2097184,
+      1060865
+    ],
+    [
+      4218880,
+      1055745
+    ],
+    [
+      4222976,
+      805306583
+    ],
+    [
+      4244616,
+      1061889
+    ],
+    [
+      4250152,
+      402658503
+    ],
+    [
+      1074790400,
+      263169
+    ],
+    [
+      1074795656,
+      264193
+    ],
+    [
+      1074801192,
+      536871111
+    ]
+  ],
+  "initial_bytes": [
+    [
+      3221225464,
+      146
+    ],
+    [
+      3221225465,
+      147
+    ],
+    [
+      3221225466,
+      148
+    ],
+    [
+      3221225467,
+      149
+    ],
+    [
+      3221225468,
+      150
+    ],
+    [
+      3221225469,
+      151
+    ],
+    [
+      3221225470,
+      152
+    ],
+    [
+      3221225471,
+      153
+    ],
+    [
+      3221225472,
+      24
+    ],
+    [
+      3221225473,
+      45
+    ],
+    [
+      3221225474,
+      68
+    ],
+    [
+      3221225475,
+      84
+    ],
+    [
+      3221225476,
+      251
+    ],
+    [
+      3221225477,
+      33
+    ],
+    [
+      3221225478,
+      9
+    ],
+    [
+      3221225479,
+      64
+    ],
+    [
+      3221225480,
+      162
+    ],
+    [
+      3221225481,
+      163
+    ],
+    [
+      3221225482,
+      164
+    ],
+    [
+      3221225483,
+      165
+    ],
+    [
+      3221225484,
+      166
+    ],
+    [
+      3221225485,
+      167
+    ],
+    [
+      3221225486,
+      145
+    ],
+    [
+      3221225487,
+      146
+    ],
+    [
+      3221225592,
+      159
+    ],
+    [
+      3221225593,
+      160
+    ],
+    [
+      3221225594,
+      161
+    ],
+    [
+      3221225595,
+      162
+    ],
+    [
+      3221225596,
+      163
+    ],
+    [
+      3221225597,
+      164
+    ],
+    [
+      3221225598,
+      165
+    ],
+    [
+      3221225599,
+      166
+    ],
+    [
+      3221225600,
+      167
+    ],
+    [
+      3221225601,
+      145
+    ],
+    [
+      3221225602,
+      146
+    ],
+    [
+      3221225603,
+      147
+    ],
+    [
+      3221225604,
+      148
+    ],
+    [
+      3221225605,
+      149
+    ],
+    [
+      3221225606,
+      150
+    ],
+    [
+      3221225607,
+      151
+    ],
+    [
+      3221225608,
+      152
+    ],
+    [
+      3221225609,
+      153
+    ],
+    [
+      3221225610,
+      154
+    ],
+    [
+      3221225611,
+      155
+    ],
+    [
+      3221225612,
+      156
+    ],
+    [
+      3221225613,
+      157
+    ],
+    [
+      3221225614,
+      158
+    ],
+    [
+      3221225615,
+      159
+    ]
+  ],
+  "schedules": {
+    "baseline": {
+      "pte_ready": "prior held offer cycles >= 1; increment valid&&!ready; reset upon request acceptance",
+      "physical_ready": "prior held offer cycles >= 1; increment valid&&!ready; reset upon request acceptance",
+      "response_delay_counter": 2,
+      "response_first_valid": "accepted cycle + 3",
+      "complete_holds": 1,
+      "retire_holds": 2,
+      "fault_pending_cycles": 3,
+      "request_offer_hold_cycles": 1
+    },
+    "staggered": {
+      "pte_ready": "prior held offer cycles >= 3; increment valid&&!ready; reset upon request acceptance",
+      "physical_ready": "prior held offer cycles >= 3; increment valid&&!ready; reset upon request acceptance",
+      "response_delay_counter": 4,
+      "response_first_valid": "accepted cycle + 5",
+      "complete_holds": 4,
+      "retire_holds": 5,
+      "fault_pending_cycles": 6,
+      "request_offer_hold_cycles": 3
+    }
+  },
+  "negative_controls": {
+    "denial_side_effect": {
+      "phase": "op3_complete_hold_0",
+      "sample": "pre",
+      "mutations": {
+        "executeValid": 1
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[denial_side_effect]",
+      "exit_code": 1
+    },
+    "wrong_cause": {
+      "phase": "op7_complete_hold_0",
+      "sample": "pre",
+      "mutations": {
+        "complete_bits_cause": 5
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[wrong_cause]",
+      "exit_code": 1
+    },
+    "wrong_tval": {
+      "phase": "op7_complete_hold_0",
+      "sample": "pre",
+      "mutations": {
+        "complete_bits_tval": 305418249
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[wrong_tval]",
+      "exit_code": 1
+    },
+    "guest_metadata": {
+      "phase": "op9_complete_hold_0",
+      "sample": "pre",
+      "mutations": {
+        "complete_bits_guestFault_guestPhysicalAddress": 4600385580
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[guest_metadata]",
+      "exit_code": 1
+    },
+    "premature_owner_release": {
+      "phase": "op1_complete_hold_0",
+      "sample": "pre",
+      "mutations": {
+        "ownerActive": 0
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[premature_owner_release]",
+      "exit_code": 1
+    },
+    "incomplete_release_drain": {
+      "phase": "op9_accept",
+      "sample": "pre",
+      "mutations": {
+        "memoryBusy": 1,
+        "selectorBusy": 1,
+        "memoryDrained": 0
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[incomplete_release_drain]",
+      "exit_code": 1
+    },
+    "incomplete_trap_drain": {
+      "phase": "op7_trap",
+      "sample": "pre",
+      "mutations": {
+        "adapterIdle": 0,
+        "memoryDrained": 0
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[incomplete_trap_drain]",
+      "exit_code": 1
+    },
+    "false_start_credit": {
+      "phase": "op3_fault_pending_0",
+      "sample": "pre",
+      "mutations": {
+        "start_ready": 1
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[false_start_credit]",
+      "exit_code": 1
+    },
+    "duplicate_completion": {
+      "phase": "op3_fault_pending_0",
+      "sample": "pre",
+      "mutations": {
+        "complete_valid": 1
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[duplicate_completion]",
+      "exit_code": 1
+    },
+    "fault_mutation": {
+      "phase": "op3_trap",
+      "sample": "post",
+      "mutations": {
+        "fpr_31": 1
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[fault_mutation]",
+      "exit_code": 1
+    },
+    "recovery_readback": {
+      "phase": "op4_complete_hold_0",
+      "sample": "pre",
+      "mutations": {
+        "complete_bits_data": 4614256656552045849
+      },
+      "diagnostic": "GUARDED_FP_FAULT_CHECK[recovery_readback]",
+      "exit_code": 1
+    }
+  },
+  "expected_counts": {
+    "issued": 11,
+    "successful": 7,
+    "exceptional": 4,
+    "retirements": 7,
+    "traps": 4,
+    "recoveries": 4,
+    "pte_requests": 21,
+    "physical_requests": 2,
+    "execute_accepts": 9,
+    "adapter_accepts": 3,
+    "buffer_responses": 3,
+    "pipeline_results": 4,
+    "fpr_writes": 2,
+    "csr_writes": 1
+  },
+  "excluded": [
+    "production edits",
+    "H+FP core admission",
+    "automatic MSU/ROB trap admission",
+    "IRQ",
+    "in-flight cancel",
+    "M-origin guest faults",
+    "live reset",
+    "independent clocks",
+    "full OS",
+    "PPA",
+    "board",
+    "Yosys",
+    "Verilator"
+  ]
+}

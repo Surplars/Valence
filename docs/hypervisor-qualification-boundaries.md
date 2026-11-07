@@ -101,3 +101,13 @@ It distinguishes raw retained-token matching, accepted completed FP retirement
 and FPR/fflags/FS effects under bounded successful synthetic-producer schedules.
 It does not qualify actual CPU or numerical F/D execution, fault/trap lifetimes
 or software context isolation. Actual H+FP guards and all defaults remain.
+
+## Guarded FP memory and fault recovery
+
+The [real-system fault-recovery entry](guarded-fp-fault-recovery.md) composes the
+production FP system, owner, existing selector, H state and nested memory path.
+Its narrow moves/memory profile distinguishes accepted exceptional owner release
+from FP busy, and checks drained externally supplied synchronous VS-to-HS traps
+and successful readback reissue. It does not test automatic MSU/ROB trap
+admission or an actual handler. Both H+FP guards and production sources remain
+unchanged; software context isolation and actual-core admission stay blocked.

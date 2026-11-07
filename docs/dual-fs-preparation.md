@@ -101,3 +101,8 @@ Follow-on: `guarded-fp-bridge.md` adds the default-off architectural context/eve
 ports to the genuine FloatingPointSystem and qualifies a limited real arithmetic
 subsystem. The earlier state-only evidence above remains unchanged; actual core
 H+FP guards and software/context-isolation release gates remain.
+
+Follow-on: [guarded FP memory/fault recovery](guarded-fp-fault-recovery.md) joins
+the real FP system and already implemented owner/selector to nested translation
+and H-state trap consumption. Drained traps are external caller stimulus, not
+automatic MSU/ROB admission. This historical stage and its evidence are retained.

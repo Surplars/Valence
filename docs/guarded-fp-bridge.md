@@ -90,3 +90,8 @@ live-owner reset, independent clocks, full OS, PPA or board claim follows. Core
 H+FP admission and complete-owner context/trap/software isolation remain future
 release gates. Pinned RISC-V v20250508 H 1.0, Machine 1.13, F 2.2 and D 2.2 references
 from the preparation documents still apply.
+
+Follow-on: [guarded FP memory/fault recovery](guarded-fp-fault-recovery.md) joins
+the real FP system and already implemented owner/selector to nested translation
+and H-state trap consumption. Drained traps are external caller stimulus, not
+automatic MSU/ROB admission. This historical stage and its evidence are retained.

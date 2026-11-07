@@ -115,3 +115,8 @@ F 2.2 and D 2.2 chapters. Guest-page GPA stays unshifted in component envelopes;
 later trap CSR logic is responsible for the specified HTVAL shift. Implicit
 VS PTE accesses retain the original load/store exception class and their own
 read permission semantics.
+
+Follow-on: [guarded FP memory/fault recovery](guarded-fp-fault-recovery.md) joins
+the real FP system and already implemented owner/selector to nested translation
+and H-state trap consumption. Drained traps are external caller stimulus, not
+automatic MSU/ROB admission. This historical stage and its evidence are retained.
