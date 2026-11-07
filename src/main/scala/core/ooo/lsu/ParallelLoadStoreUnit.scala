@@ -52,6 +52,7 @@ class ParallelLoadStoreUnit(
         // Assertion/test witness only; never feeds reservation or ownership.
         val boundHeadStoreOverlapAccepted = if (p.boundHeadStoreOverlap) Some(Output(Bool())) else None
         val acceptedStartSlot = if (p.memoryProofFrontier) Some(Output(Valid(UInt(indexBits.W)))) else None
+        val guestFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
         val memory         = new DataPort(p.dataReturnHandleBits)
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
@@ -388,5 +389,6 @@ class ParallelLoadStoreUnit(
     for ((slot, i) <- slots.zipWithIndex) {
         slot.io.memory.response.valid := io.memory.response.valid && owners.io.deq.valid && owners.io.deq.bits === i.U
         CpuReturnTransport.responsePayload(slot.io.memory.response.bits, io.memory.response.bits)
+        slot.io.guestFault.foreach(_ := io.guestFault.get)
     }
 }

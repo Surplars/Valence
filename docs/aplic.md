@@ -18,10 +18,11 @@ D 位委托到子域 0，不包含多 hart APLIC 路由、多级子域或直接�
 domaincfg.DM=1、BE=0；IE 可写。sourcecfg 支持 Inactive/Detached/Edge1/Edge0/Level1/Level0；
 保留模式和叶域 D=1 写入转换为 Inactive。Inactive 清 pending/enable/target，激活后 target 从0开始。
 支持 setip/in_clrip/setie/clrie、全部 num 别名、setipnum_le/be、target 和 genmsi。
-Hart/Guest Index 固定0；EIID 位宽与 IMSIC 身份容量匹配。mmsiaddrcfg[h] 固定暴露参数给定的
-本域的MSI目的页地址（M域为IMSIC M页，S域实际为IMSIC S页；L=1、Hart 位宽0）。
-M 根域的 smsiaddrcfg[h] 暴露 IMSIC S 页地址；
-独立叶域读零写忽略。
+Hart Index 固定0；M域 GuestIndex 固定0，S子域可按参数实现0..63个guest文件，
+EIID 位宽与 IMSIC 身份容量匹配。非零GuestIndex g选择S基址加g*4096；
+非法GuestIndex保留旧值，EIID独立更新。M域 mmsiaddrcfg[h] 固定暴露M目的页，
+L=1、Hart位宽0。M根域 smsiaddrcfg[h] 暴露S基址和guest跨度，smsiaddrcfgh保留位31为0；
+S子域的四个机器地址寄存器均读零写忽略。
 
 `MappedMachineCore` 将 M 根域映射到 0x0c000000，S 子域映射到 0x0c004000。
 根域仅在 sourcecfg.D=1 且子域编号为 0 时委托，子域源输入及有效掩码由根域给出；
@@ -41,7 +42,10 @@ MSI 使用两项有序发送 FIFO、最多4项已发未响应事务，正常持�
 仲裁选择最低源号，genmsi 优先；MSI 进入发送 FIFO 即为不可撤销转发点，清 pending 并保存目标。
 后续修改屏蔽、target 或撤销电平不能撤回已排队的消息。新边沿可在旧消息背压期间再次置 pending。
 对外 request 在背压下稳定；响应必须按序，写可见顺序必须与请求顺序一致。
-genmsi 独立于 IE，Busy 期间写忽略，发送握手后清 Busy；其 FIFO 顺序保证不越过先前 MSI。
+genmsi 独立于 IE，Busy 期间写忽略，发送握手后清 Busy。CommonInterruptFabric额外协调两域：
+收到gen写或任一Busy时只暂停新的普通转发；genPending等两域已有发送队列和真实响应全部排空
+再入队，因此不会越过另一域此前已不可撤销转发的MSI。MMIO和源pending更新不暂停，
+没有新增普通MSI流水级。独立单域默认使用本域FIFO顺序；手工组合多个域须实现同等全局协调。
 错误响应置独立 sticky msiError 输出，不自动重试（避免重复），由集成方处理；正常 IMSIC 写不应报错。
 重置须同时复位互连/接收端，不能遗留旧响应。最多每拍转发一个源，无多计数事件队列。
 
@@ -60,6 +64,8 @@ genmsi 独立于 IE，Busy 期间写忽略，发送握手后清 Busy；其 FIFO 
 BoardSocTop 已通过 MachinePlatform 集成 MappedMachineCore；旧 FpgaPlatformTop 并非当前板级入口。
 CPU访问布局现记录于 [寄存器表](soc-registers.md)，但设备树及Linux中断驱动仍需针对上述限制适配和验证。
 输入仍须由平台确保时钟域和脉宽。单源与1023源的 Scala 展开检查不等于最大参数功能/频率验收。
+2026-11-06云端新增有限边界测试、guest路由及全域genmsi测试见[aia-guest-routing.md](aia-guest-routing.md)；
+下述历史整机/板级记录不代表此次补丁重跑了那些验收。
 
 独立测试覆盖4000轮随机配置/软件置位/输入变化，以及32位访问限制、保留字段、叶域委托拒绝、
 失效源状态清零、正负边沿与电平、持续电平不重发、软件重触发、失效电平清 pending、排队身份不变、

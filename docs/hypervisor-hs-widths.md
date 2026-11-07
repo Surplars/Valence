@@ -1,0 +1,13 @@
+# Focused HS-origin H-memory width test
+
+Run `python3 simulator/gsim/platform_hs_widths.py --platform-root /path/to/platform-candidate --output /path/to/new-evidence --cxx /path/to/clang++-19 --assembler /path/to/riscv64-unknown-elf-as`.
+
+The output directory must not exist. `--objdump` can select the matching disassembler explicitly; otherwise its name is derived from the assembler. `--library-path` can specify the compiler runtime library directory. All paths are resolved independently of the current directory. The runner's neighboring `harness/hypervisor_hs_widths.cpp` is the sole new driver; it includes the candidate's existing helper using an include search path. Existing candidate files are never edited.
+
+Required candidate artifacts: `platform-build4/HypervisorPlatformGsim.{h,fir}`, `platform-build4/HypervisorPlatformGsim0.cpp`, sanitizer-compiled `final-native/model.o`, `simulator/gsim/harness/hypervisor_platform.cpp`, and its source/evidence manifests. This test does not build a DUT. It compiles/links only the small driver with ASan/UBSan. Input source, model, helper and tool hashes are captured before execution, rechecked afterward, and included in the receipt. A wrong-data oracle negative must fail at its specific architectural comparison; both HS positive runs must pass.
+
+Coverage: M configures CSRs and MRET with MPV=0/MPP=S; all H-memory instructions execute in HS. Each SPVP=U/VS.U=1 and SPVP=S/VS.U=0 run checks 79 operations: HLV.B/BU/H/HU/W/WU/D, HLVX.HU/WU, HSV.B/H/W/D and independent readback across all naturally aligned beat offsets. HLVX uses VS+G execute-only pages. GNU assembler independently verifies all 13 instruction encodings. Two byte-memory oracles check architectural sign extension and real physical native beat data separately. Actual CommonMachineFabric data, instruction and nested table traffic is checked under backpressure. All retirements check PC, instruction, write enable, next PC, and meaningful destination/value.
+
+Trace rows are hexadecimal. Q: cycle, lane, owner, physical byte address, log2 size, mask, write, data. R: cycle, lane, owner, full returned beat, error, pageFault. C: cycle, PC, instruction, writesRd, rd, data, nextPC. Requests preserve physical byte addresses; store data is shifted but not forcibly zeroed outside its byte mask, and read responses return the full aligned 64-bit beat.
+
+A finite sentinel ends simulation after the H operations retire and data responses complete. CPU enable never drops after startup. This is neither idle/quiescence proof nor a full regression, timing result, new RTL build or fault-path test.

@@ -60,6 +60,20 @@ def build_fresh(common, output):
 
 
 def setup(fetch, common):
+    # An explicit bundle is a separate bounded profile, never an epoch fallback.
+    if 'VALENCE_GSIM_RESET_GRAPH_BUNDLE' in os.environ:
+        if 'VALENCE_GSIM_INIT_RECEIPT' in os.environ:
+            raise RuntimeError('select only one GSIM bundle or initialization receipt')
+        bundle = os.environ['VALENCE_GSIM_RESET_GRAPH_BUNDLE']
+        if not bundle:
+            raise RuntimeError('VALENCE_GSIM_RESET_GRAPH_BUNDLE must not be empty')
+        import gsim_reset_graph_bundle
+        binding = gsim_reset_graph_bundle.tool_binding(bundle, common.ROOT)
+        # Keep the ordinary compiler/version contract in addition to identity.
+        cxx, _ = common.compiler()
+        if cxx != binding['compiler']['command']:
+            raise RuntimeError('compiler selection changed after bundle authentication')
+        return Path(binding['gsim']['path']), cxx
     explicit = os.environ.get('VALENCE_GSIM_INIT_RECEIPT')
     output = canonical_output(common)
     receipt = Path(explicit).expanduser().resolve() if explicit else output / 'receipt.json'

@@ -298,6 +298,7 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
                 entries(completion.bits.token.index).nextPc := completion.bits.nextPc
             entries(completion.bits.token.index).exception := completion.bits.exception
             entries(completion.bits.token.index).cause     := completion.bits.cause
+            entries(completion.bits.token.index).guestFault.foreach(_ := completion.bits.guestFault.get)
             if (!bankedCompletionPayload && !useCompletionData)
                 entries(completion.bits.token.index).tval := completion.bits.tval
         }
@@ -390,6 +391,7 @@ class RenameRob(val p: OooParams = OooParams(), val retirementSlotIdentity: Bool
     io.headException.bits.token.tag   := entries(head).tag
     io.headException.bits.pc          := headPc
     io.headException.bits.cause       := entries(head).cause
+    io.headException.bits.guestFault.foreach(_ := entries(head).guestFault.get)
     // done, not output.valid: allocation clears the original field to zero,
     // while retired/rolled-back done rows retain their raw stored payload.
     io.headException.bits.tval        := completionData.map(payload =>

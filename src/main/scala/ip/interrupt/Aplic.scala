@@ -8,22 +8,35 @@ case class AplicParams(
     sources: Int = 31,
     identities: Int = 127,
     base: BigInt = BigInt("0c000000", 16),
-    msiBase: BigInt = BigInt("24000000", 16)
+    msiBase: BigInt = BigInt("24000000", 16),
+    guestFiles: Int = 0
 ) {
     require(sources >= 1 && sources <= 1023)
     require(identities >= 63 && identities <= 2047 && (identities + 1) % 64 == 0)
     require(base >= 0 && base                                          % 4096 == 0 && base + 16384 <= (BigInt(1) << 64))
-    require(msiBase >= 0 && msiBase % 4096 == 0 && msiBase + 4096 <= (BigInt(1) << 56))
-    require(base + 16384 <= msiBase || msiBase + 4096 <= base)
+    require(guestFiles >= 0 && guestFiles <= 63)
+    val guestIndexBits = log2Ceil(guestFiles + 1)
+    val msiBytes = BigInt(4096) << guestIndexBits
+    require(msiBase >= 0 && msiBase % msiBytes == 0 && msiBase + msiBytes <= (BigInt(1) << 56))
+    require(base + 16384 <= msiBase || msiBase + msiBytes <= base)
     val eiidBits = log2Ceil(identities + 1)
 }
 
 /** Single-hart MSI domain. Optional root delegation and parent mask compose an M root with one S child. */
 class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
-    hasParent: Boolean = false, childMsiBase: BigInt = 0) extends Module {
-    require(!hasChild || (childMsiBase >= 0 && childMsiBase % 4096 == 0))
+    hasParent: Boolean = false, childMsiBase: BigInt = 0, childGuestFiles: Int = 0,
+    coordinatedGenmsi: Boolean = false) extends Module {
+    require(p.guestFiles == 0 || hasParent, "only the supervisor child targets guest interrupt files")
+    require(childGuestFiles >= 0 && childGuestFiles <= 63)
+    private val childMsiBytes = BigInt(4096) << log2Ceil(childGuestFiles + 1)
+    require(!hasChild || (childMsiBase >= 0 && childMsiBase % childMsiBytes == 0 &&
+        childMsiBase + childMsiBytes <= (BigInt(1) << 56)))
     val io = IO(new Bundle {
         val sources  = Input(UInt(p.sources.W))
+        val pauseForwarding = if (coordinatedGenmsi) Some(Input(Bool())) else None
+        val allowGenerated = if (coordinatedGenmsi) Some(Input(Bool())) else None
+        val msiDrained = Output(Bool())
+        val genmsiBusy = Output(Bool())
         val parentEnabled = if (hasParent) Some(Input(UInt(p.sources.W))) else None
         val childSources = Output(UInt(p.sources.W))
         val childEnabled = Output(UInt(p.sources.W))
@@ -34,6 +47,8 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
     val modes       = RegInit(VecInit(Seq.fill(p.sources)(0.U(3.W))))
     val delegated   = RegInit(VecInit(Seq.fill(p.sources)(false.B)))
     val targets     = RegInit(VecInit(Seq.fill(p.sources)(0.U(p.eiidBits.W))))
+    val targetGuests = if (p.guestFiles > 0) Some(RegInit(VecInit(Seq.fill(p.sources)(0.U(6.W))))) else None
+    def guestTarget(index: UInt): UInt = targetGuests.map(_(index)).getOrElse(0.U(6.W))
     val pending     = RegInit(VecInit(Seq.fill(p.sources)(false.B)))
     val enabled     = RegInit(VecInit(Seq.fill(p.sources)(false.B)))
     val previous    = RegInit(VecInit(Seq.fill(p.sources)(false.B)))
@@ -41,6 +56,7 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
     val genBusy     = RegInit(false.B)
     val genPending  = RegInit(false.B)
     val genIdentity = RegInit(0.U(p.eiidBits.W))
+    io.genmsiBusy := genBusy
     val responses   = Module(new Queue(new RegisterResponse, 2, pipe = false, flow = false))
     io.mmio.response <> responses.io.deq
     io.mmio.request.ready  := responses.io.enq.ready
@@ -56,11 +72,18 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
     responses.io.enq.bits.data  := Mux(error || bus.write, 0.U, read)
     responses.io.enq.bits.error := error
     when(offset === 0.U) { read := "h80000004".U | (delivery.asUInt << 8) }
-    when(offset === "h1bc0".U) { read := ((p.msiBase >> 12) & BigInt("ffffffff", 16)).U }
-    when(offset === "h1bc4".U) { read := (BigInt("80000000", 16) | (p.msiBase >> 44)).U }
+    // MSI address configuration belongs to machine-level domains only. The
+    // single-hart implementation fixes the addresses and locks the root config.
+    if (!hasParent) {
+        when(offset === "h1bc0".U) { read := ((p.msiBase >> 12) & BigInt("ffffffff", 16)).U }
+        when(offset === "h1bc4".U) { read := (BigInt("80000000", 16) | (p.msiBase >> 44)).U }
+    }
     if (hasChild) {
         when(offset === "h1bc8".U) { read := ((childMsiBase >> 12) & BigInt("ffffffff", 16)).U }
-        when(offset === "h1bcc".U) { read := (BigInt("80000000", 16) | (childMsiBase >> 44)).U }
+        // smsiaddrcfgh has no lock bit; mmsiaddrcfgh.L locks both pairs.
+        when(offset === "h1bcc".U) {
+            read := ((BigInt(log2Ceil(childGuestFiles + 1)) << 20) | (childMsiBase >> 44)).U
+        }
     }
     when(offset === "h3000".U) { read := (genBusy.asUInt << 12) | genIdentity }
     when(write && offset === 0.U) { delivery := data(8) }
@@ -78,22 +101,31 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
         rectified(i)  := parentAllows && !delegated(i) && modes(i) >= 4.U &&
             (io.sources(i) ^ modes(i)(0))
         candidates(i) := parentAllows && !delegated(i) && delivery && pending(i) && enabled(i) &&
-            (modes(i) < 6.U || rectified(i))
+            (modes(i) < 6.U || rectified(i)) && !io.pauseForwarding.getOrElse(false.B)
     }
     class Message extends Bundle {
         val identity  = UInt(p.eiidBits.W)
         val generated = Bool()
+        val guest = UInt(6.W)
     }
     val outgoing = Module(new Queue(new Message, 2, pipe = false, flow = false))
     val selected = PriorityEncoder(candidates.asUInt)
-    outgoing.io.enq.valid          := genPending || candidates.asUInt.orR
+    // In a combined multi-domain APLIC, genmsi waits until earlier MSIs from
+    // every domain have reached the downstream endpoint. Ordinary forwarding
+    // is paused by the fabric while a generated MSI waits; MMIO remains live.
+    outgoing.io.enq.valid          := Mux(genPending, io.allowGenerated.getOrElse(true.B), candidates.asUInt.orR)
     outgoing.io.enq.bits.identity  := Mux(genPending, genIdentity, targets(selected))
     outgoing.io.enq.bits.generated := genPending
+    // Capture the destination with the EIID when the source is forwarded.
+    // Reprogramming target while an MSI is blocked must not move that MSI.
+    // genmsi always targets the domain's own file, never a guest file.
+    outgoing.io.enq.bits.guest := Mux(genPending, 0.U, guestTarget(selected))
     when(outgoing.io.enq.fire && genPending) { genPending := false.B }
     val outstanding = RegInit(0.U(3.W))
+    io.msiDrained := !outgoing.io.deq.valid && outstanding === 0.U
     io.msi.request.valid           := outgoing.io.deq.valid && outstanding < 4.U
     outgoing.io.deq.ready          := io.msi.request.ready && outstanding < 4.U
-    io.msi.request.bits.address    := p.msiBase.U
+    io.msi.request.bits.address    := p.msiBase.U | (outgoing.io.deq.bits.guest << 12)
     io.msi.request.bits.write      := true.B
     io.msi.request.bits.size       := 2.U
     io.msi.request.bits.byteEnable := 15.U
@@ -109,10 +141,10 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
         val parentAllows  = io.parentEnabled.map(_(i)).getOrElse(true.B)
         val group         = id / 32
         val bit           = id % 32
-        val cfgWrite      = write && offset === (id * 4).U
+        val cfgWrite      = write && parentAllows && offset === (id * 4).U
         val newDelegation = if (hasChild) data(10) && data(9, 0) === 0.U else false.B
         val newMode       = Mux(data(10) || data(2, 1) === 1.U, 0.U, data(2, 0))
-        val effectiveMode = Mux(cfgWrite, newMode, modes(i))
+        val effectiveMode = Mux(parentAllows, Mux(cfgWrite, newMode, modes(i)), 0.U)
         val input         = parentAllows && !Mux(cfgWrite, newDelegation, delegated(i)) &&
             effectiveMode >= 4.U && (io.sources(i) ^ effectiveMode(0))
         val set           = write && ((offset === (0x1c00 + 4 * group).U && data(bit)) ||
@@ -130,7 +162,13 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
         }
         when(clearEnable) { enabled(i) := false.B }
         when(setEnable) { enabled(i) := true.B }
-        when(write && offset === (0x3000 + id * 4).U) { targets(i) := data(p.eiidBits - 1, 0) }
+        when(write && offset === (0x3000 + id * 4).U) {
+            targets(i) := data(p.eiidBits - 1, 0)
+            targetGuests.foreach { guests =>
+                // Guest Index is WLRL. Unsupported values preserve the old field.
+                when(data(17, 12) <= p.guestFiles.U) { guests(i) := data(17, 12) }
+            }
+        }
         when(cfgWrite) {
             modes(i) := newMode
             delegated(i) := newDelegation
@@ -139,16 +177,25 @@ class Aplic(val p: AplicParams = AplicParams(), hasChild: Boolean = false,
             pending(i) := false.B
             enabled(i) := false.B
             targets(i) := 0.U
+            targetGuests.foreach(_(i) := 0.U)
         }.elsewhen(effectiveMode >= 6.U && !input) { pending(i) := false.B }
-        when(!parentAllows) { pending(i) := false.B }
+        // A nondelegated child source is unimplemented, not merely masked.
+        // Revocation discards its configuration; delegation later starts inactive.
+        when(!parentAllows) { modes(i) := 0.U; delegated(i) := false.B }
         previous(i) := input
-        when(offset === (id * 4).U) { read := Mux(delegated(i), "h400".U, modes(i)) }
-        when(offset === (0x3000 + id * 4).U) { read := targets(i) }
+        when(offset === (id * 4).U) { read := Mux(parentAllows, Mux(delegated(i), "h400".U, modes(i)), 0.U) }
+        when(offset === (0x3000 + id * 4).U) {
+            read := Mux(parentAllows, (guestTarget(i.U) << 12) | targets(i), 0.U)
+        }
     }
     for (g <- 0 until (p.sources + 32) / 32) {
         def word(values: Vec[Bool]): UInt = VecInit((0 until 32).map { b =>
             val id = g * 32 + b
-            if (id >= 1 && id <= p.sources) values(id - 1) else false.B
+            // Hide revoked state immediately, before the next clock clears its
+            // storage; a back-to-back cross-domain MMIO read may arrive now.
+            if (id >= 1 && id <= p.sources)
+                values(id - 1) && io.parentEnabled.map(_(id - 1)).getOrElse(true.B)
+            else false.B
         }).asUInt
         when(offset === (0x1c00 + g * 4).U) { read := word(pending) }
         when(offset === (0x1d00 + g * 4).U) { read := word(rectified) }

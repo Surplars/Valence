@@ -1,0 +1,609 @@
+{
+  "base_commit": "a6448d9165f9c3c95456fab5895dd66d818c66aa",
+  "source_files": [
+    {
+      "path": "Makefile",
+      "sha256": "400f49ff9b33f1657067a6e385de8eed1d592da4133cda210a0572184effa012",
+      "bytes": 8756
+    },
+    {
+      "path": "build.mill",
+      "sha256": "b12866c9151760ff3e64a0f259e531f21e1698f0559aeadbd58bdac9424071cb",
+      "bytes": 6768
+    },
+    {
+      "path": "docs/aia-conformance-scope.md",
+      "sha256": "36bb531203a1b22bfc956fab462d1390206e060b69c10e1a1d2b8fc138406e6d",
+      "bytes": 4869
+    },
+    {
+      "path": "docs/aia-guest-routing.md",
+      "sha256": "ee227b84fb84348eb548a18b87736323955599ca7ad05f6196e0a66d31d2b7c7",
+      "bytes": 10557
+    },
+    {
+      "path": "docs/aia-retiring-core-chain.md",
+      "sha256": "5c80136673df437053861d56c42fbc7a51b8673c422ffc92be0d63323af9a8c6",
+      "bytes": 4428
+    },
+    {
+      "path": "docs/aia-translated-core-chain.md",
+      "sha256": "de0afd4829d677f8f2c859f89ae231a4884510413b5b0b204cfe97e1f03794c2",
+      "bytes": 6188
+    },
+    {
+      "path": "docs/aia-vs-selector-classification.md",
+      "sha256": "dbbf299e701220b6d1e8af63e203bc6f89e9e5f18bb758a4e5845b3aa95e94ae",
+      "bytes": 2122
+    },
+    {
+      "path": "docs/aplic.md",
+      "sha256": "e23bfb7470c33cfc13992c15805b8d15128e6572e98eede7e16895b7b1435b1b",
+      "bytes": 7727
+    },
+    {
+      "path": "docs/gsim-reset-graph-bundle.md",
+      "sha256": "00fe37aef930595dad8bd27514b4395a9dbbcdb1822624a63ffa9bf8144e2a59",
+      "bytes": 5080
+    },
+    {
+      "path": "docs/guest-translation-contract.md",
+      "sha256": "c7a34f71345200d695088f482f698677e59738f202ec65c5913770d7b005bfa1",
+      "bytes": 19401
+    },
+    {
+      "path": "docs/hypervisor-clean-candidate.md",
+      "sha256": "4ad08d31459955a57aea6e88d57daaae327ff95cd6e68225c4880d4ef85d3245",
+      "bytes": 4456
+    },
+    {
+      "path": "docs/hypervisor-core-integration.md",
+      "sha256": "41e304411c70b58077f4e5b7a8a32da88cc3d5c80e4e217549f7c8e1c3379c9b",
+      "bytes": 10959
+    },
+    {
+      "path": "docs/hypervisor-hs-patterns.md",
+      "sha256": "dcefc403f5fa701bb53ca691ff5e501891a49c02cbb3f1cf27787a3a03079a7e",
+      "bytes": 4315
+    },
+    {
+      "path": "docs/hypervisor-hs-widths.md",
+      "sha256": "1d0dcd0ac0a904876d37a936cff1d00be78c8d14eaa1aa95f9ae6cbb365e0209",
+      "bytes": 2614
+    },
+    {
+      "path": "docs/hypervisor-platform-entry.md",
+      "sha256": "7844df77dabc81a6dd6bfa593af26f641e5bdef0ee9ad19f59d2615142574ead",
+      "bytes": 2329
+    },
+    {
+      "path": "docs/hypervisor-platform-integration.md",
+      "sha256": "054cc1c8b5047bc535eb63acb41cd7c67784e80768100c93790895a5c3698de3",
+      "bytes": 8172
+    },
+    {
+      "path": "docs/hypervisor-qualification-boundaries.md",
+      "sha256": "907687119ef9558045d1ff8603f2a91d69982117fdd5e16f2d311fd03f385249",
+      "bytes": 6488
+    },
+    {
+      "path": "docs/hypervisor-trap-sequence.md",
+      "sha256": "e6eb3a71a30cab38ce7c3337a95d48b3fb54fe6c7d7c8db6025f057f8bee9be7",
+      "bytes": 7303
+    },
+    {
+      "path": "docs/hypervisor-vs-boundaries.md",
+      "sha256": "cf9f6a7e9267005a03e7b4e22994e42e2870552ce6a733753c2f1b2a246b04d2",
+      "bytes": 6961
+    },
+    {
+      "path": "simulator/gsim/aia_guest_acceptance.py",
+      "sha256": "4433249975e2a8d5e54073fd66b7a2fe86194b07fdbae0b4711e0cc834771b5c",
+      "bytes": 9724
+    },
+    {
+      "path": "simulator/gsim/aia_hart_control_acceptance.py",
+      "sha256": "2a3dc3d084ccc23c69f70ac68d81850e9d7bb3a253a45e9bf781543852216a7b",
+      "bytes": 5215
+    },
+    {
+      "path": "simulator/gsim/aia_retiring_core_acceptance.py",
+      "sha256": "90878afd2f28af70928cfc78223a2ef3ac9cc71b1f3751b4481c613a23221395",
+      "bytes": 6442
+    },
+    {
+      "path": "simulator/gsim/aia_translated_core_acceptance.py",
+      "sha256": "9e8b2c10af3351282646a6e0d88187b6260acd2671db8a919f512bd082976eed",
+      "bytes": 10686
+    },
+    {
+      "path": "simulator/gsim/fixtures/AiaRetiringCoreGsim.scala",
+      "sha256": "717aff583be1e642712b73fed450a9c0f38071020baa983091717a843cdb8f10",
+      "bytes": 4705
+    },
+    {
+      "path": "simulator/gsim/fixtures/AiaTranslatedCoreGsim.scala",
+      "sha256": "287a3179ee90f61114cb8f181839e9bd783413373bcff66727f88c8e250790c4",
+      "bytes": 3781
+    },
+    {
+      "path": "simulator/gsim/fixtures/HypervisorPlatformGsim.scala",
+      "sha256": "0d67120e4f58b07e7a0356856bfa1f6a7ab58de65cf45e970ca089aae139f3f3",
+      "bytes": 6754
+    },
+    {
+      "path": "simulator/gsim/fixtures/HypervisorPlatformShapes.scala",
+      "sha256": "9880c6b66bf0c191622cde4b4fa57c6d45a09693fff2d51f2b64cdb242bdee9b",
+      "bytes": 1585
+    },
+    {
+      "path": "simulator/gsim/gsim_initialization_setup.py",
+      "sha256": "e8b5c1770d5f6f8636013684253c7b284cca4d64f494417e4899c80c7dc5353f",
+      "bytes": 4498
+    },
+    {
+      "path": "simulator/gsim/gsim_reset_graph_bundle.py",
+      "sha256": "6c5df7b64b568113c64839daba0fc0bdc33d0aac8dc3ccc8bae2d57d1da009c1",
+      "bytes": 6024
+    },
+    {
+      "path": "simulator/gsim/guest_translation.py",
+      "sha256": "f1757a6606d738cc72734ee35a53f3a98b1d5ad17eadcfd49fb0f6436534ada9",
+      "bytes": 2759
+    },
+    {
+      "path": "simulator/gsim/harness/aia_genmsi_order.cpp",
+      "sha256": "d866c06bea8d6a0a95e97a91205438fd8467a669626ebc49b74adf36d05cf9f5",
+      "bytes": 5135
+    },
+    {
+      "path": "simulator/gsim/harness/aia_guest.cpp",
+      "sha256": "1ac6af9109c290b7ded3da8d19b145538b9e4dc35c248c9e403d6b228e56e335",
+      "bytes": 16041
+    },
+    {
+      "path": "simulator/gsim/harness/aia_guest_routing.cpp",
+      "sha256": "f42dffe32e396818c1ae890c9f8bc7bc60c77766680b27ba77daa91339f61d8e",
+      "bytes": 9285
+    },
+    {
+      "path": "simulator/gsim/harness/aia_hart_control.cpp",
+      "sha256": "c8fc414afdf753ee403ebed6017dc4070a2c64f96127e2127e6dbad234845d74",
+      "bytes": 7139
+    },
+    {
+      "path": "simulator/gsim/harness/aia_retiring_core.cpp",
+      "sha256": "fd39e03dbef964d3a00832b32677d0ac5ed02342eb9dd9f30640fe1d99ff73be",
+      "bytes": 13985
+    },
+    {
+      "path": "simulator/gsim/harness/aia_translated_core.cpp",
+      "sha256": "8fc382cbfd52d41e6db56566446d3904c39acce7cd7b4b5c5a94a621eafe2c1a",
+      "bytes": 19935
+    },
+    {
+      "path": "simulator/gsim/harness/aplic_boundary.cpp",
+      "sha256": "f7702cdef49f0ef705f03900e13a2d8ba0342e0c79b6ea3b0af9c10d20731832",
+      "bytes": 4342
+    },
+    {
+      "path": "simulator/gsim/harness/guest_data_translation.cpp",
+      "sha256": "4f3d74a945b7a4a2a9211439450830d19e00edab7df7be3ef5aa990437ca31de",
+      "bytes": 14055
+    },
+    {
+      "path": "simulator/gsim/harness/guest_fetch_translation.cpp",
+      "sha256": "a449c7cac69d7ec113a82af37a739c90595c647643578d4427e5068615953410",
+      "bytes": 12359
+    },
+    {
+      "path": "simulator/gsim/harness/guest_instruction_assembler.cpp",
+      "sha256": "04b04f6ed18caccd92f0df944de27978e132373427be3d5b8affcf8b865e8043",
+      "bytes": 15586
+    },
+    {
+      "path": "simulator/gsim/harness/guest_instruction_assembler_host.cpp",
+      "sha256": "41fda17049a499f3d186bf899f7d5539397361ee00b0946b92463a45ae9815cf",
+      "bytes": 926
+    },
+    {
+      "path": "simulator/gsim/harness/guest_translation.cpp",
+      "sha256": "8a5523ce7ae2d5be5e54c1cb1688201017622f416022e310786c6c84b40a1679",
+      "bytes": 14885
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_core.cpp",
+      "sha256": "5b97262db537207e295885fe21691895646c345f907649d3ed343942081e1267",
+      "bytes": 7800
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_fence_coherence.cpp",
+      "sha256": "a6bd1b1093412d7b4b189b830cc4d392931162c669200b6b02ef3eae6bae0c96",
+      "bytes": 13133
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_guest_interrupts.cpp",
+      "sha256": "043df4327bf01ed5900e6ef99b6f99a238fbc7cf848087dd8ac9c78be3dbb39d",
+      "bytes": 6239
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_hs_patterns.cpp",
+      "sha256": "4220e7fe864992fbfc997b64f08d344aa573e134e782b4ebecdeb2aa8e54d604",
+      "bytes": 9047
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_hs_widths.cpp",
+      "sha256": "77308c0bf3036777360c604c7f265837a994b4b0ab2f5f103e86307f2f6ece49",
+      "bytes": 7521
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_imsic_guest.cpp",
+      "sha256": "d572f10482077e957c154e2e15556ba18b0395e863e2de7a1609d01af6b20081",
+      "bytes": 5385
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_platform.cpp",
+      "sha256": "ee9150e55d60809dd6bbe543c9f78ac57c484744fb61978351f6e460dbd8651a",
+      "bytes": 22176
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_system.cpp",
+      "sha256": "a06e1fd6faee511d9461c91f92286035b4f3f7b491bffea751965a0c475bdfcb",
+      "bytes": 14517
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_translated.cpp",
+      "sha256": "da3b1ceeb6964cf1e8c345b9ed1616b38db5e5c23cb28b41771560db3095a972",
+      "bytes": 11980
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_trap_sequence.cpp",
+      "sha256": "384af4ef883cec23029358b7dbcab70258eea3f48949c79b030bbd465af38f2e",
+      "bytes": 25846
+    },
+    {
+      "path": "simulator/gsim/harness/hypervisor_vs_boundaries.cpp",
+      "sha256": "7f5a983153f87865a41a6f89f80f5ad772533c572dc728aacc4f174bf3aa7dff",
+      "bytes": 23393
+    },
+    {
+      "path": "simulator/gsim/harness/imsic.cpp",
+      "sha256": "583042a8bb09ef8ddca84048fa578eacf381cb73ef4a4ce8ee0fde6bba1efbff",
+      "bytes": 15958
+    },
+    {
+      "path": "simulator/gsim/harness/platform_pma_exceptions.cpp",
+      "sha256": "af256fec6825a2f097e54ee1fdb100bc4154f2722eb873d66a47e6fc608f13dc",
+      "bytes": 5913
+    },
+    {
+      "path": "simulator/gsim/hypervisor_core.py",
+      "sha256": "9ebb9ef22fc8e13140e6357e4f48d4e575149dd0714872eb874517868455f2e6",
+      "bytes": 1503
+    },
+    {
+      "path": "simulator/gsim/hypervisor_guest_interrupts.py",
+      "sha256": "f454dff8c16689fd8ac091e014f3311150af6bd3ea16a457c785fca52f0bac7c",
+      "bytes": 1197
+    },
+    {
+      "path": "simulator/gsim/hypervisor_platform.py",
+      "sha256": "5ab82e0b64ac724a0ebe6ac63d311f3c7a2c7e54752b4b11319584152670bc0c",
+      "bytes": 2245
+    },
+    {
+      "path": "simulator/gsim/platform_acceptance.py",
+      "sha256": "29ba893617880dfdc65a7fe633bcef0d4513a6bb69fc02857b471daeef76c2ce",
+      "bytes": 11025
+    },
+    {
+      "path": "simulator/gsim/platform_final_acceptance.py",
+      "sha256": "259570e21efd64e0f1d6c4d1e42c09917e293cc566cfa122e90e59586ca34c02",
+      "bytes": 3610
+    },
+    {
+      "path": "simulator/gsim/platform_hs_patterns.py",
+      "sha256": "8d8da2c7cabac44cb2e1c77021947125c2d708a2f0af63ee9823feac3b616fa4",
+      "bytes": 8011
+    },
+    {
+      "path": "simulator/gsim/platform_hs_widths.py",
+      "sha256": "6ba8bc6139053a3c73d151f135e7ef91bacac2c10da0dd4f067ee2e74059ccff",
+      "bytes": 6181
+    },
+    {
+      "path": "simulator/gsim/platform_trap_sequence.py",
+      "sha256": "d3f52a04fc209b80330ec4ac33e5bffdcb04ff3855d08613b948720151be4225",
+      "bytes": 11096
+    },
+    {
+      "path": "simulator/gsim/platform_vs_boundaries.py",
+      "sha256": "eb990d92210fbc95d431fd19d4b009deb85d156bed39e8ed9f766de9c8205cb7",
+      "bytes": 9549
+    },
+    {
+      "path": "simulator/gsim/run.py",
+      "sha256": "2789b964268c50f71e41c34dbaee5e9ae8f356a531723273149f7b84d4a681e8",
+      "bytes": 110465
+    },
+    {
+      "path": "simulator/gsim/test_gsim_reset_graph_bundle.py",
+      "sha256": "0c6d990d2541d23148bee7e0326f9ee4d0f3efb593f4d480ddaf37764fa0be2a",
+      "bytes": 11387
+    },
+    {
+      "path": "simulator/gsim/test_hypervisor_platform_entry.py",
+      "sha256": "3b18ac1136760b5d2099358735f79a3d7cee9e49cc39376b5664c3cbfcbf62ce",
+      "bytes": 7244
+    },
+    {
+      "path": "src/main/scala/core/ooo/config/OooParams.scala",
+      "sha256": "b5bbc7f679e0f5a141cb057de62955c9a2cee9328bca7ce8d5b7f36b68b20690",
+      "bytes": 58364
+    },
+    {
+      "path": "src/main/scala/core/ooo/decode/IntegerDecode.scala",
+      "sha256": "77063ab2cfa1df81847e3e0b11d4b4e40792c41814b4844a2bb31f5735317eee",
+      "bytes": 10106
+    },
+    {
+      "path": "src/main/scala/core/ooo/frontend/GuestInstructionAssembler.scala",
+      "sha256": "e6fd88dc22900b1ca48fa3fe1b2912652415d2fa47ace89714e3f9a11ebb1e26",
+      "bytes": 7384
+    },
+    {
+      "path": "src/main/scala/core/ooo/integration/HypervisorMachineCore.scala",
+      "sha256": "e62ebdca504a9611237b8b95851242096cb6be74fa577c10b9d58dd044895e2b",
+      "bytes": 7382
+    },
+    {
+      "path": "src/main/scala/core/ooo/integration/IntegerBackend.scala",
+      "sha256": "cd0adf6aea280424ec4a7c044ae2a6423db0a53c866d5e682da9344927fb705c",
+      "bytes": 281974
+    },
+    {
+      "path": "src/main/scala/core/ooo/integration/IntegerCore.scala",
+      "sha256": "df962f50d820af227ef2799ef1d81f7a01ac722703762a6892c4622699db592e",
+      "bytes": 34649
+    },
+    {
+      "path": "src/main/scala/core/ooo/integration/MachineCore.scala",
+      "sha256": "2fcf25ad42a1dbd311dced19d8a74c28d3a5aaeb338b03cf7aee55b8b13b420e",
+      "bytes": 9406
+    },
+    {
+      "path": "src/main/scala/core/ooo/interfaces/BackendTypes.scala",
+      "sha256": "ad11a6431862e7a90d740836f05818029236fdeaa72b9c7920d69184345e2c5e",
+      "bytes": 2798
+    },
+    {
+      "path": "src/main/scala/core/ooo/lsu/LoadStoreUnit.scala",
+      "sha256": "d6266cc664542ce03540e454c4f731f89ff546d399d9ebaf1be75fbbb13142f8",
+      "bytes": 23443
+    },
+    {
+      "path": "src/main/scala/core/ooo/lsu/ParallelLoadStoreUnit.scala",
+      "sha256": "cf663864add2050818a62c5f33981020ca63deb24fa99f63339fa1cf987bbba8",
+      "bytes": 23972
+    },
+    {
+      "path": "src/main/scala/core/ooo/mmu/GuestDataTranslationAdapter.scala",
+      "sha256": "9b5fdf92ac4cd3968ae1aec95f3b584bb0c87c582fb46b76e359e4fc3e4d4ebe",
+      "bytes": 8811
+    },
+    {
+      "path": "src/main/scala/core/ooo/mmu/GuestFetchTranslationAdapter.scala",
+      "sha256": "e71ab0899aa4b0fd63c36a97237541ae69d09dfee045fedfe6f5fa742fe06a37",
+      "bytes": 7725
+    },
+    {
+      "path": "src/main/scala/core/ooo/mmu/GuestTranslationService.scala",
+      "sha256": "a536c9a1a5f957138df079b760f0d86ba6a3808afb40f66e84139ff46e43cd66",
+      "bytes": 12403
+    },
+    {
+      "path": "src/main/scala/core/ooo/retire/RenameRob.scala",
+      "sha256": "0e561d32c205dd035a13705e4e2788eab7a2cdea995bab67172c627a8b2ee57b",
+      "bytes": 38545
+    },
+    {
+      "path": "src/main/scala/core/ooo/system/AiaHartControl.scala",
+      "sha256": "6bf31f1bd22522ec9ee51f205d5481cb2aeb9f67f7e3d2636e682940b977d50e",
+      "bytes": 5458
+    },
+    {
+      "path": "src/main/scala/core/ooo/system/HypervisorGuestInterrupts.scala",
+      "sha256": "37031aeaa3eb1b18d8ee55dfa026ae6c521e8df834716164604025bc1a6a3213",
+      "bytes": 4817
+    },
+    {
+      "path": "src/main/scala/core/ooo/system/HypervisorInstruction.scala",
+      "sha256": "0e6fc1505bff89b7e7e9f39d4ea591dd9e884eaf96787e159cafdb4b14c92017",
+      "bytes": 1226
+    },
+    {
+      "path": "src/main/scala/core/ooo/system/HypervisorState.scala",
+      "sha256": "d7c5cf420505446217bb6ebc6a55440c03ac4bffe5b2e304b25053140181a07e",
+      "bytes": 11656
+    },
+    {
+      "path": "src/main/scala/core/ooo/system/MachineSystemUnit.scala",
+      "sha256": "816f1bc0639d8dc6c58778df3641b9957af9208151d7d9bd60bdffaa39e9e303",
+      "bytes": 46412
+    },
+    {
+      "path": "src/main/scala/ip/interrupt/Aplic.scala",
+      "sha256": "8c25ef5fa744a02cb575b9e88b0d25d6799b62fbe74aa41b3ca1987f7b73cfbd",
+      "bytes": 11338
+    },
+    {
+      "path": "src/main/scala/ip/interrupt/Imsic.scala",
+      "sha256": "1499071bb0fc1a48dc8d4a3cb1aa4a2a46169a8f7ed6bca166f0d16f683c2d26",
+      "bytes": 8812
+    },
+    {
+      "path": "src/main/scala/platform/CommonHypervisorCpuTile.scala",
+      "sha256": "abe43e89683e5fb6824f068d7b987d05c2eb63d3338d274194ae8646ac61e980",
+      "bytes": 9875
+    },
+    {
+      "path": "src/main/scala/platform/CommonInterruptFabric.scala",
+      "sha256": "b1bfe470ed65fb32508bd74992a2e9ec62b3c2f5c875ec6fd28165cedf6a0b5a",
+      "bytes": 3205
+    },
+    {
+      "path": "src/main/scala/platform/CommonMachineFabric.scala",
+      "sha256": "84692fcbd5ae4bbeec182b428ed3cf30d6e555b267dba08dd607632ff8b3bad5",
+      "bytes": 36853
+    },
+    {
+      "path": "src/main/scala/platform/CommonMachinePlatform.scala",
+      "sha256": "65f60ee0e5cdd6170bd6342fd03db8046d5947bc99026ebd1d871c4e716aeca9",
+      "bytes": 42964
+    },
+    {
+      "path": "src/test/scala/ip/AiaGuestGsim.scala",
+      "sha256": "aa1c085727c8e6ebd806fdc9923a45b0336a15a80de4486ec4eeb9610a8f99a9",
+      "bytes": 2607
+    },
+    {
+      "path": "src/test/scala/ip/AiaGuestParamsSpec.scala",
+      "sha256": "97894b8f17954c41b00b3a55c6fb34b9a2ab95362fb504f2e1c0df5227e14957",
+      "bytes": 936
+    },
+    {
+      "path": "src/test/scala/ip/AiaGuestRoutingGsim.scala",
+      "sha256": "d9f6dcb836a5ca26cb8112bc6861247ad2086937d7b317529b6c2cf69a78cadc",
+      "bytes": 3316
+    },
+    {
+      "path": "src/test/scala/ip/AiaHartControlGsim.scala",
+      "sha256": "f17b6b09d65784d5081fa457c67b07b6bc90874b844abf402b6af48828caab03",
+      "bytes": 309
+    },
+    {
+      "path": "src/test/scala/ip/AplicBoundaryGsim.scala",
+      "sha256": "80e40577d6b481aed8c8a5ce248803844edfabc04c2310ebe0389cdad2d49776",
+      "bytes": 449
+    },
+    {
+      "path": "src/test/scala/ip/ImsicGsim.scala",
+      "sha256": "a08356e2dcb69b6001e7ec7f54eadf8d37bc16c26fcb1b9631fb7ba14a8a8bce",
+      "bytes": 855
+    },
+    {
+      "path": "src/test/scala/ip/ImsicParamsSpec.scala",
+      "sha256": "39a095842e910dfbda13f8e4e7965e51a1a43e1d3b69e1397306e29649ffcc66",
+      "bytes": 1744
+    },
+    {
+      "path": "src/test/scala/ooo/GuestDataTranslationGsim.scala",
+      "sha256": "a4744b0d3607e2cd303fff4ea121527024ef53db8638db908ee7691edfd06bb6",
+      "bytes": 1955
+    },
+    {
+      "path": "src/test/scala/ooo/GuestFetchTranslationGsim.scala",
+      "sha256": "a2e8b84af6989389a3f761a6b3abcd931602545589855c8025fc80799a6a9952",
+      "bytes": 2094
+    },
+    {
+      "path": "src/test/scala/ooo/GuestInstructionAssemblerGsim.scala",
+      "sha256": "7f48dfd0d4838e9fc5f28f485761abeb7f843d66124685ed7f7e0c2223aae84d",
+      "bytes": 3001
+    },
+    {
+      "path": "src/test/scala/ooo/GuestTranslationGsim.scala",
+      "sha256": "db9b7fc1bb24524d419d2f899ce0b0e311ac5fd80fd9fbd3545801ee9ca9543b",
+      "bytes": 1177
+    },
+    {
+      "path": "src/test/scala/ooo/HypervisorCoreGsim.scala",
+      "sha256": "a18438e8058dd67dcf4db8294fde6e80e89052793db80373ba3db563f0908123",
+      "bytes": 2774
+    },
+    {
+      "path": "src/test/scala/ooo/HypervisorGuestInterruptsGsim.scala",
+      "sha256": "83df7322617bdb18c716b3360c0a7cf3729f91c3aa14a269e76dc32ab88f9e13",
+      "bytes": 357
+    },
+    {
+      "path": "src/test/scala/ooo/HypervisorImsicGuestGsim.scala",
+      "sha256": "26304d4aeb7377c92cef41d16fe69ca1af889329a86095bf95d0c6c5e5d766a7",
+      "bytes": 2264
+    },
+    {
+      "path": "src/test/scala/ooo/HypervisorSystemGsim.scala",
+      "sha256": "e2f472ea0741b388cf21628af2c31996b43accfc55aedff478c1c132c99cac4a",
+      "bytes": 4063
+    },
+    {
+      "path": "src/test/scala/ooo/HypervisorTranslatedCoreGsim.scala",
+      "sha256": "f50b8ebcd262d81261ed769d946a458e9a9509013e59457de40677043ebeff86",
+      "bytes": 919
+    }
+  ],
+  "applied_patches": [
+    {
+      "patch": "recovery-1106-hypervisor-platform/HYPERVISOR_AIA_PLATFORM_FULL.diff",
+      "sha256": "3117ec61896462113c1c1757929654c6f69269f4eb6c76b08900991cf0e8eb6a"
+    },
+    {
+      "patch": "recovery-1106-hypervisor-portable-entry/HYPERVISOR_PORTABLE_ENTRY.diff",
+      "sha256": "fe7cb17abb4983ee01a96218b57b82b20068b6d757d424c6bd93c37889319434"
+    },
+    {
+      "patch": "recovery-1106-hypervisor-entry-binding/HYPERVISOR_ENTRY_BINDING.diff",
+      "sha256": "8e357dc0545ccbb26e1c927c947bac24abfeff7e60c74b0a32cbd328963b6341"
+    },
+    {
+      "patch": "recovery-1106-hypervisor-hs-widths/HS_WIDTHS_CANONICAL.diff",
+      "sha256": "cfff5733ef193429463be3cc63492619db53ea6a755f96ede5ec49b08967da29"
+    },
+    {
+      "patch": "recovery-1106-hypervisor-hs-patterns/HS_PATTERNS_ADDITIVE.diff",
+      "sha256": "a0b03aaecc1b5693ead776709d0e7f10ed396eaaa68e9cbbcbaa96ca30b1a657"
+    },
+    {
+      "patch": "recovery-1106-hypervisor-vs-boundaries/VS_BOUNDARIES_ADDITIVE.diff",
+      "sha256": "b4abf17b3abd19000e6dc37d21382292a1d788a97c15b578ef5c4334f2aeb944"
+    },
+    {
+      "patch": "recovery-1106-hypervisor-trap-sequence/TRAP_SEQUENCE_ADDITIVE.diff",
+      "sha256": "d1e68a2ce7ad6f633b60a135701408b43baa15febb969244f6e50ef8a86efa2b"
+    }
+  ],
+  "preserved_evidence_archives": [
+    {
+      "filename": "hypervisor-aia-platform-source-evidence.tar.gz",
+      "sha256": "7545358c2e23815275b749d03ef5b281e049925d403686060a09dd9a20623a12",
+      "bytes": 7142713
+    },
+    {
+      "filename": "hypervisor-entry-binding-source-evidence.tar.gz",
+      "sha256": "9af143c47d96fe527d76ea42b96c8c2d1222502a4c8d6f40206368c466eb7fb1",
+      "bytes": 6504882
+    },
+    {
+      "filename": "hypervisor-hs-patterns-source-evidence.tar.gz",
+      "sha256": "eb94001ee6c9b7f95b296f23b5d6e7e86cb4104d3fe0f4025e43f7d7a72c46fe",
+      "bytes": 1869892
+    },
+    {
+      "filename": "hypervisor-vs-boundaries-source-evidence.tar.gz",
+      "sha256": "a121399d18b65a660168543820c220878029d0724210f393b6060af1579c28e6",
+      "bytes": 740518
+    },
+    {
+      "filename": "hypervisor-trap-sequence-source-evidence.tar.gz",
+      "sha256": "38044c9a660ab86a64be6cca804a6dfd3358cb19de3e5f22b8d6f118ad311abc",
+      "bytes": 390810
+    }
+  ],
+  "excluded": [
+    "incomplete IRQ/fault cancellation draft",
+    "generated models",
+    "native binaries and objects",
+    "build caches",
+    "unrelated dirty checkout changes"
+  ]
+}

@@ -253,7 +253,9 @@ case class OooParams(
     // Payload nomination only; checked enqueue authorization and credits are unchanged.
     loadPayloadNomination: Boolean = false,
     // Default-off numerical capture into the existing MUL operand register; DIV is unchanged.
-    registeredMulLoadOperandCapture: Boolean = false
+    registeredMulLoadOperandCapture: Boolean = false,
+    // Optional owner-carried H fault/context fields. Does not advertise misa.H.
+    hypervisorExperiment: Boolean = false
 ) {
     require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
         sharedMulDivOperandReads && registeredMulDivOperands && registeredLoadIssueForwarding &&

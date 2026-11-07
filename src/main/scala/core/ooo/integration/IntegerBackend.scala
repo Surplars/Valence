@@ -33,12 +33,13 @@ object PreparedBareHeadStorePolicy {
 }
 
 /** Decoded operation input, not an instruction decoder. Immediate is already extended to XLEN. */
-class IntegerRequest extends Bundle {
+class IntegerRequest(hypervisorExperiment: Boolean = false) extends Bundle {
     val predictedNextPc = Valid(UInt(64.W))
     val rename          = new RenameRequest
     val fetchFault      = Bool()
     val fetchPageFault  = Bool()
     val fetchTval       = UInt(64.W)
+    val guestFault = if (hypervisorExperiment) Some(new GuestFaultMetadata) else None
     val expandedInstruction = UInt(32.W)
     val operation       = UInt(6.W)
     val system          = Bool()
@@ -59,7 +60,7 @@ class IntegerRequest extends Bundle {
 
 private[ooo] class IntegerIssueEntry(p: OooParams) extends Bundle {
     val renamed = new RenamedInstruction(p)
-    val request = new IntegerRequest
+    val request = new IntegerRequest(p.hypervisorExperiment)
 }
 
 /** Read-only scheduler and retirement-head state for cycle attribution; it does not participate in scheduling. */
@@ -102,7 +103,10 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val proofBankOwnerCleanup: Boolean = false,
     val factorPreparedStorePool: Boolean = false, val projectedRequestHead: Boolean = false,
     val registeredMemoryPreparationDescriptor: Boolean = false,
-    val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false) extends Module {
+    val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false,
+    experimentalHypervisor: Boolean = false,
+    guestFiles: Int = 0) extends Module {
+    require(!experimentalHypervisor || p.machineSystem)
     require(!p.preparedBareHeadStoreOperands || !backendNaturalAlignedPmp,
         "prepared Bare head stores retain the exact generic current-owner PMP checker")
     require(!p.elasticLoadProofSupply || (!registeredMemoryPreparationDescriptor && !earlyLoadPreparationDescriptor &&
@@ -152,11 +156,22 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         p.precompleteMispredictedBranch && p.registeredRobRetirement && !p.fastBufferedStoreRetire &&
         !p.fastHeadLoadRetire && !p.moveAlias),
         "operand execution stages require the two-slot, non-aliased, registered redirect/retirement contract")
+    require(!p.hypervisorExperiment || (experimentalHypervisor && !p.fpEnabled &&
+        !p.bufferedRamStores && !p.registeredMemoryRequests && !p.taggedStoreReturns &&
+        !p.virtualRamLoadPrecheck && !p.canonicalVirtualStoreOverlap && !p.memoryProofFrontier &&
+        !p.dataNextLinePrefetch && !p.identityDataRequestFlow && !p.precheckedDataRequestFlow &&
+        !p.physicalLoadIngressFlow), "experimental H uses owner-carried translated memory without host-only proofs")
     private val dualOwnerCompletion = p.completionTopology == "dual-owner"
     private val executionBranchMailbox = p.branchResolutionTopology == "execution-mailbox"
     require(!dualOwnerCompletion || !shadowEarlyProofBind,
         "dual-owner writeback excludes the always-ready LSU shadow experiment")
     val io = IO(new Bundle {
+        val guestExternal = if (experimentalHypervisor) Some(Input(UInt(math.max(1, guestFiles).W))) else None
+        val virtualized = if (experimentalHypervisor) Some(Output(Bool())) else None
+        val guestTopIdentities = if (experimentalHypervisor) Some(Input(UInt(math.max(1, guestFiles * 11).W))) else None
+        val guestDataContext = if (p.hypervisorExperiment) Some(Output(new GuestTranslationRequest)) else None
+        val guestFetchContext = if (p.hypervisorExperiment) Some(Output(new GuestTranslationRequest)) else None
+        val guestDataFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
         val ownersIdle = Output(Bool())
         val rawDestinations = if (p.parallelArchitecturalDestinations)
             Some(Input(Vec(p.renameWidth, UInt(5.W)))) else None
@@ -180,7 +195,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         val vmFlushReady                 = if (p.virtualMemoryLevels > 0) Some(Input(Bool())) else None
         val fenceIFlush                  = if (p.machineSystem) Some(Output(Bool())) else None
         val fenceIFlushReady             = if (p.machineSystem) Some(Input(Bool())) else None
-        val allocate                    = Input(Vec(p.renameWidth, Valid(new IntegerRequest)))
+        val allocate                    = Input(Vec(p.renameWidth, Valid(new IntegerRequest(p.hypervisorExperiment))))
         val renamed                     = Output(Vec(p.renameWidth, Valid(new RenamedInstruction(p))))
         val commitEnable                = Input(Bool())
         val commit                      = Output(Vec(p.commitWidth, Valid(new CommitRecord(p))))
@@ -239,7 +254,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         p.tagBits == 64 && p.renameWidth == 2 && p.completionWidth == 2 && p.commitWidth == 2 &&
         p.registeredMulDivOperands && p.sharedMemoryAddressState
     val multiplier      = Module(new PipelinedMultiply(p, boundedSlotIdentity = boundedMultiplierSlotIdentity))
-    val systemUnit      = if (p.machineSystem) Some(Module(new MachineSystemUnit(p))) else None
+    val systemUnit      = if (p.machineSystem) Some(Module(new MachineSystemUnit(p, experimentalHypervisor, guestFiles))) else None
     val pmpState        = WireDefault(0.U.asTypeOf(new PmpState))
     val dataPrivilege   = WireDefault(3.U(2.W))
     val systemComplete  = Wire(Decoupled(new BackendCompletion(p)))
@@ -260,6 +275,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     val systemOwner     = RegInit(0.U.asTypeOf(new RobToken(p)))
     val systemFpMemory = if (p.fpEnabled) Some(RegInit(false.B)) else None
     val fpMemoryEpoch = systemProtected && systemFpMemory.getOrElse(false.B)
+    val systemHMemory = if (p.hypervisorExperiment) Some(RegInit(false.B)) else None
+    val hMemoryEpoch = systemProtected && systemHMemory.getOrElse(false.B)
     val automaticTrap   = WireDefault(false.B)
     val headTrapRequest = WireDefault(false.B)
     ledger.io.headTrap.foreach(_.valid := headTrapRequest)
@@ -281,6 +298,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     systemComplete.bits  := 0.U.asTypeOf(new BackendCompletion(p))
     val mCompleteValid = mulDiv.io.complete.valid || multiplier.io.complete.valid
     // Irrevocable head memory ownership survives the response until retirement, including commit backpressure.
+    lsu.io.guestFault.foreach(_ := io.guestDataFault.get)
     val memoryProtected = RegInit(false.B)
     val memoryOwner     = Reg(new RobToken(p))
     val integerMemory = Wire(new DataPort(p.dataReturnHandleBits))
@@ -388,6 +406,20 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
                     "exclusive FP response lost its drained domain")
             }
         }
+    } else if (p.hypervisorExperiment) {
+        val hMemory = systemUnit.get.io.hMemory.get
+        io.memory.request.valid := Mux(hMemoryEpoch, hMemory.request.valid, integerMemory.request.valid)
+        io.memory.request.bits := Mux(hMemoryEpoch, hMemory.request.bits, integerMemory.request.bits)
+        hMemory.request.ready := hMemoryEpoch && io.memory.request.ready
+        integerMemory.request.ready := !hMemoryEpoch && io.memory.request.ready
+        hMemory.response.valid := hMemoryEpoch && io.memory.response.valid
+        hMemory.response.bits := io.memory.response.bits
+        integerMemory.response.valid := !hMemoryEpoch && io.memory.response.valid
+        integerMemory.response.bits := io.memory.response.bits
+        io.memory.response.ready := Mux(hMemoryEpoch, hMemory.response.ready, integerMemory.response.ready)
+        systemUnit.get.io.hMemoryFault.get := io.guestDataFault.get
+        io.memoryBusy := integerMemoryBusy || systemUnit.get.io.hMemoryBusy.get
+        when(hMemoryEpoch) { assert(!integerMemoryBusy, "H memory owns the drained physical port") }
     } else {
         io.memory <> integerMemory
     }
@@ -887,7 +919,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             )
     }
     val virtualized = if (p.virtualMemoryLevels > 0)
-        dataPrivilege =/= 3.U && systemUnit.get.io.vmState.get.satp(63, 60) =/= 0.U
+        (dataPrivilege =/= 3.U && systemUnit.get.io.vmState.get.satp(63, 60) =/= 0.U) ||
+            systemUnit.get.io.guestDataContext.map(_.virtualized).getOrElse(false.B)
     else false.B
     val fastAddress = storeAddress(head)
     // The head queue slot is uninitialized before allocation. Keep shift amounts defined
@@ -2178,6 +2211,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
     normalMemoryOperation.unsigned      := memoryEntry.request.memoryUnsigned
     normalMemoryOperation.accessDenied  := pmpCheck.io.denied && !virtualized
     normalMemoryOperation.virtualized   := virtualized
+    normalMemoryOperation.guestAddress.foreach(_ := systemUnit.get.io.guestDataContext.get.virtualized)
     normalMemoryOperation.frozenStoreProof.foreach { frozen =>
         frozen := 0.U.asTypeOf(frozen)
         if (p.memoryProofFrontier) {
@@ -2709,6 +2743,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         io.pmpRawChanged.foreach(_ := unit.io.pmpRawChanged.get)
         io.fetchPrivilege.get := unit.io.fetchPrivilege
         io.imsic.get <> unit.io.imsic
+        unit.io.guestExternal.foreach(_ := io.guestExternal.get)
+        unit.io.guestTopIdentities.foreach(_ := io.guestTopIdentities.get)
+        io.guestDataContext.foreach(_ := unit.io.guestDataContext.get)
+        io.guestFetchContext.foreach(_ := unit.io.guestFetchContext.get)
+        io.virtualized.foreach(_ := unit.io.virtualized.get)
         unit.io.externalInterrupt           := io.externalInterrupt.get
         unit.io.supervisorExternalInterrupt := io.supervisorExternalInterrupt.get
         unit.io.timerInterrupt              := io.timerInterrupt.get
@@ -2732,12 +2771,13 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             val sfence = headInst(31, 25) === "b0001001".U && headInst(14, 7) === 0.U &&
                 headInst(6, 0) === "h73".U
             val satpWrite = headInst(6, 0) === "h73".U && headInst(14, 12) =/= 0.U &&
-                headCsr === "h180".U &&
+                (headCsr === "h180".U || experimentalHypervisor.B &&
+                    (headCsr === "h280".U || headCsr === "h680".U)) &&
                 (headInst(13, 12) === 1.U || headInst(19, 15) =/= 0.U)
-            headPending && (sfence || satpWrite)
+            headPending && (sfence || satpWrite || (experimentalHypervisor.B && HypervisorInstruction.fence(headInst)))
         } else false.B
         val fenceIHead = headPending && headInst(6, 0) === "h0f".U && headInst(14, 12) === 1.U
-        val drainFetch = if (p.predecodedHeadDrain) headPending && headDrainClasses.get(head)
+        val drainFetch = if (p.predecodedHeadDrain) (headPending && headDrainClasses.get(head)) || (experimentalHypervisor.B && vmHead)
             else pmpHead || returnHead || vmHead || fenceIHead
         if (p.pmpEntries > 0) {
             val barrierActive = RegInit(false.B)
@@ -2751,9 +2791,10 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             unit.io.vmFlushReady.get := io.vmFlushReady.get
         }
         val source      = Mux(headPending, issueEntries(head).renamed.source1, 0.U)
+        val source2 = Mux(headPending, issueEntries(head).renamed.source2, 0.U)
         reserveSystem := !unit.io.interruptPending && headPending && ready(
             source
-        ) && unit.io.start.ready && io.commitEnable &&
+        ) && (!p.hypervisorExperiment.B || ready(source2)) && unit.io.start.ready && io.commitEnable &&
             !io.memoryBusy && !ledger.io.recovering &&
             (if (p.pmpEntries > 0) !drainFetch || io.fetchQuiescent.get else true.B)
         unit.io.start.valid      := reserveSystem && !ledger.io.recoveryAccepted && !ledger.io.pendingException.valid
@@ -2761,9 +2802,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         unit.io.start.bits.pc    := headRequest.rename.pc
         unit.io.start.bits.instruction := headInst
         unit.io.start.bits.operand     := readPhysical(source)
+        unit.io.start.bits.operand2.foreach(_ := readPhysical(source2))
         systemStart                    := unit.io.start.fire
         when(unit.io.start.fire) {
             systemFpMemory.foreach(_ := FloatingPointSubset.memory(headInst))
+            systemHMemory.foreach(_ := HypervisorInstruction.memory(headInst))
             systemContextBarrier := !(p.fpEnabled.B && FloatingPointDecode.supported(headInst, p.fpConfig) &&
                 !FloatingPointDecode.memory(headInst))
             pending(head)   := false.B
@@ -2795,6 +2838,7 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
             trapEvent.pc    := Mux(ledger.io.occupancy === 0.U, io.emptyPc.get, ledger.io.pendingException.bits.pc)
             trapEvent.cause := "h8000000000000000".U | unit.io.interruptCause
             trapEvent.tval  := 0.U
+            trapEvent.guestFault.foreach(_ := 0.U.asTypeOf(new GuestFaultMetadata))
             when(ledger.io.occupancy === 0.U) { trapEvent.token := 0.U.asTypeOf(new RobToken(p)) }
         }
         if (p.fastHeadTrapRecovery) {
@@ -3555,9 +3599,11 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         // Preserve the full exception for ROB state, PRF wake/data and trap logic.
         val retireFault = WireDefault(entry.request.fetchFault || entry.request.fetchPageFault || !legal)
         if (!dualOwnerCompletion) ledger.io.sameCycleFault.foreach(_(lane) := retireFault)
-        completion(lane).cause     := Mux(entry.request.fetchPageFault, MCause.InstrPageFault,
+        completion(lane).guestFault.foreach(_ := entry.request.guestFault.get)
+        completion(lane).cause     := Mux(entry.request.guestFault.map(_.guestPageFault).getOrElse(false.B), 20.U,
+            Mux(entry.request.fetchPageFault, MCause.InstrPageFault,
             Mux(entry.request.fetchFault, MCause.InstrAccessFault,
-                Mux(!legal, MCause.IllegalInstr, MCause.InstrAddrMisaligned)))
+                Mux(!legal, MCause.IllegalInstr, MCause.InstrAddrMisaligned))))
         completion(lane).tval      := Mux(entry.request.fetchFault || entry.request.fetchPageFault,
             entry.request.fetchTval,
             Mux(!legal, entry.request.rename.instruction, branch.io.target))

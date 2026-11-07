@@ -18,10 +18,21 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
     proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false,
-    bankedIndirectStorage: Boolean = false) extends Module {
+    bankedIndirectStorage: Boolean = false,
+    experimentalHypervisor: Boolean = false, guestFiles: Int = 0) extends Module {
+    require(!p.hypervisorExperiment || (!p.registeredFetchPacket && !p.registeredFetchWindow &&
+        !p.fetchIdentityTranslation && !p.alignedFetchPermissionStage),
+        "experimental H fetch requires precise external instruction owners")
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
     require(!bankedIndirectStorage || p.indirectTargetEntries > 0, "banked indirect storage requires an indirect table")
     val io = IO(new Bundle {
+        val guestExternal = if (experimentalHypervisor) Some(Input(UInt(math.max(1, guestFiles).W))) else None
+        val virtualized = if (experimentalHypervisor) Some(Output(Bool())) else None
+        val guestTopIdentities = if (experimentalHypervisor) Some(Input(UInt(math.max(1, guestFiles * 11).W))) else None
+        val guestDataContext = if (p.hypervisorExperiment) Some(Output(new GuestTranslationRequest)) else None
+        val guestFetchContext = if (p.hypervisorExperiment) Some(Output(new GuestTranslationRequest)) else None
+        val guestDataFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
+        val guestInstructionFault = if (p.hypervisorExperiment) Some(Input(Vec(p.renameWidth, new GuestFaultMetadata))) else None
         val fetchSpeculationCancel = if (p.contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
         val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
@@ -91,9 +102,13 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         virtualStoreOperandLookahead = virtualStoreOperandLookahead,
-        bankedStoreData = bankedStoreData))
+        bankedStoreData = bankedStoreData,
+        experimentalHypervisor = experimentalHypervisor, guestFiles = guestFiles))
     if (p.machineSystem) {
         io.imsic.get <> backend.io.imsic.get
+        backend.io.guestExternal.foreach(_ := io.guestExternal.get)
+        backend.io.guestTopIdentities.foreach(_ := io.guestTopIdentities.get)
+        io.virtualized.foreach(_ := backend.io.virtualized.get)
         io.fenceIFlush.get := backend.io.fenceIFlush.get
         backend.io.fenceIFlushReady.get := io.fenceIFlushReady.get
         io.trap.get                                := backend.io.trap.get
@@ -117,6 +132,9 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     io.loadPrecheck.foreach(_ <> backend.io.loadPrecheck.get)
     io.canonicalStore.foreach(_ <> backend.io.canonicalStore.get)
     io.memory <> backend.io.memory
+    backend.io.guestDataFault.foreach(_ := io.guestDataFault.get)
+    io.guestDataContext.foreach(_ := backend.io.guestDataContext.get)
+    io.guestFetchContext.foreach(_ := backend.io.guestFetchContext.get)
     io.posted.foreach(_ <> backend.io.posted.get)
     if (p.dataNextLinePrefetch) backend.io.externalPrefetchBusy.get := io.externalPrefetchBusy.get
     io.ownersIdle.foreach(_ := backend.io.ownersIdle)
@@ -164,7 +182,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
             checks.io.state := backend.io.pmpState.get
             checks.io.privilege := backend.io.fetchPrivilege.get
             checks.io.virtualized := (if (p.virtualMemoryLevels > 0)
-                backend.io.vmState.get.satp(63, 60) =/= 0.U && backend.io.fetchPrivilege.get =/= 3.U
+                (backend.io.vmState.get.satp(63, 60) =/= 0.U && backend.io.fetchPrivilege.get =/= 3.U) ||
+                backend.io.guestFetchContext.map(_.virtualized).getOrElse(false.B)
                 else false.B)
             for (lane <- 0 until p.renameWidth) {
                 checks.io.instructionLow(lane) := io.instructions(lane).bits(1, 0)
@@ -292,7 +311,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     } else None
     for (lane <- 0 until p.renameWidth) {
         val decode = Module(new IntegerDecode(p.machineSystem, p.atomicMemory, p.parallelDecodeLegality,
-            p.parallelBitLegality, p.fpEnabled, p.fpConfig))
+            p.parallelBitLegality, p.fpEnabled, p.fpConfig, p.hypervisorExperiment))
         val rawInstruction = instructions(lane).bits
         val compressed = p.compressedInstructions.B && rawInstruction(1, 0) =/= 3.U
         val (expanded, compressedLegal) = if (p.compressedInstructions)
@@ -329,7 +348,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         }
         val pmpDenied = firstPmpDenied || (!compressed && secondPmpDenied)
         val virtualizedFetch = if (p.virtualMemoryLevels > 0)
-            backend.io.vmState.get.satp(63, 60) =/= 0.U && backend.io.fetchPrivilege.get =/= 3.U
+            (backend.io.vmState.get.satp(63, 60) =/= 0.U && backend.io.fetchPrivilege.get =/= 3.U) ||
+                backend.io.guestFetchContext.map(_.virtualized).getOrElse(false.B)
         else false.B
         val fetchFault = instructionFaults(lane) || instructionPageFaults(lane) ||
             (pmpDenied && !virtualizedFetch)
@@ -433,12 +453,13 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         })
         val earlierPrediction = (0 until lane).map(i => instructions(i).valid && predicts(i))
             .foldLeft(false.B)(_ || _)
-        val faultRequest = WireDefault(0.U.asTypeOf(new IntegerRequest))
+        val faultRequest = WireDefault(0.U.asTypeOf(new IntegerRequest(p.hypervisorExperiment)))
         faultRequest.rename.pc := lanePc
         faultRequest.rename.instruction := rawInstruction
         faultRequest.operation := 15.U
         faultRequest.fetchFault := true.B
         faultRequest.fetchPageFault := instructionPageFaults(lane)
+        faultRequest.guestFault.foreach(_ := io.guestInstructionFault.get(lane))
         val suppliedFetchTval = if (p.compressedInstructions) instructionFaultAddresses(lane) else lanePc
         faultRequest.fetchTval := Mux(pmpDenied && !virtualizedFetch &&
             !instructionFaults(lane) && !instructionPageFaults(lane),

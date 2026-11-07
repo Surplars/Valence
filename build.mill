@@ -62,6 +62,16 @@ object `IonSoC` extends CommonNS {
     override def moduleDeps = super.moduleDeps ++ Seq(HardFloatLib)
 
     object test extends SbtTests with TestModule.ScalaTest {
+        // GSIM-only emitters are kept beside their independent native drivers.
+        def gsimFixtureSources = Task.Sources(
+            pwd / "simulator/gsim/fixtures/AiaRetiringCoreGsim.scala",
+            pwd / "simulator/gsim/fixtures/AiaTranslatedCoreGsim.scala",
+            pwd / "simulator/gsim/fixtures/HypervisorPlatformGsim.scala",
+            pwd / "simulator/gsim/fixtures/HypervisorPlatformShapes.scala"
+        )
+        override def sources = Task {
+            super.sources() ++ gsimFixtureSources()
+        }
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 

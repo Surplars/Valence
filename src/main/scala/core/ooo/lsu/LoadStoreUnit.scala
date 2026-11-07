@@ -36,6 +36,7 @@ class MemoryOperation(p: OooParams) extends Bundle {
     val unsigned = Bool()
     val accessDenied = Bool()
     val virtualized = Bool()
+    val guestAddress = if (p.hypervisorExperiment) Some(Bool()) else None
     val precheckedLoad = Bool()
     val physicalAddress = UInt(64.W)
     val translationEpoch = UInt(32.W)
@@ -66,6 +67,7 @@ class LoadStoreUnit(
         val issueAvailable = Output(Bool())
         val successfulLoadResultCapture = if (p.registeredLoadResultReady) Some(Output(Bool())) else None
         val start          = Flipped(Decoupled(new MemoryOperation(p)))
+        val guestFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
         val memory         = new DataPort
         val postedProof = p.postedProofConfig.map(c => Output(Valid(new PostedStoreProof(c))))
         val canonicalStoreOrigin = if (p.canonicalVirtualStoreOverlap)
@@ -229,14 +231,16 @@ class LoadStoreUnit(
     io.fastLoadPreview.bits := result
     io.fastLoadPreview.bits.data := loaded
     io.fastLoadPreview.bits.exception := false.B
+    val responseGuestPageFault = io.guestFault.map(_.guestPageFault).getOrElse(false.B)
     val savedResponseFire = if (responseStateOnly) io.memory.response.fire else io.memory.response.fire && !startRequest
     when(savedResponseFire) {
         result.data      := Mux(operation.atomic, io.memory.response.bits.data, Mux(operation.store, 0.U, loaded))
-        result.exception := io.memory.response.bits.error || io.memory.response.bits.pageFault
+        result.exception := responseGuestPageFault || io.memory.response.bits.error || io.memory.response.bits.pageFault
+        result.guestFault.foreach(_ := io.guestFault.get)
         val writeAccess = operation.store || (operation.atomic && operation.atomicOp =/= 2.U)
-        result.cause := Mux(io.memory.response.bits.pageFault,
+        result.cause := Mux(responseGuestPageFault, Mux(writeAccess, 23.U, 21.U), Mux(io.memory.response.bits.pageFault,
             Mux(writeAccess, MCause.StorePageFault, MCause.LoadPageFault),
-            Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault))
+            Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault)))
         state := Mux(io.fastLoadRetire, idle, done)
         io.successfulLoadResultCapture.foreach(_ := !operation.store && !operation.atomic &&
             !discard && !io.memory.response.bits.error && !io.memory.response.bits.pageFault &&
@@ -303,6 +307,7 @@ class LoadStoreUnit(
         operation        := io.start.bits
         result           := 0.U.asTypeOf(new BackendCompletion(p))
         result.token     := io.start.bits.token
+        result.guestFault.foreach(_.guestAddress := io.start.bits.guestAddress.get)
         result.nextPc    := io.start.bits.pc + 4.U
         result.exception := misaligned || atomicFault || io.start.bits.accessDenied
         result.cause     := Mux(
@@ -329,11 +334,12 @@ class LoadStoreUnit(
                 result.data := Mux(io.start.bits.atomic, immediate.data,
                     Mux(io.start.bits.store, 0.U,
                         loadValue(immediate.data, io.start.bits.address, io.start.bits.size, io.start.bits.unsigned)))
-                result.exception := immediate.error || immediate.pageFault
+                result.exception := responseGuestPageFault || immediate.error || immediate.pageFault
+                result.guestFault.foreach(_ := io.guestFault.get)
                 val writeAccess = io.start.bits.store || (io.start.bits.atomic && io.start.bits.atomicOp =/= 2.U)
-                result.cause := Mux(immediate.pageFault,
+                result.cause := Mux(responseGuestPageFault, Mux(writeAccess, 23.U, 21.U), Mux(immediate.pageFault,
                     Mux(writeAccess, MCause.StorePageFault, MCause.LoadPageFault),
-                    Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault))
+                    Mux(writeAccess, MCause.StoreAccessFault, MCause.LoadAccessFault)))
             }
         }
         when(io.fastStoreRetire) {

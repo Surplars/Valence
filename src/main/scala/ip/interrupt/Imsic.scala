@@ -40,6 +40,10 @@ class Imsic(val p: ImsicParams = ImsicParams()) extends Module {
         val csrRequest  = Flipped(Decoupled(new ImsicCsrRequest))
         val csrResponse = Decoupled(new RegisterResponse)
         val interrupts  = Output(UInt(p.files.W))
+        // Live TOPEI identity per file, independent of eidelivery. The hart uses
+        // this to rank external candidates without issuing or claiming a CSR.
+        // File f occupies bits 11*f+10:11*f (file zero is the low field).
+        val topIdentities = Output(UInt((p.files * 11).W))
     })
     val pending   = RegInit(VecInit(Seq.fill(p.files)(VecInit(Seq.fill(p.groups)(0.U(64.W))))))
     val enabled   = RegInit(VecInit(Seq.fill(p.files)(VecInit(Seq.fill(p.groups)(0.U(64.W))))))
@@ -56,6 +60,7 @@ class Imsic(val p: ImsicParams = ImsicParams()) extends Module {
         val first = PriorityMux(candidates)
         top(f) := Mux(any && (threshold(f) === 0.U || first < threshold(f)), first, 0.U)
     }
+    io.topIdentities := top.asUInt
     // IRQ needs existence, not the encoded winning identity. Compare the
     // threshold against static bit/group positions in parallel so pending does
     // not traverse TOPEI's priority encoder and then a numeric comparison.

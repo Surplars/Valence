@@ -12,11 +12,12 @@ import soc.isa.{Funct3, Funct6, Funct7, Opcode}
 class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false,
     parallelLegality: Boolean = false, parallelBitLegality: Boolean = false,
     experimentalFloatingPoint: Boolean = false,
-    floatingPointConfig: FloatingPointConfig = FloatingPointConfig.fullFD) extends Module {
+    floatingPointConfig: FloatingPointConfig = FloatingPointConfig.fullFD,
+    hypervisorExperiment: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val instruction = Input(UInt(32.W))
         val pc          = Input(UInt(64.W))
-        val decoded     = Output(new IntegerRequest)
+        val decoded     = Output(new IntegerRequest(hypervisorExperiment))
         val legal       = Output(Bool())
     })
     val inst      = io.instruction
@@ -124,7 +125,8 @@ class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false
     val sfenceVma = inst(31, 25) === "b0001001".U && inst(14, 7) === 0.U
     val floatingPoint = experimentalFloatingPoint.B && enableSystem.B &&
         FloatingPointDecode.supported(inst, floatingPointConfig)
-    val system = floatingPoint || fence || (enableSystem.B && opcode === "h73".U &&
+    val hInstruction = hypervisorExperiment.B && HypervisorInstruction.recognized(inst)
+    val system = hInstruction || floatingPoint || fence || (enableSystem.B && opcode === "h73".U &&
         (Seq(1, 2, 3, 5, 6, 7).map(f => funct3 === f.U).reduce(_ || _) ||
             inst === "h00000073".U || inst === "h00100073".U || inst === "h30200073".U ||
             inst === "h10200073".U || inst === "h10500073".U || sfenceVma))
@@ -133,10 +135,10 @@ class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false
         val qualification = Module(new ParallelIntegerLegality(enableSystem, enableAtomic))
         qualification.io.instruction := inst
         qualification.io.bitLegal := bits.io.legal
-        legal := qualification.io.legal || floatingPoint
+        legal := qualification.io.legal || floatingPoint || hInstruction
     }
     io.legal                      := legal
-    io.decoded                    := 0.U.asTypeOf(new IntegerRequest)
+    io.decoded                    := 0.U.asTypeOf(new IntegerRequest(hypervisorExperiment))
     io.decoded.rename.pc          := io.pc
     io.decoded.rename.instruction := inst
     io.decoded.expandedInstruction := inst
@@ -173,6 +175,12 @@ class IntegerDecode(enableSystem: Boolean = false, enableAtomic: Boolean = false
         io.decoded.rename.rd       := Mux(fence || funct3 === 0.U, 0.U, inst(11, 7))
         io.decoded.rename.writesRd := !fence && funct3 =/= 0.U
         io.decoded.useImmediate    := true.B
+    }
+    when(hypervisorExperiment.B && HypervisorInstruction.memory(inst)) {
+        io.decoded.rename.rs1 := inst(19, 15)
+        io.decoded.rename.rs2 := Mux(HypervisorInstruction.store(inst), inst(24, 20), 0.U)
+        io.decoded.rename.rd := Mux(HypervisorInstruction.load(inst), inst(11, 7), 0.U)
+        io.decoded.rename.writesRd := HypervisorInstruction.load(inst)
     }
     when(floatingPoint) {
         // FP register numbers must never become integer PRF dependencies/destinations.

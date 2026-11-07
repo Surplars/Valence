@@ -100,7 +100,7 @@ def build_opensbi():
 
 
 def test(gsim, cxx, name, main, top, harness, parameters=(), runtime_args=(), defines=None,
-         sanitizer=True, timeout=120, interactive=False, run_log="test.log", gsim_options=()):
+         sanitizer=True, timeout=120, interactive=False, run_log="test.log", gsim_options=(), cxx_flags=()):
     output = BUILD / name
     output.mkdir(parents=True, exist_ok=True)
     run(["mill", "-i", "IonSoC.test.runMain", main, output, *parameters], log=output / "elaborate.log")
@@ -135,7 +135,7 @@ def test(gsim, cxx, name, main, top, harness, parameters=(), runtime_args=(), de
                  f"-DTAG_BITS={parameters[2]}"]
     run([cxx, "-std=c++20", "-O1" if sanitizer else "-O2", "-g",
          *(["-fsanitize=address,undefined", "-fno-sanitize-recover=all"] if sanitizer else []),
-         *flags, "-I" + str(output),
+         *flags, *cxx_flags, "-I" + str(output),
          *sorted(output.glob(top + "[0-9]*.cpp")), HERE / "harness" / harness, "-ldl", "-o", output / "run"],
         log=output / "compile.log")
     # LeakSanitizer cannot use ptrace in restricted execution environments; ASan/UBSan remain enabled.

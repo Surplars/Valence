@@ -6,18 +6,24 @@ import soc.ip.bus.RegisterPort
 import soc.ip.interrupt.{Imsic, ImsicParams}
 
 /** Initial system-capable assembly: CPU + independent IMSIC, with external instruction/data/MSI boundaries. The M/S
-  * IMSIC files and external interrupt signals are connected; VS delivery remains future work.
+  * IMSIC files and external interrupt signals are connected; VS delivery is enabled only by the isolated experimental H constructor.
   */
 class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicParams(),
     canonicalHandoff: Boolean = false,
     preselectRedirectTokenMatches: Boolean = false,
-    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false) extends Module {
+    proofBankControlDecoupling: Boolean = false, val projectedRequestHead: Boolean = false, val factorPreparedStorePool: Boolean = false, val registeredMemoryPreparationDescriptor: Boolean = false, val backendNaturalAlignedPmp: Boolean = false, val earlyLoadPreparationDescriptor: Boolean = false, val virtualStoreOperandLookahead: Boolean = false, val bankedStoreData: Boolean = false, runtimeQuiesce: Boolean = false,
+    experimentalHypervisor: Boolean = false) extends Module {
     val io = IO(new Bundle {
+        val virtualized = if (experimentalHypervisor) Some(Output(Bool())) else None
         val fetchSpeculationCancel = if (p.contextOwnedInstructionPrefetch) Some(Output(Bool())) else None
         val quiesce = if (runtimeQuiesce) Some(Input(Bool())) else None
         val ownersIdle = if (runtimeQuiesce) Some(Output(Bool())) else None
         val timerInterrupt  = Input(Bool())
         val timeValue       = Input(UInt(64.W))
+        val guestDataContext = if (p.hypervisorExperiment) Some(Output(new GuestTranslationRequest)) else None
+        val guestFetchContext = if (p.hypervisorExperiment) Some(Output(new GuestTranslationRequest)) else None
+        val guestDataFault = if (p.hypervisorExperiment) Some(Input(new GuestFaultMetadata)) else None
+        val guestInstructionFault = if (p.hypervisorExperiment) Some(Input(Vec(p.renameWidth, new GuestFaultMetadata))) else None
         val instructions    = Input(Vec(p.renameWidth, Valid(UInt(32.W))))
         val instructionFaults = Input(Vec(p.renameWidth, Bool()))
         val instructionPageFaults = Input(Vec(p.renameWidth, Bool()))
@@ -66,7 +72,8 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
         registeredMemoryPreparationDescriptor = registeredMemoryPreparationDescriptor, backendNaturalAlignedPmp = backendNaturalAlignedPmp,
         earlyLoadPreparationDescriptor = earlyLoadPreparationDescriptor,
         virtualStoreOperandLookahead = virtualStoreOperandLookahead,
-        bankedStoreData = bankedStoreData, runtimeQuiesce = runtimeQuiesce))
+        bankedStoreData = bankedStoreData, runtimeQuiesce = runtimeQuiesce,
+        experimentalHypervisor = experimentalHypervisor, guestFiles = if (experimentalHypervisor) imsicParams.guestFiles else 0))
     val imsic = Module(new Imsic(imsicParams))
     core.io.imsic.get.request <> imsic.io.csrRequest
     core.io.imsic.get.response <> imsic.io.csrResponse
@@ -75,6 +82,12 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     // A pending level is delayed by one cycle, while CSR reads remain direct.
     val irqLevels = if (p.registeredImsicInterrupts)
         RegNext(imsic.io.interrupts, 0.U(imsicParams.files.W)) else imsic.io.interrupts
+    if (experimentalHypervisor) {
+        core.io.guestExternal.get := (if (imsicParams.guestFiles == 0) 0.U else irqLevels(imsicParams.files - 1, 2))
+        core.io.guestTopIdentities.get := (if (imsicParams.guestFiles == 0) 0.U else
+            imsic.io.topIdentities(imsicParams.files * 11 - 1, 22))
+        io.virtualized.get := core.io.virtualized.get
+    }
     core.io.externalInterrupt.get           := irqLevels(0)
     core.io.supervisorExternalInterrupt.get := irqLevels(1)
     io.externalPending                      := imsic.io.interrupts
@@ -110,6 +123,10 @@ class MachineCore(p: OooParams = OooParams(), imsicParams: ImsicParams = ImsicPa
     io.loadPrecheck.foreach(_ <> core.io.loadPrecheck.get)
     io.canonicalStore.foreach(_ <> core.io.canonicalStore.get)
     io.memory <> core.io.memory
+    core.io.guestDataFault.foreach(_ := io.guestDataFault.get)
+    core.io.guestInstructionFault.foreach(_ := io.guestInstructionFault.get)
+    io.guestDataContext.foreach(_ := core.io.guestDataContext.get)
+    io.guestFetchContext.foreach(_ := core.io.guestFetchContext.get)
     io.posted.foreach(_ <> core.io.posted.get)
     io.accepted       := core.io.accepted
     io.fetchPc        := core.io.fetchPc

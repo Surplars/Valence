@@ -24,16 +24,36 @@ class CommonInterruptFabric(
         val msiError = Output(Bool())
     })
     private val machine = Module(new Aplic(aplicParams, hasChild = true,
-        childMsiBase = imsicParams.supervisorBase))
+        childMsiBase = imsicParams.supervisorBase, childGuestFiles = imsicParams.guestFiles,
+        coordinatedGenmsi = true))
     private val supervisor = Module(new Aplic(
-        aplicParams.copy(base = aplicParams.base + 16384, msiBase = imsicParams.supervisorBase),
-        hasParent = true))
+        aplicParams.copy(base = aplicParams.base + 16384, msiBase = imsicParams.supervisorBase,
+            guestFiles = imsicParams.guestFiles),
+        hasParent = true, coordinatedGenmsi = true))
     private val arbitration = Module(new TwoMasterRegisterArbiter(lockRequests = true, resetRoundRobin = true))
     machine.io.mmio <> io.machineRegisters
     supervisor.io.mmio <> io.supervisorRegisters
     machine.io.sources := io.sources
     supervisor.io.sources := machine.io.childSources
     supervisor.io.parentEnabled.get := machine.io.childEnabled
+    // genmsi orders all earlier MSIs from the combined APLIC to this hart,
+    // including the other domain's already-forwarded outgoing queue. Accept
+    // the write normally, then freeze only NEW ordinary forwarding until the
+    // old queues and real downstream replies drain. Do not stop MMIO, requests,
+    // replies, or pending-state updates. This adds no ordinary MSI stage.
+    def generating(port: RegisterPort, base: BigInt): Bool = {
+        val request = port.request
+        request.valid && request.bits.write && request.bits.address === (base + 0x3000).U &&
+            request.bits.size === 2.U && request.bits.byteEnable === 15.U
+    }
+    val pause = machine.io.genmsiBusy || supervisor.io.genmsiBusy ||
+        generating(io.machineRegisters, aplicParams.base) ||
+        generating(io.supervisorRegisters, aplicParams.base + 16384)
+    val drained = machine.io.msiDrained && supervisor.io.msiDrained
+    machine.io.pauseForwarding.get := pause
+    supervisor.io.pauseForwarding.get := pause
+    machine.io.allowGenerated.get := drained
+    supervisor.io.allowGenerated.get := drained
     arbitration.io.masters(0) <> machine.io.msi
     arbitration.io.masters(1) <> supervisor.io.msi
     io.msi <> arbitration.io.downstream

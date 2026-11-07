@@ -10,7 +10,16 @@
 
 static void check(bool ok, const char *what) { if (!ok) throw std::runtime_error(what); }
 constexpr unsigned count = IMSIC_IDENTITIES, files = 2 + IMSIC_GUESTS;
-constexpr uint64_t machineBase = 0x24000000, supervisorBase = 0x28000000;
+// GEILEN=63 means 65 interrupt files: the last guest is IRQ bit64.
+// A host uint64_t silently loses it and makes a shift by 64 undefined.
+using InterruptBits = unsigned __int128;
+#ifndef IMSIC_MACHINE_BASE
+#define IMSIC_MACHINE_BASE UINT64_C(0x24000000)
+#endif
+#ifndef IMSIC_SUPERVISOR_BASE
+#define IMSIC_SUPERVISOR_BASE UINT64_C(0x28000000)
+#endif
+constexpr uint64_t machineBase = IMSIC_MACHINE_BASE, supervisorBase = IMSIC_SUPERVISOR_BASE;
 static unsigned pages() { unsigned n=1; while(n<1+IMSIC_GUESTS)n*=2; return n; }
 struct Csr { unsigned file=0, selector=0x70, op=0; uint64_t data=0; bool topei=false; };
 struct Bus { uint64_t address=machineBase, data=0; unsigned size=2, mask=15; bool write=true; };
@@ -53,8 +62,8 @@ struct Model {
         return {old,false};
     }
     Reply bus(Bus r) {
-        bool machine=r.address>=machineBase&&r.address<machineBase+4096;
-        bool supervisor=r.address>=supervisorBase&&r.address<supervisorBase+4096*pages();
+        bool machine=r.address>=machineBase&&InterruptBits(r.address)<InterruptBits(machineBase)+4096;
+        bool supervisor=r.address>=supervisorBase&&InterruptBits(r.address)<InterruptBits(supervisorBase)+4096*pages();
         bool error=(!machine&&!supervisor)||r.size!=2||r.address%4||(r.write&&r.mask!=15);
         if(error)return {0,true};
         unsigned file=machine?0:1+(r.address-supervisorBase)/4096;
@@ -66,8 +75,8 @@ struct Model {
         if(id&&id<=count)state[file].pending[id]=true;
         return {};
     }
-    uint64_t interrupts() const {
-        uint64_t result=0;for(unsigned f=0;f<files;++f)if(state[f].delivery&&state[f].top())result|=UINT64_C(1)<<f;
+    InterruptBits interrupts() const {
+        InterruptBits result=0;for(unsigned f=0;f<files;++f)if(state[f].delivery&&state[f].top())result|=InterruptBits(1)<<f;
         return result;
     }
 };
@@ -98,6 +107,9 @@ struct Bench {
     std::pair<bool,bool> tick(std::optional<Csr> c={},std::optional<Bus> b={},bool cr=true,bool br=true) {
         drive(c,b,cr,br);dut.step();
         check(dut.get_io$$interrupts()==model.interrupts(),"interrupt level/isolation mismatch");
+        for(unsigned f=0;f<files;++f)
+            check(((dut.get_io$$topIdentities()>>(11*f))&2047)==model.state[f].top(),
+                  "live per-file top identity mismatch");
         const bool cReady=csrQueue.size()<2,bReady=busQueue.size()<2;
         check(bool(dut.get_io$$csrRequest$$ready())==cReady,"CSR response credit ready");
         check(bool(dut.get_io$$mmio$$request$$ready())==bReady,"MMIO response credit ready");
@@ -135,9 +147,9 @@ static void run(bool negative) {
         b.access(Csr{f,0,0,0,true}); // delivery=0 must not suppress topei
         check(b.model.state[f].top()==1,"disabled delivery lost top identity");
         b.access(Csr{f,0x70,1,1});b.drain();
-        check(b.model.interrupts()&(UINT64_C(1)<<f),"file did not assert irq");
+        check(b.model.interrupts()&(InterruptBits(1)<<f),"file did not assert irq");
         b.access(Csr{f,0x72,1,1});b.drain();
-        check(!(b.model.interrupts()&(UINT64_C(1)<<f)),"threshold equality must mask");
+        check(!(b.model.interrupts()&(InterruptBits(1)<<f)),"threshold equality must mask");
         b.access(Csr{f,0x72,1,0});b.drain();
         // Claim + a fresh MSI for the same identity: new request must remain pending.
         auto both=b.tick(Csr{f,0,1,UINT64_MAX,true},msi(f,1));
@@ -159,6 +171,38 @@ static void run(bool negative) {
             b.access(Csr{f,selector,3,UINT64_MAX});b.access(Csr{f,selector,0});
         }
     }
+    // Explicit WARL/WLRL transformations, including reserved high bits and
+    // read/modify/write forms. The oracle documents this implementation's
+    // permitted legal-value mapping, not a mandatory mapping for every IMSIC.
+    for(unsigned f=0;f<files;++f) {
+        for(uint64_t value : {UINT64_C(0),UINT64_C(1),UINT64_C(2),UINT64_C(3),
+                             UINT64_C(0x40000000),UINT64_C(0x40000001),UINT64_MAX})
+            for(unsigned op : {1U,2U,3U}) {
+                b.access(Csr{f,0x70,op,value});b.access(Csr{f,0x70,0});
+            }
+        b.access(Csr{f,0x72,1,count/2});
+        for(uint64_t value : {uint64_t(count+1),UINT64_C(2048),UINT64_C(1)<<63,UINT64_MAX,
+                             UINT64_C(0),uint64_t(count)})
+            for(unsigned op : {1U,2U,3U}) {
+                b.access(Csr{f,0x72,op,value});b.access(Csr{f,0x72,0});
+            }
+        for(unsigned g=0;g<(count+1)/64;++g) {
+            b.access(Csr{f,0x80+2*g,1,0});b.access(Csr{f,0xc0+2*g,1,UINT64_MAX});
+        }
+        b.access(Csr{f,0x70,1,1});b.access(Csr{f,0x72,1,0});b.drain();
+        auto both=b.tick(Csr{f,0,1,0,true},msi(f,count));
+        check(both.first&&both.second,"empty claim/new MSI stimulus");b.drain();
+        b.access(Csr{f,0,0,0,true});b.drain();
+        check(b.model.state[f].top()==count,"empty claim lost incoming MSI");
+        both=b.tick(Csr{f,0,1,0,true},msi(f,1));
+        check(both.first&&both.second,"claim/different-priority MSI stimulus");b.drain();
+        b.access(Csr{f,0,0,0,true});b.drain();
+        check(b.model.state[f].top()==1,"claim lost new higher-priority MSI");
+        both=b.tick(Csr{f,0x80,1,0},msi(f,count));
+        check(both.first&&both.second,"clear/different-bank MSI stimulus");b.drain();
+        b.access(Csr{f,0,0,0,true});b.drain();
+        check(b.model.state[f].top()==count,"clear lost other-bank MSI");
+    }
     // Every identity straddles its strict threshold boundary. This checks the
     // IRQ existence network independently against the oracle's linear search,
     // including all 64-bit group boundaries and each implemented guest file.
@@ -171,9 +215,9 @@ static void run(bool negative) {
         for(unsigned id=1;id<=count;++id) {
             b.access(Csr{f,0x80+2*(id/64),1,UINT64_C(1)<<(id%64)});
             b.access(Csr{f,0x72,1,id});b.drain();
-            check(!(b.model.interrupts()&(UINT64_C(1)<<f)),"identity equal to threshold must not interrupt");
+            check(!(b.model.interrupts()&(InterruptBits(1)<<f)),"identity equal to threshold must not interrupt");
             b.access(Csr{f,0x72,1,id==count?0:id+1});b.drain();
-            check(b.model.interrupts()&(UINT64_C(1)<<f),"identity below threshold must interrupt");
+            check(b.model.interrupts()&(InterruptBits(1)<<f),"identity below threshold must interrupt");
             b.access(Csr{f,0,0,0,true});
             b.access(Csr{f,0x80+2*(id/64),1,0});
         }
@@ -237,7 +281,7 @@ static void run(bool negative) {
     check(b.csrHeld>500&&b.busHeld>500&&b.simultaneous>500&&b.errors>200,"coverage thresholds");
     std::cout<<"GSIM IMSIC: PASS identities="<<count<<" files="<<files<<" csr="<<b.csrAccepted
         <<" mmio="<<b.busAccepted<<" simultaneous="<<b.simultaneous<<" held="<<b.csrHeld<<"/"<<b.busHeld
-        <<" errors="<<b.errors<<" steady=256 latency=1 II=1\n";
+        <<" errors="<<b.errors<<" steady=256 latency=1 II=1 warl=1 collision_priorities=1 irq_bits="<<files<<"\n";
 }
 int main(int argc,char**argv) {
     try {run(argc==2&&std::string(argv[1])=="--inject-mismatch");}

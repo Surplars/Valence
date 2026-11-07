@@ -96,8 +96,11 @@ class CommonMachineFabric(
     val runtimeNetworkAdmission: Boolean = false,
     val dmaMaintenanceCompletionFlow: Boolean = false,
     val dmaReadAcquireOverlap: Boolean = false,
-    val dmaProbeAcquireOverlap: Boolean = false
+    val dmaProbeAcquireOverlap: Boolean = false,
+    val experimentalGuestFiles: Int = 0
 ) extends Module {
+    require(experimentalGuestFiles == 0 || experimentalGuestFiles == 3,
+        "guest files are enabled only for the explicit three-file H tile")
     import CommonFabricObligations._
     private val ramBase = CommonPlatformAbi.ramBase
     private val romBase = CommonPlatformAbi.romBase
@@ -235,7 +238,8 @@ class CommonMachineFabric(
     io.tile.timerInterrupt := io.externalTimerIrq.getOrElse(timer.get.io.irq)
     io.tile.softwareInterrupt := false.B // Existing MachineTimer has no software-interrupt register.
     io.tile.timeSnapshot := io.externalTimeSnapshot.getOrElse(timer.get.io.timeValue)
-    val interrupts = Module(new CommonInterruptFabric())
+    val interrupts = Module(new CommonInterruptFabric(
+        imsicParams = soc.ip.interrupt.ImsicParams(guestFiles = experimentalGuestFiles)))
     // Freeze new MSI admission from accepted external prepare through terminal
     // consumption. A same-edge admission is an older accepted owner and drains.
     // Pending APLIC events (including its outgoing queue) are never cleared.

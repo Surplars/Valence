@@ -157,3 +157,7 @@ native-mac-netlist-contract:
 
 native-mac-boundary-cdc:
 	python3 fpga/next/check_mac_boundary.py --output "$(MAC_CDC_OUTPUT)" --mill "$(MILL)"
+
+.PHONY: gsim-hypervisor-platform-test
+gsim-hypervisor-platform-test:
+	python3 simulator/gsim/hypervisor_platform.py

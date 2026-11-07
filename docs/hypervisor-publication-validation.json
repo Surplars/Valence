@@ -1,0 +1,95 @@
+{
+  "status": "PASS_FOCUSED_PUBLICATION_CHECKS",
+  "base_commit": "a6448d9165f9c3c95456fab5895dd66d818c66aa",
+  "source_manifest": "hypervisor-publication-source-manifest.json",
+  "source_manifest_sha256": "1c7041bf2574adfa9fa2bdb7b37ce2bb3b2f6d13048400a1a8a242e77e628a40",
+  "fresh_standard_entry": {
+    "command": "make gsim-hypervisor-platform-test",
+    "status": "PASS_STANDARD_ENTRY",
+    "seconds": 311.42859467098606,
+    "source_files_pinned_before_and_after": 7099,
+    "inputs_unchanged": true,
+    "fresh_scala_compile_sources": {
+      "HardFloat": 18,
+      "production": 361,
+      "tests": 818
+    },
+    "fresh_gsim_model_and_native_compile": true,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "positive_cases": 7,
+    "negative_controls": 1,
+    "totals": {
+      "cycles": 150251,
+      "commits": 1286,
+      "checks": 473741
+    },
+    "receipt_sha256": "9ec2fedd7c933815317513b8be69d962c639d470d9a537ea6bfbf7d5871fe009",
+    "entry_log_sha256": "220fb41b118237992277528042490fb63991bdf55ea126676221ae54f9c80564",
+    "logs": {
+      "build/gsim/hypervisor-platform/compile.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "build/gsim/hypervisor-platform/elaborate.log": {
+        "sha256": "938872efc49e807f2a69b94bedc8d9174512dc2656258b09cfd8e1c38695ddde",
+        "bytes": 5157
+      },
+      "build/gsim/hypervisor-platform/generate.log": {
+        "sha256": "a9c406aff30be13f8a7a982e0e905b9fcb1f1d2d218f75c6d22c6b40784241e9",
+        "bytes": 2706
+      },
+      "build/gsim/hypervisor-platform/negative.log": {
+        "sha256": "11e3c373b04125a2eb0c87346a54de181c5383cc8af37d11cae560e67e3f4c84",
+        "bytes": 105
+      },
+      "build/gsim/hypervisor-platform/pma-compile.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "build/gsim/hypervisor-platform/pma.log": {
+        "sha256": "36a5c68cd063ba363c487a16c4e0b6ffca14009430cfacf75040c2795b83b987",
+        "bytes": 294
+      },
+      "build/gsim/hypervisor-platform/test.log": {
+        "sha256": "1693ae19542b5f707242638ec05be8533dbb8015b34ca808d6a0bc13a3474edb",
+        "bytes": 900
+      }
+    }
+  },
+  "python_tests": {
+    "count": 39,
+    "skipped": 0,
+    "status": "PASS",
+    "log_sha256": "cf36aaa3d17abbbd50d407419b38818b8a357abf3659862a07dcd41836545bb0"
+  },
+  "scala_configuration_tests": {
+    "command": "mill -i IonSoC.test.testOnly ip.AiaGuestParamsSpec ip.ImsicParamsSpec",
+    "count": 5,
+    "status": "PASS",
+    "log_sha256": "f1f0d5dd4a39162f8048c05be137a05dd2ac7c28602e7cb73908dced81679cae"
+  },
+  "offline_retained_evidence_rechecks": {
+    "vs_boundaries": {
+      "status": "PASS",
+      "report_sha256": "c0d0542bddbe7ac0bcbbbfd7c58aefdbf63caccdc93f35d427234b90d6ca9c7d"
+    },
+    "consecutive_traps": {
+      "status": "PASS",
+      "report_sha256": "c1639ce003260eb132b0cbbebe7d1586a8c0f485600a1b8eda57c6efadc273d1"
+    }
+  },
+  "supplemental_hardware_runs_rerun_for_publication": false,
+  "supplemental_sources_match_previously_sealed_tests": true,
+  "independent_source_audit": "PASS: 108 final canonical paths, patch/archive identities, no excluded inputs",
+  "limits": [
+    "Focused GSIM and configuration checks, not full regression",
+    "Supplemental runners require preserved evidence/model inputs",
+    "Experimental H remains default-off and misa.H remains clear",
+    "No IRQ/fault cancellation draft included or executed",
+    "No restricted M-origin review, independent-clock simulation, Yosys, guest OS, FPGA or PPA qualification",
+    "CI status must be checked separately for the actual published commit"
+  ]
+}

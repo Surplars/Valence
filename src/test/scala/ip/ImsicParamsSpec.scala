@@ -18,4 +18,14 @@ class ImsicParamsSpec extends AnyFunSuite {
         val rtl = ChiselStage.emitCHIRRTL(new Imsic(ImsicParams(identities = 63, guestFiles = 63)))
         assert(rtl.contains("module Imsic") && !rtl.contains("IntegerBackend"))
     }
+    test("IMSIC admits exact address-space ends, adjacent windows and padding topologies") {
+        val limit = BigInt(1) << 64
+        assert(ImsicParams(machineBase = limit - 4096).machineBase + 4096 == limit)
+        for (g <- Seq(0, 1, 2, 3, 62, 63)) {
+            val bytes = ImsicParams(guestFiles = g).supervisorBytes
+            assert(ImsicParams(guestFiles = g, supervisorBase = limit - bytes).supervisorBase + bytes == limit)
+            assert(ImsicParams(guestFiles = g, machineBase = bytes, supervisorBase = 0).machineBase == bytes)
+        }
+    }
+
 }

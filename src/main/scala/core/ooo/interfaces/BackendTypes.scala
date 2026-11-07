@@ -35,6 +35,7 @@ class BackendCompletion(p: OooParams) extends Bundle {
     val exception = Bool()
     val cause     = UInt(64.W)
     val tval      = UInt(64.W)
+    val guestFault = if (p.hypervisorExperiment) Some(new GuestFaultMetadata) else None
 }
 
 class CommitRecord(p: OooParams) extends Bundle {
@@ -65,6 +66,7 @@ class HeadException(p: OooParams) extends Bundle {
     val pc    = UInt(64.W)
     val cause = UInt(64.W)
     val tval  = UInt(64.W)
+    val guestFault = if (p.hypervisorExperiment) Some(new GuestFaultMetadata) else None
 }
 
 private[ooo] class RobEntry(p: OooParams) extends Bundle {
@@ -81,4 +83,5 @@ private[ooo] class RobEntry(p: OooParams) extends Bundle {
     val exception      = Bool()
     val cause          = UInt(64.W)
     val tval           = UInt(64.W)
+    val guestFault = if (p.hypervisorExperiment) Some(new GuestFaultMetadata) else None
 }

@@ -62,8 +62,13 @@ class CommonMachinePlatform(
     val a1Experimental: Option[CommonA1ExperimentalSelection] = None,
     val peripheralConfig: CommonPeripheralConfig = CommonPeripheralConfig(),
     val cpuSpec: Option[CommonA1CpuSpec] = None,
-    val fabricDmaExperiment: Option[CommonFabricDmaExperiment] = None
+    val fabricDmaExperiment: Option[CommonFabricDmaExperiment] = None,
+    val experimentalHypervisor: Boolean = false
 ) extends RawModule {
+    require(!experimentalHypervisor || (profile.kind == "a1" && !runtimeDebugAdmission &&
+        !runtimeNetworkAdmission && !runtimeRateControl && !performanceTelemetry &&
+        !experimentalA1Runtime && a1Experimental.isEmpty && cpuSpec.isEmpty && fabricDmaExperiment.isEmpty),
+        "experimental H uses its explicit cacheless tile, without production A1/runtime experiments")
     val socConfig = CommonSocConfig(profile, cpuSpec, peripheralConfig, a1Experimental)
     socConfig.peripherals.validateRuntime(runtimeDebugAdmission, runtimeNetworkAdmission)
     require(!experimentalA1Runtime || (profile == CommonCpuProfile.A1Boot50 &&
@@ -197,7 +202,8 @@ class CommonMachinePlatform(
             externalTimer = independentTimebaseClock, runtimeDebugAdmission = runtimeDebugAdmission,
             runtimeNetworkAdmission = runtimeNetworkAdmission,
             dmaMaintenanceCompletionFlow = resolvedFabric.completionFlow,
-            dmaReadAcquireOverlap = resolvedFabric.readOverlap, dmaProbeAcquireOverlap = resolvedFabric.probeOverlap))
+            dmaReadAcquireOverlap = resolvedFabric.readOverlap, dmaProbeAcquireOverlap = resolvedFabric.probeOverlap,
+            experimentalGuestFiles = if (experimentalHypervisor) 3 else 0))
     }
     fabric.io.tile <> crossing.fabric
     fabric.io.transportCpuEmptySynchronized := crossing.cpuEmptyInFabric
@@ -569,6 +575,34 @@ class CommonMachinePlatform(
         io.trap.valid := cpu.io.trapTaken; io.trap.bits.pc := cpu.io.trapPc
         io.trap.bits.cause := cpu.io.trapCause
         io.cpuCycles := cpu.io.cycles; io.instructions := cpu.io.instructions
+    } else if (experimentalHypervisor) {
+        // Explicit conservative H integration. The default A1 implementation below
+        // retains its independent caches, concurrent owners and throughput profile.
+        val cpu = withClockAndReset(cpuClock, cpuRelease.resetOut) {
+            Module(new CommonHypervisorCpuTile(boundary = boundary, ramBytes = fabric.ramBytes,
+                romBytes = CommonPlatformAbi.romBytes,
+                mmioRegions = CommonPlatformAbi.cpuMmioRegions(peripheralConfig.features)))
+        }
+        crossing.cpu <> cpu.io.bus
+        cpu.io.enable := true.B; cpu.io.commitEnable := true.B
+        val commits = Seq(cpu.io.commit0, cpu.io.commit1)
+        for (i <- 0 until 2) {
+            io.retire(i).valid := commits(i).valid
+            io.retire(i).bits.pc := commits(i).bits.pc
+            io.retire(i).bits.instruction := commits(i).bits.instruction
+            io.retire(i).bits.nextPc := commits(i).bits.nextPc
+            io.retire(i).bits.rd := commits(i).bits.rd
+            io.retire(i).bits.writesRd := commits(i).bits.writesRd
+            io.retire(i).bits.data := commits(i).bits.data
+        }
+        io.trap.valid := cpu.io.trap.valid; io.trap.bits.pc := cpu.io.trap.bits.pc
+        io.trap.bits.cause := cpu.io.trap.bits.cause
+        val counters = withClockAndReset(cpuClock, cpuRelease.resetOut) {
+            val cycles = RegInit(0.U(64.W)); val retired = RegInit(0.U(64.W))
+            cycles := cycles + 1.U; retired := retired + PopCount(commits.map(_.valid))
+            (cycles, retired)
+        }
+        io.cpuCycles := counters._1; io.instructions := counters._2
     } else {
         val cpu = withClockAndReset(cpuClock, cpuRelease.resetOut) {
             Module(new CommonA1CpuTile(a1CpuConfig, boundary, a1MemoryProfile,
