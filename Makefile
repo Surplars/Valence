@@ -161,3 +161,7 @@ native-mac-boundary-cdc:
 .PHONY: gsim-hypervisor-platform-test
 gsim-hypervisor-platform-test:
 	python3 simulator/gsim/hypervisor_platform.py
+
+.PHONY: gsim-aia-guest-claims-test
+gsim-aia-guest-claims-test:
+	python3 simulator/gsim/aia_guest_claims.py
