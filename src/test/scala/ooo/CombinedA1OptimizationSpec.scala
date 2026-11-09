@@ -36,6 +36,21 @@ class CombinedA1OptimizationSpec extends AnyFunSuite {
         assert(fabric.completionFlow && fabric.readOverlap && fabric.probeOverlap)
         assert(fabric.fpga.ddr.maxOutstanding == 4 && fabric.fpga.ddr.maxOutstandingWrites == 2)
     }
+    test("MUL capture extends the delivered candidate by exactly one capability") {
+        val before = platform.CombinedA1FabricTimingConfig.cpu("efficiency4-candidate")
+        val after = platform.CombinedA1FabricTimingConfig.cpu("efficiency4-mul-candidate")
+        assert(after.copy(registeredMulLoadOperandCapture = false) == before)
+        assert(after.coreParams.copy(registeredMulLoadOperandCapture = false) == before.coreParams)
+        assert(after.bankedIndirectStorage && after.compactIssueImmediates && after.indirectTargetEntries == 16)
+        assert(!after.contextOwnedInstructionPrefetch && !after.loadPayloadNomination)
+        val policy = platform.CombinedA1FabricTimingConfig.memoryProfile("efficiency4-mul-candidate").get
+        assert(policy == CommonA1MemoryProfile.ExperimentalMulLoadOperandCapture)
+        policy.validate(after, platform.CombinedA1FabricTimingConfig.boundary)
+        assert(platform.CombinedA1FabricTimingConfig.fabric("efficiency4-candidate") ==
+            platform.CombinedA1FabricTimingConfig.fabric("efficiency4-mul-candidate"))
+        assert(platform.CombinedA1FabricTimingConfig.safeFetchRanges("efficiency4-candidate") ==
+            platform.CombinedA1FabricTimingConfig.safeFetchRanges("efficiency4-mul-candidate"))
+    }
     test("default identity omits only new inactive fields while experiments stay explicit") {
         val base = CommonCpuProfile.A1.fpga
         val before = platform.CommonCpuMicroarchitectureIdentity.configuration(base).obj

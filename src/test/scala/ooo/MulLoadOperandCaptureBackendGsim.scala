@@ -51,12 +51,15 @@ class MulLoadPhysicalWrite(p: OooParams) extends Bundle {
   * No selector/authority reimplementation, forced state, or test-mode credit exists.
   * This is a backend integration fixture, not a full fetch/cache/CPU model.
   */
-class MulLoadOperandCaptureBackendGsim(enabled: Boolean) extends Module {
+class MulLoadOperandCaptureBackendGsim(enabled: Boolean, combinedStorage: Boolean = false) extends Module {
     val profile = if (enabled) CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment
         else CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4
-    val config = profile.config
+    def storage(config: FpgaNextConfig): FpgaNextConfig = if (combinedStorage)
+        config.copy(indirectTargetEntries = 16, bankedIndirectStorage = true, compactIssueImmediates = true)
+        else config
+    val config = storage(profile.config)
     val p = config.coreParams
-    val control = CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4.config.coreParams
+    val control = storage(CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4.config).coreParams
     require(p == control.copy(registeredMulLoadOperandCapture = enabled))
     require(!p.contextOwnedInstructionPrefetch && !p.loadPayloadNomination)
     require(p.robEntries == 16 && p.physicalRegs == 48 && p.tagBits == 64 && p.memoryEntries == 4)

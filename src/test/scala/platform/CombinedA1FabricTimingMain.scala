@@ -15,19 +15,22 @@ object CombinedA1FabricTimingConfig {
     val boundary = profile.boundary
     val peripherals = CommonPeripheralConfig()
     def fabric(mode: String): CommonFabricDmaExperiment.Resolved = {
-        require(Set("candidate", "baseline", "unselected", "efficiency4-candidate", "efficiency4-baseline").contains(mode))
+        require(Set("candidate", "baseline", "unselected", "efficiency4-candidate", "efficiency4-baseline", "efficiency4-mul-candidate").contains(mode))
         CommonFabricDmaExperiment.resolve(profile, peripherals, boundary,
             if (mode == "unselected") None else Some(CommonFabricDmaExperiment.ProbeAcquire))
     }
     def cpu(mode: String) = {
-        val base = if (mode.startsWith("efficiency4-")) CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4.config
+        val base = if (mode == "efficiency4-mul-candidate")
+            CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment.config
+        else if (mode.startsWith("efficiency4-")) CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4.config
             else profile.fpga
         base.copy(indirectTargetEntries = 16,
             bankedIndirectStorage = mode.endsWith("candidate"),
             compactIssueImmediates = mode.endsWith("candidate"))
     }
     def memoryProfile(mode: String) =
-        if (mode.startsWith("efficiency4-")) CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4.memoryProfile else None
+        if (mode == "efficiency4-mul-candidate") CommonA1RebuildProfile.FullR1M3MulLoadOperandCaptureExperiment.memoryProfile
+        else if (mode.startsWith("efficiency4-")) CommonA1RebuildProfile.FullR1M3EfficiencyRefactor4.memoryProfile else None
     // Preserve the established third-fetch horizon's bounded physical RAM range.
     def safeFetchRanges(mode: String): Seq[SideEffectFreeFetchRange] =
         if (mode.startsWith("efficiency4-"))
@@ -101,7 +104,7 @@ class CombinedA1FabricTimingTop(mode: String) extends RawModule {
 
 object CombinedA1FabricTimingMain extends App {
     require(args.length == 3 || (args.length == 4 && args(3) == "--emit-chirrtl-only"),
-        "fresh-output-directory candidate|baseline|unselected|efficiency4-candidate|efficiency4-baseline compile-receipt [--emit-chirrtl-only]")
+        "fresh-output-directory candidate|baseline|unselected|efficiency4-candidate|efficiency4-baseline|efficiency4-mul-candidate compile-receipt [--emit-chirrtl-only]")
     val output = Paths.get(args(0)).toAbsolutePath.normalize
     require(!Files.exists(output), "fresh output required")
     val root = Paths.get(sys.props("chisel.project.root")).toAbsolutePath.normalize
