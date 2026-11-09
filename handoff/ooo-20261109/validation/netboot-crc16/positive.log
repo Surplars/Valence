@@ -1,0 +1,1 @@
+PASS_CRC16_ORACLE direct_cases=328640 chained_cases=525792 alignments=8 lengths=0..2048+5boundaries patterns=4 initial_crc=5 independent_bitwise=all known_vector=CBF43926

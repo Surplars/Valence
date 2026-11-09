@@ -1,0 +1,30 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/cloud-tools-20261030-r2/generation/home -Xmx4g -XX:ActiveProcessorCount=4 -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+[0.001s][warning][perf,memops] Cannot use file /tmp/hsperfdata_agent/9 because it is locked by another process (errno = 11)
+[36mRun starting. Expected test count is: 6[0m
+[32mEthernetRxPrefetchMergeSpec:[0m
+[32m- prefetch remains opt-in with independent validated export switches[0m
+[32m- DMA prefetch composes with bounded descriptors and runtime ownership[0m
+[warn] src/main/scala/ip/ethernet/GmiiFrameRx.scala 138:30: [W004] Dynamic index with width 1 is too wide for Vec of size 1 (expected index width 0).
+[warn]             length := lengths(consumer)
+[warn]                              ^
+[warn] src/main/scala/ip/ethernet/GmiiFrameRx.scala 239:24: [W004] Dynamic index with width 1 is too wide for Vec of size 1 (expected index width 0).
+[warn]                 lengths(producer) := bodyBytes
+[warn]                        ^
+[warn] There were 2 warning(s) during hardware elaboration.
+[warn] src/main/scala/ip/ethernet/GmiiFrameRx.scala 118:30: [W004] Dynamic index with width 1 is too wide for Vec of size 1 (expected index width 0).
+[warn]             length := lengths(consumer)
+[warn]                              ^
+[warn] src/main/scala/ip/ethernet/GmiiFrameRx.scala 239:24: [W004] Dynamic index with width 1 is too wide for Vec of size 1 (expected index width 0).
+[warn]                 lengths(producer) := bodyBytes
+[warn]                        ^
+[warn] There were 2 warning(s) during hardware elaboration.
+[32m- MAC prefetch composes with single and multiple banks and runtime diagnostics[0m
+[32mEthernetPacketDmaSpec:[0m
+[32m- frame DMA rejects bad regions/capacities and has independent TX/RX staging RAMs[0m
+[32m- network DMA is opt-in and actual MAC integration crosses all four streams[0m
+[32m- runtime packet admission is explicit and leaves default ports absent[0m
+[36mRun completed in 6 seconds, 671 milliseconds.[0m
+[36mTotal number of tests run: 6[0m
+[36mSuites: completed 2, aborted 0[0m
+[36mTests: succeeded 6, failed 0, canceled 0, ignored 0, pending 0[0m
+[32mAll tests passed.[0m

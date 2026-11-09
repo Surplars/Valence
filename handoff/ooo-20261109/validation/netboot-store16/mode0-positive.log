@@ -1,0 +1,1 @@
+PASS_STORE16_ORACLE cases=393408 range_cases=20 guard_page_cases=130 source_alignments=8 destination_alignments=8 lengths=0..2048 patterns=3

@@ -1,0 +1,48 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/cloud-tools-20261030-r2/generation/home -Xmx4g -XX:ActiveProcessorCount=4 -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/workspace/scratch/41e4a649bb60/cloud-tools-20261030-r2/generation/home -Xmx4g -XX:ActiveProcessorCount=4 -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+mill IonSoC.test.compile
+build.mill-68] compile compiling 1 Scala source to out/mill-build/compile.dest/classes ...
+build.mill-68] done compiling
+134] mill.javalib.JvmWorkerModule/internalWorker Compiling compiler interface...
+150] IonSoC.compile compiling 33 Scala sources to out/IonSoC/compile.dest/classes ...
+150] [warn] src/main/scala/core/inorder/FiveStageBranchPredictor.scala:64:52
+150]     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+150]                                                    ^^^^^^^^^^^^^^^^^^^
+150] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+150] 
+150] [warn] src/main/scala/core/inorder/FiveStageWordCache.scala:228:56
+150]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+150]                                                        ^^^^^^^^^^^^^^^^^^^
+150] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+150] 
+150] [warn] two warnings found
+150] done compiling
+150] compiling 63 Scala sources to out/IonSoC/compile.dest/classes ...
+150] [warn] src/main/scala/core/inorder/FiveStageBranchPredictor.scala:64:52
+150]     chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+150]                                                    ^^^^^^^^^^^^^^^^^^^
+150] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+150] 
+150] [warn] src/main/scala/core/inorder/FiveStageWordCache.scala:228:56
+150]         chisel3.experimental.annotate(this)(Seq(firrtl.AttributeAnnotation(this.toNamed,
+150]                                                        ^^^^^^^^^^^^^^^^^^^
+150] class AttributeAnnotation in package firrtl is deprecated (since Chisel 7.0.0): All APIs in package firrtl are deprecated.
+150] 
+150] [warn] two warnings found
+150] done compiling
+153] IonSoC.test.compile compiling 205 Scala sources to out/IonSoC/test/compile.dest/classes ...
+152/153] mill IonSoC.test.compile 60s
+153] IonSoC.test.compile 1s
+153] [warn] src/test/scala/platform/CoexistingPhysicalLoadIngressSpec.scala:50:13
+153]         val export = CommonA1RebuildTileArguments.parse(
+153]             ^
+153] Wrap `export` in backticks to use it as an identifier, it will become a keyword in Scala 3. [quickfixable]
+153] 
+153] [warn] src/test/scala/platform/LoadPayloadNominationSpec.scala:48:13
+153]         val export = CommonA1RebuildTileArguments.parse(
+153]             ^
+153] Wrap `export` in backticks to use it as an identifier, it will become a keyword in Scala 3. [quickfixable]
+153] 
+153] [warn] two warnings found
+153] done compiling
+153/153, SUCCESS] mill IonSoC.test.compile 86s

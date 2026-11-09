@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/shared/Valence-ooo-handoff/delivery/combined-20261108/run_focused.py", line 56, in <module>
+    main()
+  File "/workspace/shared/Valence-ooo-handoff/delivery/combined-20261108/run_focused.py", line 46, in main
+    compact_issue_immediate.main()
+  File "/workspace/shared/Valence-ooo-handoff/simulator/gsim/compact_issue_immediate.py", line 41, in main
+    gsim, cxx = common.setup(False)
+                ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/shared/Valence-ooo-handoff/simulator/gsim/run.py", line 51, in setup
+    return gsim_initialization_setup.setup(fetch, sys.modules[__name__])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/shared/Valence-ooo-handoff/simulator/gsim/gsim_initialization_setup.py", line 85, in setup
+    raise RuntimeError('verified repaired GSIM epoch missing; run make gsim-setup '
+RuntimeError: verified repaired GSIM epoch missing; run make gsim-setup or set VALENCE_GSIM_INIT_RECEIPT to a qualified receipt

@@ -1,0 +1,1 @@
+PASS_SUM16_ORACLE direct_cases=458976 chained_cases=196704 alignments=8 lengths=0..2048 patterns=4 initial_sums=7 ASan_UBSan=enabled

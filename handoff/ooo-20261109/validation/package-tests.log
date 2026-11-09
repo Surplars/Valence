@@ -1,0 +1,7 @@
+test_external_memory_rejected (test_package.PackageTests.test_external_memory_rejected) ... ok
+test_round_trip_and_tamper (test_package.PackageTests.test_round_trip_and_tamper) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.098s
+
+OK
