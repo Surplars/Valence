@@ -1,0 +1,17 @@
+[
+  {
+    "file": "rtl/IntegerBackend.sv",
+    "baseline_sha256": "b727aca96cf78114bc51d477cd7797f7546d644c5a680dff6e2875c28718941b",
+    "candidate_sha256": "1bd0967e944a2394c7d53bc7db90b9edd36c4bd7f33b54c886d20a96a6e66054"
+  },
+  {
+    "file": "rtl/TileLinkAxi4BurstBridge.sv",
+    "baseline_sha256": "f328ef2e2805be00017bdf43331f021704661d44a636e5a734e1da426a620de6",
+    "candidate_sha256": "655f8004ba0a0c2a11de835f4e56740ebfe1ea96618cdc75d71885118e85b5b3"
+  },
+  {
+    "file": "rtl/TileLinkAxi4OutstandingBridge.sv",
+    "baseline_sha256": "4f1e2b6c875d90d5d55b1a774825e01e9d939f172ba8af82c31ba38590cad4de",
+    "candidate_sha256": "979a8c2ccbc791e14befb37c90c4b6331ff589bf9119025f40aba84d40ce2026"
+  }
+]

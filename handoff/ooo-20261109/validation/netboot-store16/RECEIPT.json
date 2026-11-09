@@ -1,0 +1,42 @@
+{
+  "inputs": {
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/netboot_board.c": "cafb72604c263de62d680cd8f548def794f653990d0488f84872ebd54093899b",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/netboot_store16_oracle.c": "e9136fbcec1c498cc2a8bbb20cc8d0491659606cfc9c6dd53dd2e924357c7375",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/store16-original.inc": "0dc8a534b99a7f45246d14dc5bbd63a6832771221791277f83812cc583665c82",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/store16-candidate.inc": "782fc951958ef16a9220f916d69e0ebc6b44cf397a1ac1d285f3162d6e840808",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/netboot_copy.h": "c122712b85fbae488152ef542b57f6b0e4edd65c11a23fcd4318d4cb4081edee",
+    "/workspace/shared/Valence-store-merge-review/scripts/test_netboot_store16.py": "dce976a6a8eaf2c1f5aa8f687c7d5b1024dce73d46cf1c690e59d126e33247bf"
+  },
+  "tools": {
+    "/usr/bin/gcc": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f"
+  },
+  "files": {
+    "mode0-positive-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mode0-negative": "7f4d5c919afbbe4688e15f4c2df29c82b9c7155f3d206d3fdc7b1c2be200065b",
+    "mode1-negative-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "negative.log": "ae83ef3426a0a3492412e8eadbf035e5844f87720d707ca07486ff6efd18e3e9",
+    "mode0-positive-run.json": "f0be3a4f67051a1964b423a20ce74a17c7b9bf06b7c3c9606111a59d216a78b0",
+    "positive-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "negative": "7ef56c781997d10ccdf3adeb2dfdc078034c1af5506decc4ac71f24676af5197",
+    "positive.log": "143acca7c25b1b17ac1e951a8bb0e08fc7c5af12945395fbcf6aa6e190bbbba4",
+    "mode0-negative-run.json": "ce8ab79b5fa4fd2da92b9b8784615bc465248e508fe70d00e37019037819916e",
+    "negative-run.json": "f7730181b6a80b9a052db8b1a757ec871c4302a40a3a52b34e07cfb20236a3ee",
+    "mode1-positive": "7c347d67a461d58a184d61969f4f845ecbbb7959afcf5286dfb43e338e326e30",
+    "mode1-negative.log": "ae83ef3426a0a3492412e8eadbf035e5844f87720d707ca07486ff6efd18e3e9",
+    "mode1-positive.log": "143acca7c25b1b17ac1e951a8bb0e08fc7c5af12945395fbcf6aa6e190bbbba4",
+    "mode1-positive-run.json": "c3324d61003edefd9a24a798993b1f596b5bc11a2b5cff60231ee020d03aa910",
+    "mode0-negative-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "positive": "e7610706cbdc657d9801eaedef02f77ab0f012726160cc77876da2912693a16f",
+    "mode1-negative": "401c8981a713b46a3e43e52bb416f757404974b9713a3613abf486ac1f610e98",
+    "mode1-negative-run.json": "bbd89557f6f3c2635abd9efac13adb10b7b5664ea90209dd535f7c19b50916e6",
+    "commands.json": "d652f0a35bd4a3e61ced8c14ec9dc3ab4857ed25fb722e9aa787942418e22256",
+    "mode0-positive.log": "143acca7c25b1b17ac1e951a8bb0e08fc7c5af12945395fbcf6aa6e190bbbba4",
+    "mode1-positive-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mode0-negative.log": "ae83ef3426a0a3492412e8eadbf035e5844f87720d707ca07486ff6efd18e3e9",
+    "negative-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "positive-run.json": "95fd49627941a4e3033a059e1d0667a4e51e87ec0bea19d4cf2f91e395a6dc5d",
+    "mode0-positive": "0c2816d1425ef25d2a89e644f655692190ee2ad44127e1181b7ad9643ef5944d",
+    "RECEIPT.json": "04e5078ea77d0ef3788f1bdc0ea2fbdf6af2f84805112e36030e847f8b1e0978"
+  },
+  "free": 57823064064
+}

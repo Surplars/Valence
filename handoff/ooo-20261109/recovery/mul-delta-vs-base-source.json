@@ -1,0 +1,68 @@
+[
+  {
+    "path": "delivery/mul-capture-20261108/README.md",
+    "status": "added",
+    "sha256": "1c139ee6471ae7b248643bb191d6f99ec5c73800fbe4e55d31d1c8593360216e",
+    "prior_sha256": null
+  },
+  {
+    "path": "delivery/mul-capture-20261108/check_delta.py",
+    "status": "added",
+    "sha256": "b3d9052f419907c3af4571a3e6161792d3e81653160825f56e3c8b621b824a9b",
+    "prior_sha256": null
+  },
+  {
+    "path": "delivery/mul-capture-20261108/implement.tcl",
+    "status": "added",
+    "sha256": "555a133b7137375d9c4ed0954061e1c04ce0899d3f58b52f71ad1a156590d517",
+    "prior_sha256": null
+  },
+  {
+    "path": "delivery/mul-capture-20261108/make_delivery.py",
+    "status": "added",
+    "sha256": "fbf862fa013a48e48c663f8600c4a0c6d5928eefc34b6f25af64171ea2edf12a",
+    "prior_sha256": null
+  },
+  {
+    "path": "delivery/mul-capture-20261108/package_rtl.py",
+    "status": "added",
+    "sha256": "a5b9b96bdc03bf161533f5ccbcdb29b1c709cfc906830ae41a9bc5efe231637f",
+    "prior_sha256": null
+  },
+  {
+    "path": "delivery/mul-capture-20261108/run_backend.py",
+    "status": "added",
+    "sha256": "c9b63a4d4442eb722ca7b29b40d1423ce67b5928c62cfaf902b6b63fd7f7db3c",
+    "prior_sha256": null
+  },
+  {
+    "path": "delivery/mul-capture-20261108/run_local.py",
+    "status": "added",
+    "sha256": "020ba73e202f99d74818e2d1d1014cd503acd49937adadf26a7260ef9140db97",
+    "prior_sha256": null
+  },
+  {
+    "path": "src/test/scala/ooo/CombinedA1OptimizationSpec.scala",
+    "status": "changed",
+    "sha256": "c5f67eeb9b41cde0ef5f9dd0e1f4d52421011651f2f4ef8b4b5d046f65dba379",
+    "prior_sha256": "4272217c04ccd17b54aad6c9e8bac5db0997000dae43aa1dcc9865cd5325fa33"
+  },
+  {
+    "path": "src/test/scala/ooo/MulLoadOperandCaptureBackendGsim.scala",
+    "status": "changed",
+    "sha256": "1c6354781a9e6b25b9184504dcb80397fa816eb787f1e70967b3f62d51188982",
+    "prior_sha256": "99b7f009b47ff2b8a0d37a20912182eb1581c33265b13b655c0eb5c18e5b6335"
+  },
+  {
+    "path": "src/test/scala/ooo/MulLoadOperandCaptureBackendGsimMain.scala",
+    "status": "changed",
+    "sha256": "99efa7de0716eca08c7c136f64969dafaaf4e4a839efe893bb8272de708bd596",
+    "prior_sha256": "fc97129457c7ac55dd568a553efa50bb1973770d2b34f96430840a2f50c54eee"
+  },
+  {
+    "path": "src/test/scala/platform/CombinedA1FabricTimingMain.scala",
+    "status": "changed",
+    "sha256": "e06a694397a95dfe13642d30618082a08769178ca949a533c6ed9e29ed0333c8",
+    "prior_sha256": "6cf966e56de6e623995579477256584ccd6ae92e1f96830bb698cd1a30913d55"
+  }
+]

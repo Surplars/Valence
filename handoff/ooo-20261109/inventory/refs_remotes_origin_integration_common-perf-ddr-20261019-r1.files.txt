@@ -1,0 +1,6 @@
+A	simulator/gsim/common/cpu_perf_ddr.py
+A	simulator/gsim/common/cpu_perf_ddr_20261019.json
+A	simulator/gsim/common/cpu_perf_ddr_README.md
+A	simulator/gsim/common/cpu_perf_ddr_loader.S
+A	simulator/gsim/common/cpu_perf_ddr_monitor.sv
+A	simulator/gsim/common/cpu_perf_ddr_report_20261019.md

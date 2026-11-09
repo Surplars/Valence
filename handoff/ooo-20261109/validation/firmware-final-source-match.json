@@ -1,0 +1,87 @@
+[
+  {
+    "path": "fpga/firmware/netboot_board.c",
+    "sha256": "cafb72604c263de62d680cd8f548def794f653990d0488f84872ebd54093899b",
+    "suite": "store16"
+  },
+  {
+    "path": "fpga/firmware/tests/netboot_store16_oracle.c",
+    "sha256": "e9136fbcec1c498cc2a8bbb20cc8d0491659606cfc9c6dd53dd2e924357c7375",
+    "suite": "store16"
+  },
+  {
+    "path": "fpga/firmware/tests/store16-original.inc",
+    "sha256": "0dc8a534b99a7f45246d14dc5bbd63a6832771221791277f83812cc583665c82",
+    "suite": "store16"
+  },
+  {
+    "path": "fpga/firmware/tests/store16-candidate.inc",
+    "sha256": "782fc951958ef16a9220f916d69e0ebc6b44cf397a1ac1d285f3162d6e840808",
+    "suite": "store16"
+  },
+  {
+    "path": "fpga/firmware/netboot_copy.h",
+    "sha256": "c122712b85fbae488152ef542b57f6b0e4edd65c11a23fcd4318d4cb4081edee",
+    "suite": "store16"
+  },
+  {
+    "path": "scripts/test_netboot_store16.py",
+    "sha256": "dce976a6a8eaf2c1f5aa8f687c7d5b1024dce73d46cf1c690e59d126e33247bf",
+    "suite": "store16"
+  },
+  {
+    "path": "fpga/firmware/crc32.c",
+    "sha256": "2bfde354f870a21562a6a41e37f0b41c7ddd984c430ed6aff08aae57ae6b6c88",
+    "suite": "crc16"
+  },
+  {
+    "path": "fpga/firmware/crc32.h",
+    "sha256": "553fae8ca8f8f03f4c872c4850b2c7c541c3aa43821354cbb8fbf44055542878",
+    "suite": "crc16"
+  },
+  {
+    "path": "fpga/firmware/tests/crc16-original.inc",
+    "sha256": "ce8545969e2d3f7fd52cdd2dbac3d12a84e954d5ba26b655b390cf838e5b4dd8",
+    "suite": "crc16"
+  },
+  {
+    "path": "fpga/firmware/tests/crc16-candidate.inc",
+    "sha256": "a683ac34b3ce428f94dad07e5d69b7aea9e3fc5cdde11a3e5d082e43d320a7be",
+    "suite": "crc16"
+  },
+  {
+    "path": "fpga/firmware/tests/netboot_crc16_oracle.c",
+    "sha256": "aba5167eaee04d9fb44a00d053417b4a4491da21da24a750f1eadc5283dbfba1",
+    "suite": "crc16"
+  },
+  {
+    "path": "scripts/test_netboot_crc16.py",
+    "sha256": "28d46044557a245d8815e9832fd5b60a2ef93316d07afb8730a2a909d9fd9620",
+    "suite": "crc16"
+  },
+  {
+    "path": "fpga/firmware/netboot.c",
+    "sha256": "0251d8e7759f71c89b8a6ea149aceb61af3936646b5d62355990e2f972d5917a",
+    "suite": "sum16"
+  },
+  {
+    "path": "fpga/firmware/tests/netboot_sum16_oracle.c",
+    "sha256": "e6a7a041ea17b3ce3666af16d5afa1d40ad4cd0ad5d499c32cf9f263a8a71358",
+    "suite": "sum16"
+  },
+  {
+    "path": "fpga/firmware/tests/sum16-original.inc",
+    "sha256": "6ec0e86259b8853529b2b47eea561ccd24d6f6c8071fff509a587336bb09509f",
+    "suite": "sum16"
+  },
+  {
+    "path": "fpga/firmware/tests/sum16-candidate.inc",
+    "sha256": "de7b253e8393a97c07dba13e7a2b596d33d384e065fff011c4c0995f41ff70e8",
+    "suite": "sum16"
+  },
+  {
+    "path": "scripts/test_netboot_sum16.py",
+    "sha256": "d75b1561610a9b0680d1c784f75f69d8bcb3fdcdd562ce0a72e5a94fde74cc29",
+    "suite": "sum16"
+  }
+]

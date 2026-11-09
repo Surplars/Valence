@@ -1,0 +1,98 @@
+[
+  {
+    "ref": "refs/heads/dev/a1-coexisting-load-ingress-20261027",
+    "sha": "fbdb3386c30603d3f4039389a537f18a5ae508f8",
+    "base_only_branch_only": "26\t2",
+    "merge_base": "6cd65cc53619f05610a75381399ad2a6f9733658"
+  },
+  {
+    "ref": "refs/heads/integration/all-compatible-20261108",
+    "sha": "e437ba20960a7123ba60e7a91f3dbeec86117b8c",
+    "base_only_branch_only": "0\t0",
+    "merge_base": "e437ba20960a7123ba60e7a91f3dbeec86117b8c"
+  },
+  {
+    "ref": "refs/heads/main",
+    "sha": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1",
+    "base_only_branch_only": "156\t0",
+    "merge_base": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1"
+  },
+  {
+    "ref": "refs/remotes/origin/HEAD",
+    "sha": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1",
+    "base_only_branch_only": "156\t0",
+    "merge_base": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1"
+  },
+  {
+    "ref": "refs/remotes/origin/candidate/ethernet-rx-prefetch-20261017-r1",
+    "sha": "dfbf297698efcc099683c8ebc012b0962742a885",
+    "base_only_branch_only": "161\t1",
+    "merge_base": "84ba5c0a1fa2d09b7792392edc27b154f97244a0"
+  },
+  {
+    "ref": "refs/remotes/origin/candidate/store-full-line-policy-20261017-r1",
+    "sha": "a88841aeac4eb9f746ff4ba435832691dd6737a1",
+    "base_only_branch_only": "161\t10",
+    "merge_base": "84ba5c0a1fa2d09b7792392edc27b154f97244a0"
+  },
+  {
+    "ref": "refs/remotes/origin/dev/a1-coexisting-load-ingress-20261027",
+    "sha": "08dfdeacc4de76e210959b544a18cf1b2259fb10",
+    "base_only_branch_only": "25\t0",
+    "merge_base": "08dfdeacc4de76e210959b544a18cf1b2259fb10"
+  },
+  {
+    "ref": "refs/remotes/origin/dev/a1-inorder-opt-20261103",
+    "sha": "b047cf4a337b710fb59b0403a916417a82eb295a",
+    "base_only_branch_only": "19\t3",
+    "merge_base": "a9986aac35c5263a854278ee1dc7330cd8cdd813"
+  },
+  {
+    "ref": "refs/remotes/origin/dev/a1-nax-inspired-300m-20261024",
+    "sha": "1ea8336326a1922aeb15b96fcdef04c17beff251",
+    "base_only_branch_only": "40\t0",
+    "merge_base": "1ea8336326a1922aeb15b96fcdef04c17beff251"
+  },
+  {
+    "ref": "refs/remotes/origin/dev/hypervisor-aia-gsim-20261107",
+    "sha": "e437ba20960a7123ba60e7a91f3dbeec86117b8c",
+    "base_only_branch_only": "0\t0",
+    "merge_base": "e437ba20960a7123ba60e7a91f3dbeec86117b8c"
+  },
+  {
+    "ref": "refs/remotes/origin/dev/verified-a1-source-20261106",
+    "sha": "a6448d9165f9c3c95456fab5895dd66d818c66aa",
+    "base_only_branch_only": "18\t0",
+    "merge_base": "a6448d9165f9c3c95456fab5895dd66d818c66aa"
+  },
+  {
+    "ref": "refs/remotes/origin/experiment/instruction-final-response-flow32-20261102",
+    "sha": "bd2b6e4ab19695708f2768ce7e15a6b94f79e5f2",
+    "base_only_branch_only": "25\t2",
+    "merge_base": "08dfdeacc4de76e210959b544a18cf1b2259fb10"
+  },
+  {
+    "ref": "refs/remotes/origin/integration/common-perf-ddr-20261019-r1",
+    "sha": "5b8fa056870c134849f9aa20fe93062b588c67df",
+    "base_only_branch_only": "155\t1",
+    "merge_base": "a49a28b1296d216770573f4b08585a24e1d2dfbe"
+  },
+  {
+    "ref": "refs/remotes/origin/main",
+    "sha": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1",
+    "base_only_branch_only": "156\t0",
+    "merge_base": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1"
+  },
+  {
+    "ref": "refs/remotes/origin/recovery/common-idle-source-20261021-r1",
+    "sha": "dbae188e67880f1c5556a93de9fc252ac8b8503f",
+    "base_only_branch_only": "51\t0",
+    "merge_base": "dbae188e67880f1c5556a93de9fc252ac8b8503f"
+  },
+  {
+    "ref": "refs/remotes/origin/recovery/w14-banked-indirect-20261105",
+    "sha": "f52faf98b64c777d69e6d2aaab624f0c94c7f877",
+    "base_only_branch_only": "156\t1",
+    "merge_base": "f1013f21d4aa4633428e9c2da5166cc1c2ac08a1"
+  }
+]

@@ -1,0 +1,55 @@
+{
+  "sources": {
+    "fpga/firmware/netboot.c": "0251d8e7759f71c89b8a6ea149aceb61af3936646b5d62355990e2f972d5917a",
+    "fpga/firmware/tests/netboot_sum16_oracle.c": "e6a7a041ea17b3ce3666af16d5afa1d40ad4cd0ad5d499c32cf9f263a8a71358",
+    "fpga/firmware/tests/sum16-original.inc": "6ec0e86259b8853529b2b47eea561ccd24d6f6c8071fff509a587336bb09509f",
+    "fpga/firmware/tests/sum16-candidate.inc": "de7b253e8393a97c07dba13e7a2b596d33d384e065fff011c4c0995f41ff70e8",
+    "scripts/test_netboot_sum16.py": "d75b1561610a9b0680d1c784f75f69d8bcb3fdcdd562ce0a72e5a94fde74cc29"
+  },
+  "results": {
+    "positive": {
+      "exit": 0,
+      "command": [
+        "gcc",
+        "-O2",
+        "-std=gnu11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wstrict-aliasing=2",
+        "-fstrict-aliasing",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-fno-omit-frame-pointer",
+        "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/netboot_sum16_oracle.c",
+        "-o",
+        "/workspace/shared/Valence-store-merge-review/build/netboot-sum16-native/positive"
+      ],
+      "log_sha256": "e3e813c9a8ffa001e50c552d7864408b39b41b455a2adaa8fa8f66c743beccc0",
+      "binary_sha256": "6b16499f014ebc5665aa86e7d1e593acb61630c9946bb2e380f7cb51df1fded4"
+    },
+    "negative": {
+      "exit": 1,
+      "command": [
+        "gcc",
+        "-O2",
+        "-std=gnu11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wstrict-aliasing=2",
+        "-fstrict-aliasing",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-fno-omit-frame-pointer",
+        "-DORACLE_NEGATIVE",
+        "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/netboot_sum16_oracle.c",
+        "-o",
+        "/workspace/shared/Valence-store-merge-review/build/netboot-sum16-native/negative"
+      ],
+      "log_sha256": "9a15306b82a8fd61099150eaa3742dcf03cd1176eadab57c703d967132f51708",
+      "binary_sha256": "572b2335c54b8c5aa8210ae14922a09e7d1fc50ef97027d8b7ec6718c6042584"
+    }
+  },
+  "ASAN_OPTIONS": "detect_leaks=0"
+}

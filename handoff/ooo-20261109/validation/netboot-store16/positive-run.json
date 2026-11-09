@@ -1,0 +1,8 @@
+{
+  "exit": 0,
+  "seconds": 2.6229526690000284,
+  "command": [
+    "/workspace/shared/Valence-store-merge-review/build/netboot-store16-native/positive"
+  ],
+  "ASAN_OPTIONS": "detect_leaks=0"
+}

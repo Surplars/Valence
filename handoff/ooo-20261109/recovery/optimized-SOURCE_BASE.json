@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/Surplars/Valence",
+  "base_commit": "e437ba20960a7123ba60e7a91f3dbeec86117b8c",
+  "branch": "integration/all-compatible-20261108",
+  "source_files": 7231,
+  "working_tree_changes_included": true,
+  "git_metadata_included": false,
+  "external_submodules": "NEMU, difftest, riscv-tests contents not included; no runtime dependency for local Vivado. HardFloat source included."
+}

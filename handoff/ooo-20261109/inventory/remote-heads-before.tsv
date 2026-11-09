@@ -1,0 +1,9 @@
+dfbf297698efcc099683c8ebc012b0962742a885	refs/heads/candidate/ethernet-rx-prefetch-20261017-r1
+a88841aeac4eb9f746ff4ba435832691dd6737a1	refs/heads/candidate/store-full-line-policy-20261017-r1
+b047cf4a337b710fb59b0403a916417a82eb295a	refs/heads/dev/a1-inorder-opt-20261103
+e437ba20960a7123ba60e7a91f3dbeec86117b8c	refs/heads/dev/hypervisor-aia-gsim-20261107
+a6448d9165f9c3c95456fab5895dd66d818c66aa	refs/heads/dev/verified-a1-source-20261106
+bd2b6e4ab19695708f2768ce7e15a6b94f79e5f2	refs/heads/experiment/instruction-final-response-flow32-20261102
+5b8fa056870c134849f9aa20fe93062b588c67df	refs/heads/integration/common-perf-ddr-20261019-r1
+f1013f21d4aa4633428e9c2da5166cc1c2ac08a1	refs/heads/main
+f52faf98b64c777d69e6d2aaab624f0c94c7f877	refs/heads/recovery/w14-banked-indirect-20261105

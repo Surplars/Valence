@@ -1,0 +1,67 @@
+{
+  "status": "ALL_AVAILABLE_BRANCH_HEADS_MERGED_SOURCE_AND_FOCUSED_CHECKS_PASS_TIMING_SOURCE_GAP",
+  "code_commit": "9f9d72f20e2361e696cdd1b0ceccfc20a42adc4c",
+  "final_compile": "PASS IonSoC.test.compile (includes IonSoC + HardFloatLib)",
+  "source_inputs_count": 1254,
+  "scala_tests": {
+    "contracts": {
+      "suites": 6,
+      "passed": 24
+    },
+    "ethernet": {
+      "suites": 2,
+      "passed": 6
+    },
+    "total_passed": 30
+  },
+  "firmware_oracles": {
+    "store16": {
+      "modes": [
+        0,
+        1
+      ],
+      "each_positive": 393408,
+      "each_range": 20,
+      "each_guard_pages": 130,
+      "negative_controls": "PASS expected mismatch in each mode"
+    },
+    "crc16": {
+      "direct": 328640,
+      "chained": 525792,
+      "negative_control": "PASS"
+    },
+    "sum16": {
+      "direct": 458976,
+      "chained": 196704,
+      "negative_control": "PASS"
+    },
+    "sanitizers": "ASan/UBSan, strict aliasing",
+    "source_binding": "All input hashes from exact tested merge-review tree match this final tree"
+  },
+  "packaging_tests": {
+    "passed": 2
+  },
+  "source_recovery": {
+    "mul_compile_inputs_exact": 1239,
+    "mul_compile_inputs_total": 1239,
+    "timing_inputs_exact": 1229,
+    "timing_inputs_total": 1248,
+    "timing_missing": 19
+  },
+  "gsim_current": "BLOCKED before hardware run: verified repaired GSIM epoch missing; no workaround used",
+  "history": "All 16 original ref records are ancestors; 7 true two-parent merges, no ours strategy",
+  "not_run": [
+    "full GSIM",
+    "whole CPU/fabric workload",
+    "NEMU for merged candidate",
+    "CoreMark",
+    "long Linux",
+    "Vivado synthesis/place/route",
+    "board",
+    "physical CDC signoff",
+    "bitstream"
+  ],
+  "historical_evidence": "W11/W14/MUL/timing evidence retains original identity; not requalified for new merge",
+  "original_worktrees": "Preserved; no reset/clean; new independent worktree only",
+  "timing_blocker": "Missing source commit 78b4b4298d866a97f1c2804ca299b785639ab7a3; same remote returned not our ref. Original RTL artifact preserved, source not guessed."
+}

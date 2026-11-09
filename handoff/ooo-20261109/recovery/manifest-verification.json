@@ -1,0 +1,12 @@
+[
+  {
+    "root": "/workspace/shared/ooo-consolidation-audit/timing/Valence-zero-latency-timing-20261108",
+    "entries": 654,
+    "mismatches": []
+  },
+  {
+    "root": "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108",
+    "entries": 8381,
+    "mismatches": []
+  }
+]

@@ -1,0 +1,279 @@
+diff --git a/src/main/scala/core/ooo/config/FpgaNextConfig.scala b/src/main/scala/core/ooo/config/FpgaNextConfig.scala
+index 7967d47..ac92dd3 100644
+--- a/src/main/scala/core/ooo/config/FpgaNextConfig.scala
++++ b/src/main/scala/core/ooo/config/FpgaNextConfig.scala
+@@ -147,8 +147,16 @@ final case class FpgaNextConfig(
+     // None preserves the exact selected topology; this is not a new public default.
+     branchPredictorEntriesOverride: Option[Int] = None,
+     dmaLineThresholdRewrite: Boolean = false,
+-    dmaSingleReadWait: Boolean = false
++    dmaSingleReadWait: Boolean = false,
++    // Explicit combined-source experiment. Public Selected remains unchanged.
++    indirectTargetEntries: Int = 0,
++    bankedIndirectStorage: Boolean = false,
++    compactIssueImmediates: Boolean = false
+ ) {
++    require(Set(0, 16, 32, 64).contains(indirectTargetEntries))
++    require(!bankedIndirectStorage || indirectTargetEntries == 16,
++        "banked indirect storage requires the logical sixteen-entry table")
++    require(!compactIssueImmediates || optimized, "compact immediates require the banked issue payload profile")
+     require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
+         registeredMemoryOperandCapture && sharedMulDivOperandReads &&
+         !contextOwnedInstructionPrefetch && !loadPayloadNomination),
+@@ -374,6 +382,9 @@ final case class FpgaNextConfig(
+         (if (preparedBareHeadStoreOperands) "-prepared-bare-head-store" else "") +
+         (if (bankedRobCompletionData) "-banked-rob-completion-data" else "") +
+         (if (coexistingPhysicalLoadIngress) "-coexisting-physical-load-ingress" else "") +
++        (if (indirectTargetEntries != 0) s"-indirect$indirectTargetEntries" else "") +
++        (if (bankedIndirectStorage) "-banked-indirect" else "") +
++        (if (compactIssueImmediates) "-compact-issue-immediates" else "") +
+         (if (loadPayloadNomination) "-load-payload-nomination" else "") +
+         (if (contextOwnedInstructionPrefetch) "-context-owned-instruction-prefetch" else "") +
+         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
+@@ -567,6 +578,9 @@ final case class FpgaNextConfig(
+             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
+         backendCapacity = backendCapacity)
+         base.copy(
++            indirectTargetEntries = indirectTargetEntries,
++            bankedIndirectStorage = bankedIndirectStorage,
++            compactIssueImmediates = compactIssueImmediates,
+             branchPredictorEntries = branchPredictorEntriesOverride.getOrElse(base.branchPredictorEntries),
+             completionTopology = completionTopology,
+             branchResolutionTopology = branchResolutionTopology,
+@@ -600,6 +614,8 @@ final case class FpgaNextConfig(
+     }
+ 
+     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
++        require(indirectTargetEntries == 0 && !bankedIndirectStorage && !compactIssueImmediates,
++            "combined predictor/immediate experiments require the explicit timing top, not the legacy board factory")
+         require(completionTopology == "legacy" && branchResolutionTopology == "writeback-coupled" &&
+             fetchTransactionSlots == 1 && !registeredDataTranslation && !circularFetchPayload &&
+             !completedCanonicalStoreForwarding && !combinedCheckedDataFlow && !preparedHeadStoreOperands &&
+diff --git a/src/main/scala/core/ooo/config/OooParams.scala b/src/main/scala/core/ooo/config/OooParams.scala
+index e42860e..0e246da 100644
+--- a/src/main/scala/core/ooo/config/OooParams.scala
++++ b/src/main/scala/core/ooo/config/OooParams.scala
+@@ -123,6 +123,7 @@ case class OooParams(
+     instructionCacheSets: Int = 0,
+     returnStackEntries: Int = 16,
+     indirectTargetEntries: Int = 0,
++    bankedIndirectStorage: Boolean = false,
+     recoveryWidth: Int = 1,
+     identityDataRequestFlow: Boolean = false,
+     precheckedDataRequestFlow: Boolean = false,
+@@ -134,6 +135,7 @@ case class OooParams(
+     dataStoreNextLinePrefetch: Boolean = false,
+     virtualRamLoadPrecheck: Boolean = false,
+     bankedIssuePayload: Boolean = false,
++    compactIssueImmediates: Boolean = false,
+     bankedFetchHints: Boolean = false,
+     independentFetchPayloadCapture: Boolean = false,
+     ownerLocalIssueReady: Boolean = false,
+@@ -565,6 +567,8 @@ case class OooParams(
+     require(!ownerLocalIssueReady || (ownerLocalOperandReady && registeredIssueExecute &&
+         !loadCompletionBypass && !mulWordPreviewBypass),
+         "owner-local ALU issue readiness needs exact ready mirrors and registered execution promises")
++    require(!compactIssueImmediates || bankedIssuePayload,
++        "compact issue immediates require banked issue payload")
+     require(!bankedIssuePayload || (renameWidth == 2 && robEntries >= 4),
+         "banked issue payload requires contiguous two-wide allocation")
+     require(!bankedFetchHints || registeredFetchPacket,
+@@ -657,6 +661,9 @@ case class OooParams(
+     )
+     require(Set(1, 2, 4, 8).contains(memoryEntries), "memory slots must be 1, 2, 4 or 8")
+     require(Set(0, 16, 32, 64).contains(indirectTargetEntries), "indirect target entries must be 0, 16, 32 or 64")
++    require(!bankedIndirectStorage || (indirectTargetEntries == 16 && renameWidth == 2 && commitWidth == 2 &&
++        compressedInstructions && registeredPredictionTraining),
++        "banked indirect storage requires indirect16, two lookup/commit lanes, RVC and registered training")
+     require(Set(1, 2, 4, 8).contains(storeBufferEntries), "store buffer must have 1, 2, 4 or 8 entries")
+     require(!registeredPmpRegions || (machineSystem && pmpEntries > 0),
+         "registered PMP ranges require the architectural machine CSR owner and implemented PMP entries")
+diff --git a/src/main/scala/core/ooo/integration/IntegerBackend.scala b/src/main/scala/core/ooo/integration/IntegerBackend.scala
+index 2732aa9..2d026a5 100644
+--- a/src/main/scala/core/ooo/integration/IntegerBackend.scala
++++ b/src/main/scala/core/ooo/integration/IntegerBackend.scala
+@@ -4041,7 +4041,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
+         }
+     }
+     if (p.bankedIssuePayload) {
+-        val payload = Module(new BankedIssuePayload(p.robEntries, issuePayloadReads.map(_._4).toSeq))
++        val payload = Module(new BankedIssuePayload(p.robEntries, issuePayloadReads.map(_._4).toSeq,
++            compactImmediateStorage = p.compactIssueImmediates))
+         for (lane <- 0 until p.renameWidth) {
+             payload.io.write(lane).valid := ledger.io.renamed(lane).valid
+             payload.io.write(lane).bits.index := ledger.io.renamed(lane).bits.token.index
+diff --git a/src/main/scala/core/ooo/integration/IntegerCore.scala b/src/main/scala/core/ooo/integration/IntegerCore.scala
+index aabac13..fad8922 100644
+--- a/src/main/scala/core/ooo/integration/IntegerCore.scala
++++ b/src/main/scala/core/ooo/integration/IntegerCore.scala
+@@ -24,7 +24,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
+         !p.fetchIdentityTranslation && !p.alignedFetchPermissionStage),
+         "experimental H fetch requires precise external instruction owners")
+     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
+-    require(!bankedIndirectStorage || p.indirectTargetEntries > 0, "banked indirect storage requires an indirect table")
++    private val useBankedIndirectStorage = bankedIndirectStorage || p.bankedIndirectStorage
++    require(!useBankedIndirectStorage || p.indirectTargetEntries > 0, "banked indirect storage requires an indirect table")
+     val io = IO(new Bundle {
+         val guestExternal = if (experimentalHypervisor) Some(Input(UInt(math.max(1, guestFiles).W))) else None
+         val virtualized = if (experimentalHypervisor) Some(Output(Bool())) else None
+@@ -247,7 +248,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
+     }
+     val predictor = Module(new BranchPredictor(p))
+     val indirectPredictor = if (p.indirectTargetEntries > 0)
+-        Some(Module(new IndirectTargetPredictor(p, bankedStorage = bankedIndirectStorage))) else None
++        Some(Module(new IndirectTargetPredictor(p, bankedStorage = useBankedIndirectStorage))) else None
+     val predictionTraining = Module(new CommitPredictionTraining(p))
+     for (lane <- 0 until p.commitWidth) {
+         val commit = io.commit(lane)
+diff --git a/src/main/scala/core/ooo/issue/BankedIssuePayload.scala b/src/main/scala/core/ooo/issue/BankedIssuePayload.scala
+index f988578..351d7e5 100644
+--- a/src/main/scala/core/ooo/issue/BankedIssuePayload.scala
++++ b/src/main/scala/core/ooo/issue/BankedIssuePayload.scala
+@@ -50,7 +50,11 @@ object ImmutableIssuePayload {
+   * bypass. RAM is not reset: the caller's full-owner/live metadata remains the
+   * authorization, and disabled reads return zero without inspecting stale data.
+   */
+-class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Module {
++class BankedIssuePayload(
++    entries: Int,
++    readFields: Seq[Set[String]],
++    compactImmediateStorage: Boolean = false
++) extends Module {
+     require(entries >= 4 && isPow2(entries))
+     require(readFields.nonEmpty && readFields.forall(fs => fs.nonEmpty && fs.subsetOf(ImmutableIssuePayload.all)))
+     private val indexBits = log2Ceil(entries)
+@@ -63,6 +67,15 @@ class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Mod
+         val enable = Input(Vec(readFields.size, Bool()))
+         val data = Output(Vec(readFields.size, new ImmutableIssuePayload))
+     })
++    // Compact storage is an explicit signed-32 contract, not a change to the generic API.
++    if (compactImmediateStorage) {
++        for (write <- io.write) {
++            when(write.valid) {
++                assert(write.bits.data.immediate === Cat(Fill(32, write.bits.data.immediate(31)),
++                    write.bits.data.immediate(31, 0)), "compact issue immediate must be canonical signed32")
++            }
++        }
++    }
+     val writes = (0 until 2).map { bank =>
+         val select = io.write.map(w => w.valid && w.bits.index(0) === bank.U)
+         assert(PopCount(select) <= 1.U, "issue allocation writes must occupy distinct parity banks")
+@@ -73,13 +86,15 @@ class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Mod
+     for ((field, bits) <- ImmutableIssuePayload.fields) {
+         val readers = readFields.indices.filter(readFields(_).contains(field))
+         if (readers.nonEmpty) {
++            val compact = compactImmediateStorage && field == "immediate"
++            val storageBits = if (compact) 32 else bits
+             val banks = (0 until 2).map { bank =>
+-                val memory = Mem(entries / 2, UInt(bits.W)).suggestName(s"${field}Bank$bank")
++                val memory = Mem(entries / 2, UInt(storageBits.W)).suggestName(s"${field}Bank$bank")
+                 val (enable, first, index) = writes(bank)
+                 when(enable) {
+                     memory.write(index, Mux(first,
+-                        io.write(0).bits.data.elements(field).asUInt,
+-                        io.write(1).bits.data.elements(field).asUInt))
++                        io.write(0).bits.data.elements(field).asUInt(storageBits - 1, 0),
++                        io.write(1).bits.data.elements(field).asUInt(storageBits - 1, 0)))
+                 }
+                 memory
+             }
+@@ -87,7 +102,9 @@ class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Mod
+                 val index = io.address(port)
+                 val data0 = banks(0).read(index(indexBits - 1, 1))
+                 val data1 = banks(1).read(index(indexBits - 1, 1))
+-                io.data(port).elements(field) := Mux(io.enable(port), Mux(index(0), data1, data0), 0.U)
++                val selected = Mux(index(0), data1, data0)
++                val expanded = if (compact) Cat(Fill(32, selected(31)), selected) else selected
++                io.data(port).elements(field) := Mux(io.enable(port), expanded, 0.U)
+             }
+         }
+     }
+diff --git a/src/test/scala/ooo/BankedIssuePayloadGsim.scala b/src/test/scala/ooo/BankedIssuePayloadGsim.scala
+index 5007ade..8aaf9b3 100644
+--- a/src/test/scala/ooo/BankedIssuePayloadGsim.scala
++++ b/src/test/scala/ooo/BankedIssuePayloadGsim.scala
+@@ -34,13 +34,13 @@ object BankedIssuePayloadTestConfig {
+     val fields: Seq[Set[String]] = Seq(ImmutableIssuePayload.head, Set("immediate"), Set("immediate"),
+         Set("pc"), Set("pc"), ImmutableIssuePayload.execution, ImmutableIssuePayload.execution, Set("pc"))
+ }
+-class BankedIssuePayloadGsim extends Module {
++class BankedIssuePayloadGsim(compact: Boolean = false) extends Module {
+     val io = IO(new Bundle {
+         val write = Input(new IssuePayloadWritePorts)
+         val address = Input(new IssuePayloadAddressPorts)
+         val data = Output(new IssuePayloadDataPorts)
+     })
+-    val storage = Module(new BankedIssuePayload(16, BankedIssuePayloadTestConfig.fields))
++    val storage = Module(new BankedIssuePayload(16, BankedIssuePayloadTestConfig.fields, compactImmediateStorage = compact))
+     for (lane <- 0 until 2) {
+         storage.io.write(lane).valid := io.write.at(lane).valid
+         storage.io.write(lane).bits.index := io.write.at(lane).bits.index
+@@ -53,5 +53,5 @@ class BankedIssuePayloadGsim extends Module {
+     }
+ }
+ object BankedIssuePayloadGsimMain extends App {
+-    ChiselStage.emitCHIRRTLFile(new BankedIssuePayloadGsim, Array("--target-dir", args.head))
++    ChiselStage.emitCHIRRTLFile(new BankedIssuePayloadGsim(args.drop(1).contains("compact")), Array("--target-dir", args.head))
+ }
+diff --git a/src/test/scala/ooo/FpgaIssueStorageSpec.scala b/src/test/scala/ooo/FpgaIssueStorageSpec.scala
+index 31effdb..84e9ac3 100644
+--- a/src/test/scala/ooo/FpgaIssueStorageSpec.scala
++++ b/src/test/scala/ooo/FpgaIssueStorageSpec.scala
+@@ -25,6 +25,25 @@ class FpgaIssueStorageSpec extends AnyFunSuite {
+         assert(!fir.contains("smem"), "no hidden synchronous-read stage")
+         assert(fir.contains("UInt<64>[8]") && fir.contains("UInt<32>[8]"), fir)
+     }
++    test("compact immediate storage is opt-in with a signed32 acceptance assertion and full-width output") {
++        assert(!OooParams().compactIssueImmediates)
++        intercept[IllegalArgumentException] { OooParams(compactIssueImmediates = true) }
++        assert(OooParams(bankedIssuePayload = true, compactIssueImmediates = true).compactIssueImmediates)
++        val fields = Seq(Set("immediate"))
++        val full = ChiselStage.emitCHIRRTL(new BankedIssuePayload(16, fields))
++        val compact = ChiselStage.emitCHIRRTL(new BankedIssuePayload(16, fields, compactImmediateStorage = true))
++        assert("UInt<64>\\[8\\]".r.findAllIn(full).length == 2, full)
++        assert("UInt<32>\\[8\\]".r.findAllIn(compact).length == 2, compact)
++        assert(!compact.contains("UInt<64>[8]"), compact)
++        assert(compact.contains("immediate : UInt<64>"), compact)
++        assert(compact.contains("compact issue immediate must be canonical signed32"), compact)
++        assert(!full.contains("compact issue immediate must be canonical signed32"), full)
++        for (fir <- Seq(full, compact)) {
++            assert("write mport".r.findAllIn(fir).length == 2, fir)
++            assert("read mport".r.findAllIn(fir).length == 2, fir)
++            assert(!fir.contains("smem"), fir)
++        }
++    }
+     test("unneeded fields do not create memory banks") {
+         val fir = ChiselStage.emitCHIRRTL(new BankedIssuePayload(16, Seq(Set("pc"), Set("immediate"))))
+         assert("cmem".r.findAllIn(fir).length == 4, fir)
+diff --git a/src/test/scala/platform/CommonCpuMicroarchitectureIdentity.scala b/src/test/scala/platform/CommonCpuMicroarchitectureIdentity.scala
+index ede5fda..727f0ed 100644
+--- a/src/test/scala/platform/CommonCpuMicroarchitectureIdentity.scala
++++ b/src/test/scala/platform/CommonCpuMicroarchitectureIdentity.scala
+@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
+ import java.nio.file.{Files, Path, Paths, StandardOpenOption}
+ import java.security.MessageDigest
+ import scala.jdk.CollectionConverters._
+-import soc.core.ooo.FpgaNextConfig
++import soc.core.ooo.{FpgaNextConfig, OooParams}
+ import soc.platform._
+ 
+ /** Export/cache identity, not hardware or a timing certificate. Parameter leaves
+@@ -79,7 +79,17 @@ object CommonCpuMicroarchitectureIdentity {
+             ujson.Obj.from(entries.toSeq.map { case (key, item) => key.toString -> value(item) }.sortBy(_._1))
+         case entries: Seq[_] => ujson.Arr.from(entries.map(value))
+         case product: Product if product.productArity > 0 =>
+-            ujson.Obj.from(product.productElementNames.zip(product.productIterator).map {
++            // Preserve the established identity for unchanged default hardware.
++            // Enabled experimental fields remain explicit and are rejected by old board guards.
++            val defaults: Map[String, Any] = product match {
++                case _: FpgaNextConfig => Map("indirectTargetEntries" -> 0,
++                    "bankedIndirectStorage" -> false, "compactIssueImmediates" -> false)
++                case _: OooParams => Map("bankedIndirectStorage" -> false, "compactIssueImmediates" -> false)
++                case _ => Map.empty
++            }
++            ujson.Obj.from(product.productElementNames.zip(product.productIterator).filterNot {
++                case (key, item) => defaults.get(key).contains(item)
++            }.map {
+                 case (key, item) => key -> value(item)
+             }.toSeq.sortBy(_._1))
+         case product: Product => ujson.Str(product.productPrefix)

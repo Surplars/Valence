@@ -1,0 +1,418 @@
+--- baseline/rtl/IntegerBackend.sv
++++ candidate/rtl/IntegerBackend.sv
+@@ -3067,36 +3067,6 @@
+         & _candidates_T_162)
+       ? _physicalFile_io_data_4
+       : _lsu_io_complete_bits_data;
+-  wire [8:0]        candidates_summed_zero_0_1 =
+-    {1'h0, candidates_left_1[7:0]} + {1'h0, _payload_io_data_2_immediate[7:0]};
+-  wire [8:0]        candidates_summed_zero_1_1 =
+-    {1'h0, candidates_left_1[15:8]} + {1'h0, _payload_io_data_2_immediate[15:8]};
+-  wire [8:0]        candidates_summed_zero_2_1 =
+-    {1'h0, candidates_left_1[23:16]} + {1'h0, _payload_io_data_2_immediate[23:16]};
+-  wire [8:0]        candidates_summed_zero_3_1 =
+-    {1'h0, candidates_left_1[31:24]} + {1'h0, _payload_io_data_2_immediate[31:24]};
+-  wire [8:0]        candidates_summed_zero_4_1 =
+-    {1'h0, candidates_left_1[39:32]} + {1'h0, _payload_io_data_2_immediate[39:32]};
+-  wire [8:0]        candidates_summed_zero_5_1 =
+-    {1'h0, candidates_left_1[47:40]} + {1'h0, _payload_io_data_2_immediate[47:40]};
+-  wire [8:0]        candidates_summed_zero_6_1 =
+-    {1'h0, candidates_left_1[55:48]} + {1'h0, _payload_io_data_2_immediate[55:48]};
+-  wire [7:0]        candidates_summed_zero_7_1 =
+-    candidates_left_1[63:56] + _payload_io_data_2_immediate[63:56];
+-  wire              _candidates_summed_result_carryIn_a_T_5 =
+-    (&(candidates_summed_zero_1_1[7:0])) & candidates_summed_zero_0_1[8];
+-  wire              _candidates_summed_result_carryIn_a_b_T_3 =
+-    (&(candidates_summed_zero_2_1[7:0])) & candidates_summed_zero_1_1[8];
+-  wire              candidates_summed_result_carryIn_b_2_5 =
+-    (&(candidates_summed_zero_2_1[7:0])) & (&(candidates_summed_zero_1_1[7:0]));
+-  wire              _candidates_summed_result_carryIn_b_a_T_1 =
+-    (&(candidates_summed_zero_4_1[7:0])) & candidates_summed_zero_3_1[8];
+-  wire              candidates_summed_result_carryIn_b_b_2_3 =
+-    (&(candidates_summed_zero_4_1[7:0])) & (&(candidates_summed_zero_3_1[7:0]));
+-  wire              candidates_summed_result_carryIn_b_b_2_4 =
+-    (&(candidates_summed_zero_5_1[7:0])) & (&(candidates_summed_zero_4_1[7:0]));
+-  wire              candidates_summed_result_carryIn_b_b_2_5 =
+-    (&(candidates_summed_zero_6_1[7:0])) & (&(candidates_summed_zero_5_1[7:0]));
+   wire [63:0]       candidates_1_2 =
+     candidates_saved_1
+       ? storeAddress_0 & {64{_planner_io_secondOwner[0]}} | storeAddress_1
+@@ -3115,46 +3085,7 @@
+         & {64{_planner_io_secondOwner[13]}} | storeAddress_14
+         & {64{_planner_io_secondOwner[14]}} | storeAddress_15
+         & {64{_planner_io_secondOwner[15]}}
+-      : {candidates_summed_zero_6_1[8] | (&(candidates_summed_zero_6_1[7:0]))
+-         & candidates_summed_zero_5_1[8] | candidates_summed_result_carryIn_b_b_2_5
+-         & (candidates_summed_zero_4_1[8] | _candidates_summed_result_carryIn_b_a_T_1)
+-         | candidates_summed_result_carryIn_b_b_2_5
+-         & candidates_summed_result_carryIn_b_b_2_3
+-         & (candidates_summed_zero_2_1[8] | _candidates_summed_result_carryIn_a_b_T_3
+-            | candidates_summed_result_carryIn_b_2_5 & candidates_summed_zero_0_1[8])
+-           ? candidates_summed_zero_7_1 + 8'h1
+-           : candidates_summed_zero_7_1,
+-         candidates_summed_zero_5_1[8] | (&(candidates_summed_zero_5_1[7:0]))
+-         & candidates_summed_zero_4_1[8] | candidates_summed_result_carryIn_b_b_2_4
+-         & candidates_summed_zero_3_1[8] | candidates_summed_result_carryIn_b_b_2_4
+-         & (&(candidates_summed_zero_3_1[7:0]))
+-         & (candidates_summed_zero_2_1[8] | _candidates_summed_result_carryIn_a_b_T_3
+-            | candidates_summed_result_carryIn_b_2_5 & candidates_summed_zero_0_1[8])
+-           ? candidates_summed_zero_6_1[7:0] + 8'h1
+-           : candidates_summed_zero_6_1[7:0],
+-         candidates_summed_zero_4_1[8] | _candidates_summed_result_carryIn_b_a_T_1
+-         | candidates_summed_result_carryIn_b_b_2_3 & candidates_summed_zero_2_1[8]
+-         | candidates_summed_result_carryIn_b_b_2_3 & (&(candidates_summed_zero_2_1[7:0]))
+-         & (candidates_summed_zero_1_1[8] | _candidates_summed_result_carryIn_a_T_5)
+-           ? candidates_summed_zero_5_1[7:0] + 8'h1
+-           : candidates_summed_zero_5_1[7:0],
+-         candidates_summed_zero_3_1[8] | (&(candidates_summed_zero_3_1[7:0]))
+-         & candidates_summed_zero_2_1[8] | (&(candidates_summed_zero_3_1[7:0]))
+-         & (&(candidates_summed_zero_2_1[7:0]))
+-         & (candidates_summed_zero_1_1[8] | _candidates_summed_result_carryIn_a_T_5)
+-           ? candidates_summed_zero_4_1[7:0] + 8'h1
+-           : candidates_summed_zero_4_1[7:0],
+-         candidates_summed_zero_2_1[8] | _candidates_summed_result_carryIn_a_b_T_3
+-         | candidates_summed_result_carryIn_b_2_5 & candidates_summed_zero_0_1[8]
+-           ? candidates_summed_zero_3_1[7:0] + 8'h1
+-           : candidates_summed_zero_3_1[7:0],
+-         candidates_summed_zero_1_1[8] | _candidates_summed_result_carryIn_a_T_5
+-           ? candidates_summed_zero_2_1[7:0] + 8'h1
+-           : candidates_summed_zero_2_1[7:0],
+-         candidates_summed_zero_0_1[8]
+-           ? candidates_summed_zero_1_1[7:0] + 8'h1
+-           : candidates_summed_zero_1_1[7:0],
+-         candidates_summed_zero_0_1[7:0]};
++      : candidates_left_1 + _payload_io_data_2_immediate;
+   wire [15:0]       _GEN_46 =
+     {{_ownerReady_io_ready1_15},
+      {_ownerReady_io_ready1_14},
+@@ -3301,36 +3232,6 @@
+     | _GEN_37 & {461{_uncovered_io_owner[10]}} | _GEN_38 & {461{_uncovered_io_owner[11]}}
+     | _GEN_39 & {461{_uncovered_io_owner[12]}} | _GEN_40 & {461{_uncovered_io_owner[13]}}
+     | _GEN_41 & {461{_uncovered_io_owner[14]}} | _GEN_42 & {461{_uncovered_io_owner[15]}};
+-  wire [8:0]        summed_zero_0 =
+-    {1'h0, _physicalFile_io_data_5[7:0]} + {1'h0, _payload_io_data_3_immediate[7:0]};
+-  wire [8:0]        summed_zero_1 =
+-    {1'h0, _physicalFile_io_data_5[15:8]} + {1'h0, _payload_io_data_3_immediate[15:8]};
+-  wire [8:0]        summed_zero_2 =
+-    {1'h0, _physicalFile_io_data_5[23:16]} + {1'h0, _payload_io_data_3_immediate[23:16]};
+-  wire [8:0]        summed_zero_3 =
+-    {1'h0, _physicalFile_io_data_5[31:24]} + {1'h0, _payload_io_data_3_immediate[31:24]};
+-  wire [8:0]        summed_zero_4 =
+-    {1'h0, _physicalFile_io_data_5[39:32]} + {1'h0, _payload_io_data_3_immediate[39:32]};
+-  wire [8:0]        summed_zero_5 =
+-    {1'h0, _physicalFile_io_data_5[47:40]} + {1'h0, _payload_io_data_3_immediate[47:40]};
+-  wire [8:0]        summed_zero_6 =
+-    {1'h0, _physicalFile_io_data_5[55:48]} + {1'h0, _payload_io_data_3_immediate[55:48]};
+-  wire [7:0]        summed_zero_7 =
+-    _physicalFile_io_data_5[63:56] + _payload_io_data_3_immediate[63:56];
+-  wire              _summed_result_carryIn_a_T_1 =
+-    (&(summed_zero_1[7:0])) & summed_zero_0[8];
+-  wire              _summed_result_carryIn_a_b_T_1 =
+-    (&(summed_zero_2[7:0])) & summed_zero_1[8];
+-  wire              summed_result_carryIn_b_2 =
+-    (&(summed_zero_2[7:0])) & (&(summed_zero_1[7:0]));
+-  wire              _summed_result_carryIn_b_a_T =
+-    (&(summed_zero_4[7:0])) & summed_zero_3[8];
+-  wire              summed_result_carryIn_b_b_2 =
+-    (&(summed_zero_4[7:0])) & (&(summed_zero_3[7:0]));
+-  wire              summed_result_carryIn_b_b_2_1 =
+-    (&(summed_zero_5[7:0])) & (&(summed_zero_4[7:0]));
+-  wire              summed_result_carryIn_b_b_2_2 =
+-    (&(summed_zero_6[7:0])) & (&(summed_zero_5[7:0]));
+   wire              bufferedThirdRankLookahead_valid =
+     _uncovered_io_valid & virtualized & _entry_metadata_T_158[9]
+     & ~(_entry_metadata_T_158[2]) & ~(_entry_metadata_T_158[8])
+@@ -9966,36 +9867,6 @@
+     end
+   end // always @(posedge, posedge)
+   wire [3:0][7:0]   _GEN_583 = '{8'hFF, 8'hF, 8'h3, 8'h1};
+-  wire [8:0]        candidates_summed_zero_0 =
+-    {1'h0, candidates_left[7:0]} + {1'h0, _payload_io_data_1_immediate[7:0]};
+-  wire [8:0]        candidates_summed_zero_1 =
+-    {1'h0, candidates_left[15:8]} + {1'h0, _payload_io_data_1_immediate[15:8]};
+-  wire [8:0]        candidates_summed_zero_2 =
+-    {1'h0, candidates_left[23:16]} + {1'h0, _payload_io_data_1_immediate[23:16]};
+-  wire [8:0]        candidates_summed_zero_3 =
+-    {1'h0, candidates_left[31:24]} + {1'h0, _payload_io_data_1_immediate[31:24]};
+-  wire [8:0]        candidates_summed_zero_4 =
+-    {1'h0, candidates_left[39:32]} + {1'h0, _payload_io_data_1_immediate[39:32]};
+-  wire [8:0]        candidates_summed_zero_5 =
+-    {1'h0, candidates_left[47:40]} + {1'h0, _payload_io_data_1_immediate[47:40]};
+-  wire [8:0]        candidates_summed_zero_6 =
+-    {1'h0, candidates_left[55:48]} + {1'h0, _payload_io_data_1_immediate[55:48]};
+-  wire [7:0]        candidates_summed_zero_7 =
+-    candidates_left[63:56] + _payload_io_data_1_immediate[63:56];
+-  wire              _candidates_summed_result_carryIn_a_T_1 =
+-    (&(candidates_summed_zero_1[7:0])) & candidates_summed_zero_0[8];
+-  wire              _candidates_summed_result_carryIn_a_b_T_1 =
+-    (&(candidates_summed_zero_2[7:0])) & candidates_summed_zero_1[8];
+-  wire              candidates_summed_result_carryIn_b_2 =
+-    (&(candidates_summed_zero_2[7:0])) & (&(candidates_summed_zero_1[7:0]));
+-  wire              _candidates_summed_result_carryIn_b_a_T =
+-    (&(candidates_summed_zero_4[7:0])) & candidates_summed_zero_3[8];
+-  wire              candidates_summed_result_carryIn_b_b_2 =
+-    (&(candidates_summed_zero_4[7:0])) & (&(candidates_summed_zero_3[7:0]));
+-  wire              candidates_summed_result_carryIn_b_b_2_1 =
+-    (&(candidates_summed_zero_5[7:0])) & (&(candidates_summed_zero_4[7:0]));
+-  wire              candidates_summed_result_carryIn_b_b_2_2 =
+-    (&(candidates_summed_zero_6[7:0])) & (&(candidates_summed_zero_5[7:0]));
+   wire [63:0]       actualCanonicalAddress =
+     preparedStoreChoice ? _preparedHeadStore_io_prepared_bits_address : canonicalAddress;
+   wire [14:0]       _actualLanes_T_1 =
+@@ -11344,47 +11215,7 @@
+               & {64{_planner_io_firstOwner[13]}} | storeAddress_14
+               & {64{_planner_io_firstOwner[14]}} | storeAddress_15
+               & {64{_planner_io_firstOwner[15]}}
+-            : {candidates_summed_zero_6[8] | (&(candidates_summed_zero_6[7:0]))
+-               & candidates_summed_zero_5[8] | candidates_summed_result_carryIn_b_b_2_2
+-               & (candidates_summed_zero_4[8] | _candidates_summed_result_carryIn_b_a_T)
+-               | candidates_summed_result_carryIn_b_b_2_2
+-               & candidates_summed_result_carryIn_b_b_2
+-               & (candidates_summed_zero_2[8] | _candidates_summed_result_carryIn_a_b_T_1
+-                  | candidates_summed_result_carryIn_b_2 & candidates_summed_zero_0[8])
+-                 ? candidates_summed_zero_7 + 8'h1
+-                 : candidates_summed_zero_7,
+-               candidates_summed_zero_5[8] | (&(candidates_summed_zero_5[7:0]))
+-               & candidates_summed_zero_4[8] | candidates_summed_result_carryIn_b_b_2_1
+-               & candidates_summed_zero_3[8] | candidates_summed_result_carryIn_b_b_2_1
+-               & (&(candidates_summed_zero_3[7:0]))
+-               & (candidates_summed_zero_2[8] | _candidates_summed_result_carryIn_a_b_T_1
+-                  | candidates_summed_result_carryIn_b_2 & candidates_summed_zero_0[8])
+-                 ? candidates_summed_zero_6[7:0] + 8'h1
+-                 : candidates_summed_zero_6[7:0],
+-               candidates_summed_zero_4[8] | _candidates_summed_result_carryIn_b_a_T
+-               | candidates_summed_result_carryIn_b_b_2 & candidates_summed_zero_2[8]
+-               | candidates_summed_result_carryIn_b_b_2
+-               & (&(candidates_summed_zero_2[7:0]))
+-               & (candidates_summed_zero_1[8] | _candidates_summed_result_carryIn_a_T_1)
+-                 ? candidates_summed_zero_5[7:0] + 8'h1
+-                 : candidates_summed_zero_5[7:0],
+-               candidates_summed_zero_3[8] | (&(candidates_summed_zero_3[7:0]))
+-               & candidates_summed_zero_2[8] | (&(candidates_summed_zero_3[7:0]))
+-               & (&(candidates_summed_zero_2[7:0]))
+-               & (candidates_summed_zero_1[8] | _candidates_summed_result_carryIn_a_T_1)
+-                 ? candidates_summed_zero_4[7:0] + 8'h1
+-                 : candidates_summed_zero_4[7:0],
+-               candidates_summed_zero_2[8] | _candidates_summed_result_carryIn_a_b_T_1
+-               | candidates_summed_result_carryIn_b_2 & candidates_summed_zero_0[8]
+-                 ? candidates_summed_zero_3[7:0] + 8'h1
+-                 : candidates_summed_zero_3[7:0],
+-               candidates_summed_zero_1[8] | _candidates_summed_result_carryIn_a_T_1
+-                 ? candidates_summed_zero_2[7:0] + 8'h1
+-                 : candidates_summed_zero_2[7:0],
+-               candidates_summed_zero_0[8]
+-                 ? candidates_summed_zero_1[7:0] + 8'h1
+-                 : candidates_summed_zero_1[7:0],
+-               candidates_summed_zero_0[7:0]};
++            : candidates_left + _payload_io_data_1_immediate;
+     stagedMemoryData <= selectedData;
+     captured_1_0_token_index <= execution0Entry_renamed_token_index;
+     captured_1_0_token_tag <= execution0Entry_renamed_token_tag;
+@@ -12785,40 +12616,7 @@
+     .io_lookahead_1_bits_token_index           (_entry_metadata_T_158[460:457]),
+     .io_lookahead_1_bits_token_tag             (_entry_metadata_T_158[456:393]),
+     .io_lookahead_1_bits_address
+-      ({summed_zero_6[8] | (&(summed_zero_6[7:0])) & summed_zero_5[8]
+-        | summed_result_carryIn_b_b_2_2
+-        & (summed_zero_4[8] | _summed_result_carryIn_b_a_T)
+-        | summed_result_carryIn_b_b_2_2 & summed_result_carryIn_b_b_2
+-        & (summed_zero_2[8] | _summed_result_carryIn_a_b_T_1 | summed_result_carryIn_b_2
+-           & summed_zero_0[8])
+-          ? summed_zero_7 + 8'h1
+-          : summed_zero_7,
+-        summed_zero_5[8] | (&(summed_zero_5[7:0])) & summed_zero_4[8]
+-        | summed_result_carryIn_b_b_2_1 & summed_zero_3[8] | summed_result_carryIn_b_b_2_1
+-        & (&(summed_zero_3[7:0]))
+-        & (summed_zero_2[8] | _summed_result_carryIn_a_b_T_1 | summed_result_carryIn_b_2
+-           & summed_zero_0[8])
+-          ? summed_zero_6[7:0] + 8'h1
+-          : summed_zero_6[7:0],
+-        summed_zero_4[8] | _summed_result_carryIn_b_a_T | summed_result_carryIn_b_b_2
+-        & summed_zero_2[8] | summed_result_carryIn_b_b_2 & (&(summed_zero_2[7:0]))
+-        & (summed_zero_1[8] | _summed_result_carryIn_a_T_1)
+-          ? summed_zero_5[7:0] + 8'h1
+-          : summed_zero_5[7:0],
+-        summed_zero_3[8] | (&(summed_zero_3[7:0])) & summed_zero_2[8]
+-        | (&(summed_zero_3[7:0])) & (&(summed_zero_2[7:0]))
+-        & (summed_zero_1[8] | _summed_result_carryIn_a_T_1)
+-          ? summed_zero_4[7:0] + 8'h1
+-          : summed_zero_4[7:0],
+-        summed_zero_2[8] | _summed_result_carryIn_a_b_T_1 | summed_result_carryIn_b_2
+-        & summed_zero_0[8]
+-          ? summed_zero_3[7:0] + 8'h1
+-          : summed_zero_3[7:0],
+-        summed_zero_1[8] | _summed_result_carryIn_a_T_1
+-          ? summed_zero_2[7:0] + 8'h1
+-          : summed_zero_2[7:0],
+-        summed_zero_0[8] ? summed_zero_1[7:0] + 8'h1 : summed_zero_1[7:0],
+-        summed_zero_0[7:0]}),
++      (_physicalFile_io_data_5 + _payload_io_data_3_immediate),
+     .io_lookahead_1_bits_size                  (_entry_metadata_T_158[1:0]),
+     .io_issued_valid                           (memoryIssued),
+     .io_issued_bits_index                      (planner_io_issuedIndex),
+--- baseline/rtl/TileLinkAxi4BurstBridge.sv
++++ candidate/rtl/TileLinkAxi4BurstBridge.sv
+@@ -61,10 +61,12 @@
+   input  [63:0]  io_axi_r_bits_data,
+   input  [1:0]   io_axi_r_bits_resp,
+   input          io_axi_r_bits_last,
++                 io_windowQualified,
+   output [511:0] io_lineData,
+   input          io_lineMode
+ );
+ 
++  wire             io_tl_a_ready_0;
+   wire [71:0]      _payloadBanks_7_ext_R0_data;
+   wire [71:0]      _payloadBanks_6_ext_R0_data;
+   wire [71:0]      _payloadBanks_5_ext_R0_data;
+@@ -109,15 +111,11 @@
+           ? 5'h8
+           : io_tl_a_bits_size == 3'h5 ? 5'h4 : io_tl_a_bits_size == 3'h4 ? 5'h2 : 5'h1;
+   wire             isRead = io_tl_a_bits_opcode == 3'h4;
+-  wire [18:0]      byteCount = 19'h1 << io_tl_a_bits_size;
+-  wire             originalAcceptedWindow =
+-    io_tl_a_bits_address > 64'h801FFFFF & {1'h0, io_tl_a_bits_address}
+-    + {46'h0, byteCount} < 65'h100200001;
+-  wire             io_tl_a_ready_0 = ~(|state) | _io_tl_a_ready_T_1;
+   wire             _GEN_1 = io_tl_a_ready_0 & io_tl_a_valid;
+   wire             _GEN_2 = _GEN_1 & ~(|state);
++  assign io_tl_a_ready_0 = ~(|state) | _io_tl_a_ready_T_1;
+   wire [3:0]       payloadWriteIndex =
+-    ~_GEN_2 | isRead | ~originalAcceptedWindow ? index[3:0] : 4'h0;
++    ~_GEN_2 | isRead | ~io_windowQualified ? index[3:0] : 4'h0;
+   wire [2:0]       axiSize = size[2] ? 3'h3 : size;
+   wire             io_axi_ar_valid_0 = state == 4'h2;
+   wire             io_axi_aw_valid_0 = writePhase & ~writeAddressDone;
+@@ -126,7 +124,7 @@
+   wire             _GEN_3 = io_axi_r_ready_0 & io_axi_r_valid;
+   wire             _GEN_4 = index == _io_axi_w_bits_last_T;
+   wire             payloadWrite =
+-    _GEN_3 | _GEN_1 & ((|state) ? ~writeError : ~isRead & originalAcceptedWindow);
++    _GEN_3 | _GEN_1 & ((|state) ? ~writeError : ~isRead & io_windowQualified);
+   wire [71:0]      payloadWriteData =
+     _GEN_3 ? {8'h0, io_axi_r_bits_data} : {io_tl_a_bits_mask, io_tl_a_bits_data};
+   wire             io_axi_w_valid_0 =
+@@ -148,27 +146,37 @@
+                 ? 15'h3 << _GEN_6
+                 : io_tl_a_bits_size == 3'h0 ? 15'h1 << _GEN_6 : 15'hFF;
+     wire        _isWrite_T_1 = io_tl_a_bits_opcode == 3'h1;
+-    wire        _GEN_7 = io_tl_a_bits_param == 3'h0;
+-    wire        _GEN_8 = _GEN_2 & ~reset;
++    wire [18:0] byteCount = 19'h1 << io_tl_a_bits_size;
++    wire        _GEN_7 = _GEN_2 & ~reset;
++    wire        _GEN_8 = io_tl_a_bits_param == 3'h0;
+     wire        _GEN_9 = io_tl_a_bits_opcode != 3'h1;
+     wire        _GEN_10 = _GEN_2 & ~(io_tl_a_bits_size[2]);
+     wire        _GEN_11 = payloadWrite & ~reset;
+     always @(posedge clock) begin
++      if (_GEN_7
++          & io_windowQualified != (io_tl_a_bits_address > 64'h801FFFFF
++                                   & {1'h0, io_tl_a_bits_address}
++                                   + {46'h0, byteCount} < 65'h100200001)) begin
++        if (`ASSERT_VERBOSE_COND_)
++          $error("Assertion failed: pre-arbitration window proof differs from selected request qualification\n");
++        if (`STOP_COND_)
++          $fatal;
++      end
+       if (_GEN_1 & ~reset
+-          & ~(_GEN_7 & ~io_tl_a_bits_corrupt
++          & ~(_GEN_8 & ~io_tl_a_bits_corrupt
+               & (isRead | io_tl_a_bits_opcode == 3'h0 | _isWrite_T_1))) begin
+         if (`ASSERT_VERBOSE_COND_)
+           $error("Assertion failed: unsupported TL-UL request\n");
+         if (`STOP_COND_)
+           $fatal;
+       end
+-      if (_GEN_8 & (|(io_tl_a_bits_address[18:0] & byteCount - 19'h1))) begin
++      if (_GEN_7 & (|(io_tl_a_bits_address[18:0] & byteCount - 19'h1))) begin
+         if (`ASSERT_VERBOSE_COND_)
+           $error("Assertion failed: TL-AXI address must be naturally aligned\n");
+         if (`STOP_COND_)
+           $fatal;
+       end
+-      if (_GEN_8 & {8'h0, io_tl_a_bits_address[11:0]}
++      if (_GEN_7 & {8'h0, io_tl_a_bits_address[11:0]}
+           + {1'h0, byteCount} > 20'h1000) begin
+         if (`ASSERT_VERBOSE_COND_)
+           $error("Assertion failed: AXI burst must not cross a 4-KiB boundary\n");
+@@ -195,7 +203,7 @@
+           $fatal;
+       end
+       if (_GEN_1 & (|state) & ~reset
+-          & ~(_io_tl_a_ready_T_1 & io_tl_a_bits_opcode == writeOpcode & _GEN_7
++          & ~(_io_tl_a_ready_T_1 & io_tl_a_bits_opcode == writeOpcode & _GEN_8
+               & ~io_tl_a_bits_corrupt & io_tl_a_bits_address == address
+               & io_tl_a_bits_size == size & io_tl_a_bits_source == source
+               & (writeOpcode == 3'h1 | (&io_tl_a_bits_mask)))) begin
+@@ -283,8 +291,8 @@
+         else
+           state <=
+             isRead
+-              ? (originalAcceptedWindow ? 4'h2 : 4'h4)
+-              : requestBeats == 5'h1 ? (originalAcceptedWindow ? 4'h5 : 4'h8) : 4'h1;
++              ? (io_windowQualified ? 4'h2 : 4'h4)
++              : requestBeats == 5'h1 ? (io_windowQualified ? 4'h5 : 4'h8) : 4'h1;
+       end
+       if (_GEN_5)
+         index <= index + 5'h1;
+@@ -300,11 +308,11 @@
+       if (_GEN_3)
+         readError <= readError | io_axi_r_bits_resp[1];
+       else if (_GEN_2)
+-        readError <= ~originalAcceptedWindow;
++        readError <= ~io_windowQualified;
+       if (_GEN_17)
+         writeError <= io_axi_b_bits_resp[1];
+       else if (_GEN_2)
+-        writeError <= ~originalAcceptedWindow;
++        writeError <= ~io_windowQualified;
+       writeAddressDone <= _GEN_14 | ~_GEN_2 & writeAddressDone;
+       writeDataDone <= _GEN_16 | ~_GEN_2 & writeDataDone;
+       if (_GEN_1) begin
+--- baseline/rtl/TileLinkAxi4OutstandingBridge.sv
++++ candidate/rtl/TileLinkAxi4OutstandingBridge.sv
+@@ -459,6 +459,12 @@
+   wire              _GEN_32 = _slots_3_io_tl_d_ready_T & lineReplySlot == 2'h1;
+   wire              _GEN_33 = _slots_3_io_tl_d_ready_T & lineReplySlot == 2'h2;
+   wire              _GEN_34 = _slots_3_io_tl_d_ready_T & (&lineReplySlot);
++  wire              primaryWindow =
++    io_tl_a_bits_address > 64'h801FFFFF & {1'h0, io_tl_a_bits_address}
++    + {46'h0, 19'h1 << io_tl_a_bits_size} < 65'h100200001;
++  wire              lineWindow =
++    io_lineRead_request_bits_address > 64'h801FFFFF
++    & {1'h0, io_lineRead_request_bits_address} + 65'h40 < 65'h100200001;
+   reg               arIssued_0;
+   reg               arIssued_1;
+   reg               arIssued_2;
+@@ -904,6 +910,7 @@
+     .io_axi_r_bits_data   (io_axi_r_bits_data),
+     .io_axi_r_bits_resp   (io_axi_r_bits_resp),
+     .io_axi_r_bits_last   (io_axi_r_bits_last),
++    .io_windowQualified   (lineSelected ? lineWindow : primaryWindow),
+     .io_lineData          (_slots_0_io_lineData),
+     .io_lineMode          (slots_0_io_lineMode)
+   );
+@@ -958,6 +965,7 @@
+     .io_axi_r_bits_data   (io_axi_r_bits_data),
+     .io_axi_r_bits_resp   (io_axi_r_bits_resp),
+     .io_axi_r_bits_last   (io_axi_r_bits_last),
++    .io_windowQualified   (lineSelected_1 ? lineWindow : primaryWindow),
+     .io_lineData          (_slots_1_io_lineData),
+     .io_lineMode          (slots_1_io_lineMode)
+   );
+@@ -1012,6 +1020,7 @@
+     .io_axi_r_bits_data   (io_axi_r_bits_data),
+     .io_axi_r_bits_resp   (io_axi_r_bits_resp),
+     .io_axi_r_bits_last   (io_axi_r_bits_last),
++    .io_windowQualified   (lineSelected_2 ? lineWindow : primaryWindow),
+     .io_lineData          (_slots_2_io_lineData),
+     .io_lineMode          (slots_2_io_lineMode)
+   );
+@@ -1065,6 +1074,7 @@
+     .io_axi_r_bits_data   (io_axi_r_bits_data),
+     .io_axi_r_bits_resp   (io_axi_r_bits_resp),
+     .io_axi_r_bits_last   (io_axi_r_bits_last),
++    .io_windowQualified   (lineSelected_3 ? lineWindow : primaryWindow),
+     .io_lineData          (_slots_3_io_lineData),
+     .io_lineMode          (slots_3_io_lineMode)
+   );

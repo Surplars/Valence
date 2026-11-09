@@ -1,0 +1,15 @@
+refs/heads/dev/a1-coexisting-load-ingress-20261027\tfbdb3386c30603d3f4039389a537f18a5ae508f8\tAdd reproducible recovery query full-input proofs
+refs/heads/integration/all-compatible-20261108\te437ba20960a7123ba60e7a91f3dbeec86117b8c\tQualify guarded guest fused multiply-add
+refs/heads/main\tf1013f21d4aa4633428e9c2da5166cc1c2ac08a1\tMerge dev2 preserving I1 timing profiles
+refs/remotes/origin/HEAD\tf1013f21d4aa4633428e9c2da5166cc1c2ac08a1\tMerge dev2 preserving I1 timing profiles
+refs/remotes/origin/candidate/ethernet-rx-prefetch-20261017-r1\tdfbf297698efcc099683c8ebc012b0962742a885\tAdd optional Ethernet RX read prefetch with standalone throughput tests
+refs/remotes/origin/candidate/store-full-line-policy-20261017-r1\ta88841aeac4eb9f746ff4ba435832691dd6737a1\tPreserve bounded decoded backend head-authority source evidence
+refs/remotes/origin/dev/a1-coexisting-load-ingress-20261027\t08dfdeacc4de76e210959b544a18cf1b2259fb10\tAdd isolated ROB storage and recovery query experiments
+refs/remotes/origin/dev/a1-inorder-opt-20261103\tb047cf4a337b710fb59b0403a916417a82eb295a\tBoot OpenSBI and Linux KVM through the PS DDR handoff
+refs/remotes/origin/dev/a1-nax-inspired-300m-20261024\t1ea8336326a1922aeb15b96fcdef04c17beff251\tAdd opt-in OOC synthesis diagnostics
+refs/remotes/origin/dev/hypervisor-aia-gsim-20261107\te437ba20960a7123ba60e7a91f3dbeec86117b8c\tQualify guarded guest fused multiply-add
+refs/remotes/origin/dev/verified-a1-source-20261106\ta6448d9165f9c3c95456fab5895dd66d818c66aa\tPublish verified A1 predictor, bus and PMP source tools
+refs/remotes/origin/integration/common-perf-ddr-20261019-r1\t5b8fa056870c134849f9aa20fe93062b588c67df\tBack up exact-body DDR-resident CPU performance evidence
+refs/remotes/origin/main\tf1013f21d4aa4633428e9c2da5166cc1c2ac08a1\tMerge dev2 preserving I1 timing profiles
+refs/remotes/origin/recovery/common-idle-source-20261021-r1\tdbae188e67880f1c5556a93de9fc252ac8b8503f\tFix SBI UART ownership before Linux clock-control admission
+refs/remotes/origin/recovery/w14-banked-indirect-20261105\tf52faf98b64c777d69e6d2aaab624f0c94c7f877\tBack up reviewed W14 banked indirect snapshot

@@ -1,0 +1,189 @@
+{
+  "source_commit": "78b4b4298d866a97f1c2804ca299b785639ab7a3",
+  "remote_lookup": "2026-11-09 same-origin Git lookup: upload-pack: not our ref; no further retry",
+  "missing_inputs": [
+    {
+      "relative_path": "src/main/scala/core/ooo/config/FpgaNextConfig.scala",
+      "timing_sha256": "23685c6883bd346c81249cb2308637ee77e2fdf4279b82d160d869b2c40f9f91",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/core/ooo/config/FpgaNextConfig.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/core/ooo/config/FpgaNextConfig.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/core/ooo/config/FpgaNextConfig.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/core/ooo/config/FpgaNextConfig.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/config/OooParams.scala",
+      "timing_sha256": "2d3dd077f01c02ac4d2829f6621e28c01ccdb740804bed9e886a0be57635a9a9",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/core/ooo/config/OooParams.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/core/ooo/config/OooParams.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/core/ooo/config/OooParams.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/core/ooo/config/OooParams.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/integration/IntegerBackend.scala",
+      "timing_sha256": "0637a3ade30d8b1211b29dbbb4195a4b88f2d1755f9c36ff42b098bdeb2cbc49",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/core/ooo/integration/IntegerBackend.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/core/ooo/integration/IntegerBackend.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/core/ooo/integration/IntegerBackend.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/core/ooo/integration/IntegerBackend.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/lsu/RegisteredLoadProofLookahead.scala",
+      "timing_sha256": "e3ece5d096a1cf2eaedeefe2f439e77e0418e85c48350a6e137558a1e761bb7e",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/platform/bus/TileLinkAxi4Bridge.scala",
+      "timing_sha256": "998958b3230da3650dad2c74e1fbfa245ab936f531b736b6f08371978aa4acdd",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/core/ooo/platform/bus/TileLinkAxi4Bridge.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/core/ooo/platform/bus/TileLinkAxi4Bridge.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/core/ooo/platform/bus/TileLinkAxi4Bridge.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/core/ooo/platform/bus/TileLinkAxi4Bridge.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala",
+      "timing_sha256": "8c968c5c993899ffb9cacf39f6ad395033d7104c2c6319e106c162fbc4c14268",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/core/ooo/platform/bus/TileLinkAxi4BurstBridge.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala",
+      "timing_sha256": "8fdd190e1e8d0d3640a90547532af7bd075dc3561321adf318aa10a35551d537",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/core/ooo/platform/bus/TileLinkAxi4OutstandingBridge.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/core/ooo/platform/bus/TileLinkAxi4WindowQualification.scala",
+      "timing_sha256": "1d3c38a5b34a6cecfa9e2886f2d6b61a17ff4a3f001974e3db422a26a591736f",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/ip/tilelink/ManagerRequestBoundary.scala",
+      "timing_sha256": "bba996977b13c27a99c2325adff910d320903524de09ca1e130cd502cfc6d598",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/main/scala/platform/CommonMachineFabric.scala",
+      "timing_sha256": "0adca9638054d211f38e786f1c51de11063ccb26b691b0ef1fac8a019523e68c",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/main/scala/platform/CommonMachineFabric.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/main/scala/platform/CommonMachineFabric.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/main/scala/platform/CommonMachineFabric.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/main/scala/platform/CommonMachineFabric.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/ManagerQualificationNativeGsim.scala",
+      "timing_sha256": "0f9bd234a5945fee21541fc1d0e420369035a77cb49de40f0593ad48765f629b",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/ManagerQualificationPairGsim.scala",
+      "timing_sha256": "7be85c8f78f427144cc5690df2799c888ce2fc645cdc1e092254289c2365b1f5",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/ManagerRequestStageGsim.scala",
+      "timing_sha256": "7d83503632e2e2ef7981be0919ff04b83393b4a74fce1cb38029d1fc4bbda363",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/ManagerWindowQualificationGsim.scala",
+      "timing_sha256": "cd390942a8caad65ba132d264b47346facb85a70867656496f4222720538fd0c",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/MulLoadOperandCaptureBackendGsim.scala",
+      "timing_sha256": "e1841988bb8cf530d5bd4f018624c2b33fb544b62f89d495baa105bd0309195d",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/test/scala/ooo/MulLoadOperandCaptureBackendGsim.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/test/scala/ooo/MulLoadOperandCaptureBackendGsim.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/test/scala/ooo/MulLoadOperandCaptureBackendGsim.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/test/scala/ooo/MulLoadOperandCaptureBackendGsim.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/MulLoadOperandCaptureBackendGsimMain.scala",
+      "timing_sha256": "e1f7be80e6abb04d3f66fb65ed595344e97203dc99ecb310ed6513603e9c9852",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence/src/test/scala/ooo/MulLoadOperandCaptureBackendGsimMain.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/test/scala/ooo/MulLoadOperandCaptureBackendGsimMain.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/test/scala/ooo/MulLoadOperandCaptureBackendGsimMain.scala",
+        "/workspace/scratch/41e4a649bb60/recovery-1101/h/payload/src/test/scala/ooo/MulLoadOperandCaptureBackendGsimMain.scala"
+      ],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/NativeMemoryAddressSumGsim.scala",
+      "timing_sha256": "164b20a2bfd39b6d408a99636619710e1498c9423979880b08cdb24eed15834d",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/ooo/RegisteredLoadProofLookaheadGsim.scala",
+      "timing_sha256": "43e88f99de44779231e0d3b711b0898a571c716321b5f058876ca170c92819b0",
+      "exact_local_matches": [],
+      "different_local_files": [],
+      "mul_source_match": false
+    },
+    {
+      "relative_path": "src/test/scala/platform/CombinedA1FabricTimingMain.scala",
+      "timing_sha256": "687a232090a9a0b6d118a48f4981073c2fc56629fed33ef63eb58942a43947fe",
+      "exact_local_matches": [],
+      "different_local_files": [
+        "/workspace/scratch/41e4a649bb60/Valence-integrated/src/test/scala/platform/CombinedA1FabricTimingMain.scala",
+        "/workspace/scratch/41e4a649bb60/Valence-optimized-local-vivado-20261108/source/src/test/scala/platform/CombinedA1FabricTimingMain.scala"
+      ],
+      "mul_source_match": false
+    }
+  ],
+  "exact_recovered_inputs": 1229,
+  "total_inputs": 1248
+}

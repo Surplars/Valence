@@ -1,0 +1,17 @@
+M	docs/ooo-core-plan.md
+A	docs/storage-query-experiments.md
+A	docs/storage-query-formal.md
+M	simulator/gsim/README.md
+A	simulator/gsim/experiments/storage_query/QueriedRecoveryAdmission.scala
+A	simulator/gsim/experiments/storage_query/README.md
+A	simulator/gsim/experiments/storage_query/RecoveryQueryFormalMain.scala
+A	simulator/gsim/experiments/storage_query/base_hashes.json
+A	simulator/gsim/experiments/storage_query/check_counterexample.py
+A	simulator/gsim/experiments/storage_query/formal.py
+A	simulator/gsim/experiments/storage_query/prepare.py
+A	simulator/gsim/experiments/storage_query/query-ledger.patch
+A	simulator/gsim/experiments/storage_query/run.py
+A	simulator/gsim/experiments/storage_query/storage-backend.patch
+A	simulator/gsim/experiments/storage_query/test_prepare.py
+M	src/main/scala/core/ooo/retire/RenameRob.scala
+A	src/test/scala/ooo/ExperimentalCompletionStorageSpec.scala

@@ -1,0 +1,44 @@
+{
+  "inputs": {
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/crc32.c": "2bfde354f870a21562a6a41e37f0b41c7ddd984c430ed6aff08aae57ae6b6c88",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/crc32.h": "553fae8ca8f8f03f4c872c4850b2c7c541c3aa43821354cbb8fbf44055542878",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/crc16-original.inc": "ce8545969e2d3f7fd52cdd2dbac3d12a84e954d5ba26b655b390cf838e5b4dd8",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/crc16-candidate.inc": "a683ac34b3ce428f94dad07e5d69b7aea9e3fc5cdde11a3e5d082e43d320a7be",
+    "/workspace/shared/Valence-store-merge-review/fpga/firmware/tests/netboot_crc16_oracle.c": "aba5167eaee04d9fb44a00d053417b4a4491da21da24a750f1eadc5283dbfba1",
+    "/workspace/shared/Valence-store-merge-review/scripts/test_netboot_crc16.py": "28d46044557a245d8815e9832fd5b60a2ef93316d07afb8730a2a909d9fd9620"
+  },
+  "tools": {
+    "/usr/bin/gcc": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f"
+  },
+  "unchanged_modes": {
+    "0": {
+      "preprocessed_bytes": 3601,
+      "sha256": "c76a96693d68472f35fbd18d68659361067b5e90c6a20f0dc284d67be143f80c"
+    },
+    "1": {
+      "preprocessed_bytes": 6617,
+      "sha256": "992d849cb952350fccf5e213f0175d2e19f424f7508764a1f4a56c629263a751"
+    },
+    "2": {
+      "preprocessed_bytes": 16621,
+      "sha256": "b48e797b807e72900378919241b73833ac9aed862a3901b563bf48f14362543a"
+    }
+  },
+  "files": {
+    "negative.log": "1177989dbfff83f9b2cb50a52687fed49f8c04d4ed6507e6d03c166e6e590a25",
+    "positive-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "negative": "763a9546be2d99ba8b614531bf8739a29c4116b0ddd13a5b5f21b2966f977790",
+    "positive.log": "a0001cf6610882adbe2dd0bdcc980da96b9ec3a08b0bdb55a8a48825747a7ac0",
+    "negative-run.json": "734d0874f79daec6b6a2e64aa40ac5aed7eae3a6957b9482ed820cc249c97277",
+    "reference-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "positive": "d95fa1a4b7998cda47bdff1e7ccb0aa5bf27f06f7aec5f6faedf1b2e8d451452",
+    "commands.json": "c2a1ebbd32e9602a1faa89f8af14d1c7eda985cd9658f7e6a62d911e4221bf1b",
+    "candidate.o": "2c413196305b9788c11e36cf9c48f24cfd2dbc40f215b1267a5a147930355c59",
+    "negative-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "positive-run.json": "4c9e9543443d39346ec8e3408841bb94b7da73c98789c856418bfae697ea74b2",
+    "reference.c": "dd2c907c9857744e74a6685b41298d2bc996121331c003c87aab78f1208f9900",
+    "reference.o": "5df2e41f1f476ca793a11396559c82d03fc6ddccaad54ba1ff6e416e387bc64d"
+  },
+  "free": 57832574976
+}

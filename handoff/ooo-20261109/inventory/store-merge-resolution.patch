@@ -1,0 +1,276 @@
+diff --git a/docs/netboot-store16-aligned.md b/docs/netboot-store16-aligned.md
+index e955f86..6e469be 100644
+--- a/docs/netboot-store16-aligned.md
++++ b/docs/netboot-store16-aligned.md
+@@ -1,8 +1,16 @@
+ # Aligned halfword RAM packing
+ 
++Integration note: production keeps `NETBOOT_STORE16_PACKING=0` by default,
++which uses the newer `netboot_copy` aligned-word implementation. Set
++`NETBOOT_STORE16_PACKING=1` to select the historical aligned-halfword candidate.
++Both implementations retain immutable, non-overlapping RX source ownership,
++aligned destination stores, exact byte bounds, range checks and return codes.
++The independent native oracle below now covers both production modes. Historical
++CPU results below apply only to the original matched experiment, not this merge.
++
+ This third isolated optimization preserves the qualified sum16 and CRC changes. After the original prefix aligns destination RAM, an even source uses four aligned GCC may_alias halfword loads per8bytes and the existing aligned volatile64-bit RAM store. Odd sources retain byte packing. Prefix, tail, image-range checks and return codes remain unchanged. The target is explicitly little-endian; no overlapping-copy contract is added.
+ 
+-Run `python3 scripts/test_netboot_store16.py --out build/netboot-store16-native`. Existing GCC-compatible tools with ASan/UBSan are required; `--cc` selects one and `--dry-run` only checks source identity/prints scope. The runner compares exact production and extracted candidate bodies and reconstructs original board sourceSHA `b4197681463b8ff4277f0c45f2bcec9f4bfd0b134dbc4d78f6f260ba83e1b59c`. Tests cover393,408 independent byte comparisons across8×8source/destination alignments,lengths0..2048,3patterns;20range cases includingUINT32_MAX and unchanged memory after rejection;130real protected guard-page boundaries. Whole destination sentinels and an exact intentional-corruption negative are required. LSan is disabled; ASan/UBSan remain active. Guard pages complement source bounds proof and ASan poison-granularity limits.
++Run `python3 scripts/test_netboot_store16.py --out build/netboot-store16-native`. Existing GCC-compatible tools with ASan/UBSan are required; `--cc` selects one and `--dry-run` only checks source identity/prints scope. The runner compares exact production and extracted candidate bodies for both selector modes. The runner pins the unchanged independent original store fixture SHA rather than the historical whole-board SHA, because current board clock and transport changes must be retained. For each mode, tests cover393,408 independent byte comparisons across8×8source/destination alignments,lengths0..2048,3patterns;20range cases includingUINT32_MAX and unchanged memory after rejection;130real protected guard-page boundaries. Whole destination sentinels and an exact intentional-corruption negative are required. LSan is disabled; ASan/UBSan remain active. Guard pages complement source bounds proof and ASan poison-granularity limits.
+ 
+ ## Qualified CPU result
+ 
+diff --git a/fpga/firmware/netboot_board.c b/fpga/firmware/netboot_board.c
+index 7d9e882..0e4f191 100644
+--- a/fpga/firmware/netboot_board.c
++++ b/fpga/firmware/netboot_board.c
+@@ -1,4 +1,9 @@
++#ifndef CPU_HZ
++#define CPU_HZ 100000000ULL
++#endif
++#include "board_clocks.h"
+ #include "netboot.h"
++#include "netboot_copy.h"
+ #include "valence_gmac.h"
+ #include "ethernet_dma.h"
+ #ifndef NETBOOT_POSTED_RX
+@@ -13,9 +18,7 @@
+ #ifndef NETBOOT_RX_SLOTS
+ #define NETBOOT_RX_SLOTS 4U
+ #endif
+-#ifndef CPU_HZ
+-#define CPU_HZ 100000000ULL
+-#endif
++
+ #ifndef BOARD_RAM_BYTES
+ #define BOARD_RAM_BYTES (512UL*1024*1024)
+ #endif
+@@ -101,7 +104,7 @@ void *memset(void *to,int value,size_t n) {
+ }
+ static uint64_t now(void *unused) {
+     /* BoardSocTop.timerTick=true; MachineTimer.timeValue feeds the TIME CSR.
+-     * This is CPU_HZ ticks/second on this fixed-clock board, not retired cycles. */
++     * This is TIMEBASE_HZ ticks/second, independent of CPU and retired cycles. */
+     (void)unused; uint64_t value; __asm__ volatile("rdtime %0":"=r"(value) :: "memory"); return value;
+ }
+ static void fence(void) { __asm__ volatile("fence iorw,iorw" ::: "memory"); }
+@@ -259,7 +262,7 @@ static int stop_posted_rx(void) {
+         uint64_t status=read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_STATUS);
+         if(!queue_owned(status)) break;
+         if(((status>>8)&255) && complete_posted_rx(0,0)<0) valid=0;
+-        if(now(0)-start>=CPU_HZ/5) return 0;
++        if(now(0)-start>=TIMEBASE_HZ/5) return 0;
+     }
+     write64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL,0);
+     if((read64(DMA_BASE,VALENCE_NET_DMA_RX_QUEUE_CONTROL)&1) ||
+@@ -278,7 +281,7 @@ static int stop_rx(void) {
+ #endif
+     if(read64(DMA_BASE,0x48)&1) {
+         write64(DMA_BASE,0x90,1);
+-        if(!wait_bits(DMA_BASE,0x48,1,0,CPU_HZ/5)) return 0;
++        if(!wait_bits(DMA_BASE,0x48,1,0,TIMEBASE_HZ/5)) return 0;
+     }
+     write64(DMA_BASE,0x40,2); armed=0; return 1;
+ }
+@@ -315,26 +318,26 @@ int board_netboot_quiet(void) {
+                 arm_rx(); /* completed frames are discarded only in reserved scratch */
+             }
+         }
+-        if(now(0)-start>=CPU_HZ/5) return failed("producer_drain_timeout");
++        if(now(0)-start>=TIMEBASE_HZ/5) return failed("producer_drain_timeout");
+     }
+     if(!stop_rx()) return failed("rx_dma_stop_timeout");
+-    if(!wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5)) return failed("tx_dma_timeout");
+-    if(!wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return failed("mac_tail_timeout");
++    if(!wait_bits(DMA_BASE,0x28,1,0,TIMEBASE_HZ/5)) return failed("tx_dma_timeout");
++    if(!wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5)) return failed("mac_tail_timeout");
+     drain_ticks+=now(0)-stage_start; ended(now(0)-stage_start);
+     begin(NB_MAC_STOP);
+     /* Admission is closed and all busy tails are gone: CONTROL cannot race a
+      * newly admitted frame, and no FIFO/reset/clock-gate shortcut is involved. */
+     write64(MAC_BASE,VGMAC_CONTROL,0);
+     if(read64(MAC_BASE,VGMAC_CONTROL)!=0 ||
+-       !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return failed("mac_disable_timeout");
++       !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5)) return failed("mac_disable_timeout");
+     write64(DMA_BASE,0x20,2); fence(); active=0; armed=0;
+     mac_stop_ticks+=now(0)-stage_start; ended(now(0)-stage_start); return 1;
+ }
+ static int mdio(unsigned reg,int write,unsigned value) {
+-    if(!wait_bits(MAC_BASE,0x80,1,0,CPU_HZ/50)) return -1;
++    if(!wait_bits(MAC_BASE,0x80,1,0,TIMEBASE_HZ/50)) return -1;
+     write64(MAC_BASE,0x78,value | ((uint64_t)write<<16) | (1UL<<17) |
+             (1UL<<18) | ((uint64_t)reg<<23)); /* board PHY address 1 */
+-    if(!wait_bits(MAC_BASE,0x80,3,2,CPU_HZ/50)) return -1;
++    if(!wait_bits(MAC_BASE,0x80,3,2,TIMEBASE_HZ/50)) return -1;
+     uint64_t result=read64(MAC_BASE,0x88);
+     return result&(1UL<<16)?-1:(int)(result&65535);
+ }
+@@ -370,7 +373,7 @@ static int initialize(void) {
+         if(abort_uart()) return 0;
+         high=mdio(2,0,0); low=mdio(3,0,0);
+         if(high>=0 && low>=0 && (((unsigned)high<<16 | (unsigned)low)&0xfffffff0U)==0x001cc910U) break;
+-    } while(now(0)-start<CPU_HZ*2);
++    } while(now(0)-start<board_seconds_to_ticks(2));
+     if(high<0 || low<0 || (((unsigned)high<<16 | (unsigned)low)&0xfffffff0U)!=0x001cc910U) return 0;
+     if(mdio(31,1,0xd08)<0) return 0;
+     int tx=mdio(0x11,0,0), rx=mdio(0x15,0,0), safe=0;
+@@ -401,26 +404,26 @@ static int initialize(void) {
+         if(ready) {
+             write64(MAC_BASE,0x18,0x0256414c0001ULL);
+             if(read64(MAC_BASE,0x18)!=0x0256414c0001ULL ||
+-               !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5)) return 0;
++               !wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5)) return 0;
+ #if NETBOOT_POSTED_RX
+             /* Post the whole receive window before reopening MAC admission. */
+             if(posted_available && !start_posted_rx()) return 0;
+ #endif
+             write64(MAC_BASE,0x10,11); /* TX/RX + broadcast, no promiscuous mode */
+-            if(read64(MAC_BASE,0x10)!=11 || !wait_bits(MAC_BASE,0x28,6,0,CPU_HZ/5)) return 0;
++            if(read64(MAC_BASE,0x10)!=11 || !wait_bits(MAC_BASE,0x28,6,0,TIMEBASE_HZ/5)) return 0;
+             write64(MAC_BASE,VGMAC_RX_STOP,0);
+             return !(read64(MAC_BASE,VGMAC_RX_STOP)&VGMAC_RX_STOP_REQUEST) &&
+-                wait_bits(MAC_BASE,VGMAC_STATUS,6,0,CPU_HZ/5);
++                wait_bits(MAC_BASE,VGMAC_STATUS,6,0,TIMEBASE_HZ/5);
+         }
+-    } while(now(0)-start<CPU_HZ*8);
++    } while(now(0)-start<board_seconds_to_ticks(8));
+     return 0;
+ }
+ static int send(void *unused,unsigned length) {
+     (void)unused;
+-    if(!active || !length || length>sizeof tx_frame || !wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5)) return -1;
++    if(!active || !length || length>sizeof tx_frame || !wait_bits(DMA_BASE,0x28,1,0,TIMEBASE_HZ/5)) return -1;
+     write64(DMA_BASE,0x10,(uintptr_t)tx_frame); write64(DMA_BASE,0x18,length);
+     write64(DMA_BASE,0x20,3);
+-    if(!wait_bits(DMA_BASE,0x28,1,0,CPU_HZ/5) || (read64(DMA_BASE,0x28)&6)!=2) return -1;
++    if(!wait_bits(DMA_BASE,0x28,1,0,TIMEBASE_HZ/5) || (read64(DMA_BASE,0x28)&6)!=2) return -1;
+     write64(DMA_BASE,0x20,2); return 0;
+ }
+ static int recv(void *unused,uint64_t budget) {
+@@ -468,6 +471,12 @@ static uint8_t *received_frame(void *unused) {
+ static int store(void *unused,uint32_t offset,const uint8_t *p,unsigned n) {
+     (void)unused;
+     if(offset>IMAGE_LIMIT || n>IMAGE_LIMIT-offset) return -1;
++    /* Preserve the current aligned-word copy by default. The historical
++     * aligned-halfword candidate remains selectable for matched comparison. */
++#ifndef NETBOOT_STORE16_PACKING
++#define NETBOOT_STORE16_PACKING 0
++#endif
++#if NETBOOT_STORE16_PACKING
+     volatile uint8_t *to=ram_pointer(offset);
+     /* Frame payload alignment is arbitrary. Pack from bytes, and issue only
+      * aligned wide RAM stores; prefix/tail stores preserve neighboring bytes.
+@@ -495,6 +504,9 @@ static int store(void *unused,uint32_t offset,const uint8_t *p,unsigned n) {
+         }
+     }
+     while(n--) *to++=*p++;
++#else
++    netboot_copy(ram_pointer(offset),p,n);
++#endif
+     return 0;
+ }
+ static int prepare_verify(void *unused) {
+@@ -531,7 +543,7 @@ static void protocol_stage(void *unused,enum nb_stage value) {
+     begin(value);
+ }
+ static void summary(void) {
+-    text("NB totals"); field("timebase_hz",CPU_HZ); field("init_ticks",init_ticks); field("transfer_ticks",transfer_ticks);
++    text("NB totals"); field("timebase_hz",TIMEBASE_HZ); field("init_ticks",init_ticks); field("transfer_ticks",transfer_ticks);
+     field("rx_wait_ticks",stats.rx_ticks); field("copy_ticks",stats.copy_ticks);
+     field("stream_crc_ticks",stats.crc_ticks); field("tx_ack_ticks",stats.tx_ticks);
+     field("ram_crc_ticks",ram_readback_ticks); field("ram_flush_ticks",ram_flush_ticks); field("ram_sweep_ticks",ram_sweep_ticks); field("verify_callback_ticks",stats.verify_ticks); field("drain_ticks",drain_ticks);
+@@ -557,7 +569,7 @@ static int board_netboot_receive(uint32_t *entry,uint32_t *length,uint32_t *pend
+ #if NETBOOT_POSTED_RX
+     posted_used=0; posted_frames=posted_drops=0; posted_copy_ticks=0;
+ #endif
+-    begin(NB_INIT); text("NB time_source=rdtime"); field("timebase_hz",CPU_HZ); text("\r\n");
++    begin(NB_INIT); text("NB time_source=rdtime"); field("timebase_hz",TIMEBASE_HZ); text("\r\n");
+     uint64_t init_start=now(0);
+     if(!initialize()) {
+         init_ticks=now(0)-init_start;
+@@ -567,7 +579,7 @@ static int board_netboot_receive(uint32_t *entry,uint32_t *length,uint32_t *pend
+     init_ticks=now(0)-init_start; ended(init_ticks);
+     struct nb_ops ops={ .context=0,.tx=tx_frame,.rx=rx_frame,
+         .mac={2,0x56,0x41,0x4c,0,1},.ip=NETBOOT_IP,.server_ip=NETBOOT_SERVER,
+-        .base=RAM_BASE,.limit=IMAGE_LIMIT,.hz=CPU_HZ,
++        .base=RAM_BASE,.limit=IMAGE_LIMIT,.hz=TIMEBASE_HZ,
+         .now=now,.send=send,.recv=recv,.store=store,.verify=verify,
+         .stats=&stats,.stage=protocol_stage,.received_frame=received_frame,.prepare_verify=prepare_verify
+ #if NETBOOT_POSTED_RX
+diff --git a/fpga/firmware/tests/netboot_store16_oracle.c b/fpga/firmware/tests/netboot_store16_oracle.c
+index 985cd3c..5129257 100644
+--- a/fpga/firmware/tests/netboot_store16_oracle.c
++++ b/fpga/firmware/tests/netboot_store16_oracle.c
+@@ -12,6 +12,7 @@ static unsigned image_limit;
+ #define IMAGE_LIMIT image_limit
+ static uint8_t *ram_pointer(uint32_t offset) { return destination+offset; }
+ #include "store16-original.inc"
++#include "../netboot_copy.h"
+ #include "store16-candidate.inc"
+ static void die(unsigned sa,unsigned da,unsigned n,const char *why) { fprintf(stderr,"STORE16_MISMATCH source_alignment=%u destination_alignment=%u length=%u reason=%s\n",sa,da,n,why);exit(1); }
+ static uint8_t pattern(unsigned i,unsigned p) { return p==0?0:p==1?(uint8_t)(i*29+7):(uint8_t)((i*73)^(i>>3)^0xa5); }
+diff --git a/fpga/firmware/tests/store16-candidate.inc b/fpga/firmware/tests/store16-candidate.inc
+index 460e45b..8896d44 100644
+--- a/fpga/firmware/tests/store16-candidate.inc
++++ b/fpga/firmware/tests/store16-candidate.inc
+@@ -1,6 +1,12 @@
+ static int candidate_store(void *unused,uint32_t offset,const uint8_t *p,unsigned n) {
+     (void)unused;
+     if(offset>IMAGE_LIMIT || n>IMAGE_LIMIT-offset) return -1;
++    /* Preserve the current aligned-word copy by default. The historical
++     * aligned-halfword candidate remains selectable for matched comparison. */
++#ifndef NETBOOT_STORE16_PACKING
++#define NETBOOT_STORE16_PACKING 0
++#endif
++#if NETBOOT_STORE16_PACKING
+     volatile uint8_t *to=ram_pointer(offset);
+     /* Frame payload alignment is arbitrary. Pack from bytes, and issue only
+      * aligned wide RAM stores; prefix/tail stores preserve neighboring bytes.
+@@ -28,5 +34,8 @@ static int candidate_store(void *unused,uint32_t offset,const uint8_t *p,unsigne
+         }
+     }
+     while(n--) *to++=*p++;
++#else
++    netboot_copy(ram_pointer(offset),p,n);
++#endif
+     return 0;
+ }
+diff --git a/scripts/test_netboot_store16.py b/scripts/test_netboot_store16.py
+index 73c5bef..10925d0 100644
+--- a/scripts/test_netboot_store16.py
++++ b/scripts/test_netboot_store16.py
+@@ -6,23 +6,27 @@ R=pathlib.Path(__file__).resolve().parents[1];S=R/'fpga/firmware/tests';D=args.o
+ sha=lambda p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+ production=R/'fpga/firmware/netboot_board.c';source=production.read_text();a=source.index('static int store(');b=source.index('\nstatic int prepare_verify',a)
+ assert source[a:b]+'\n'==(S/'store16-candidate.inc').read_text().replace('candidate_store(','store('),'exact production body required'
+-original=source[:a]+(S/'store16-original.inc').read_text().replace('original_store(','store(').rstrip('\n')+source[b:]
+-assert hashlib.sha256(original.encode()).hexdigest()=='b4197681463b8ff4277f0c45f2bcec9f4bfd0b134dbc4d78f6f260ba83e1b59c','original identity'
+-inputs={str(q):sha(q) for q in [production,S/'netboot_store16_oracle.c',S/'store16-original.inc',S/'store16-candidate.inc',pathlib.Path(__file__).resolve()]}
+-if args.dry_run:print(json.dumps({'cc':args.cc,'out':str(D),'sources':inputs,'positive_cases':393408,'range_cases':20,'guard_page_cases':130},indent=2));raise SystemExit
++# Pin the independent reference body, not unrelated board clock/transport code.
++# The exact production body is still checked against the candidate above.
++assert sha(S/'store16-original.inc')=='0dc8a534b99a7f45246d14dc5bbd63a6832771221791277f83812cc583665c82','original store identity'
++
++inputs={str(q):sha(q) for q in [production,S/'netboot_store16_oracle.c',S/'store16-original.inc',S/'store16-candidate.inc',R/'fpga/firmware/netboot_copy.h',pathlib.Path(__file__).resolve()]}
++if args.dry_run:print(json.dumps({'cc':args.cc,'out':str(D),'sources':inputs,'positive_cases':393408,'range_cases':20,'guard_page_cases':130,'modes':[0,1]},indent=2));raise SystemExit
+ D.mkdir(parents=True,exist_ok=True)
+ cc=shutil.which(args.cc);assert cc;flags=['-O2','-std=gnu11','-Wall','-Wextra','-Werror','-Wstrict-aliasing=2','-fstrict-aliasing','-fsanitize=address,undefined','-fno-sanitize-recover=all','-fno-omit-frame-pointer']
+ commands=[]
+-for name,extra in [('positive',[]),('negative',['-DORACLE_NEGATIVE'])]:
++for mode,name,extra in [(mode,name,extra) for mode in [0,1] for name,extra in [('positive',[]),('negative',['-DORACLE_NEGATIVE'])]]:
++ kind=name; name=f'mode{mode}-{name}'
++ extra=[f'-DNETBOOT_STORE16_PACKING={mode}',*extra]
+  cmd=[cc,*flags,*extra,str(S/'netboot_store16_oracle.c'),'-o',str(D/name)];commands.append(cmd)
+  with (D/(name+'-compile.log')).open('w') as f:subprocess.run(cmd,stdout=f,stderr=subprocess.STDOUT,check=True,cwd=D)
+  cmd=[str(D/name)];commands.append(cmd);start=time.monotonic()
+  with (D/(name+'.log')).open('w') as f:r=subprocess.run(cmd,stdout=f,stderr=subprocess.STDOUT,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'},timeout=180,cwd=D)
+  log=(D/(name+'.log')).read_text()
+- if name=='positive':assert r.returncode==0 and 'PASS_STORE16_ORACLE cases=393408 range_cases=20 guard_page_cases=130' in log,log
++ if kind=='positive':assert r.returncode==0 and 'PASS_STORE16_ORACLE cases=393408 range_cases=20 guard_page_cases=130' in log,log
+  else:assert r.returncode==1 and 'STORE16_MISMATCH source_alignment=0 destination_alignment=0 length=8 reason=bytes' in log,log
+  (D/(name+'-run.json')).write_text(json.dumps({'exit':r.returncode,'seconds':time.monotonic()-start,'command':cmd,'ASAN_OPTIONS':'detect_leaks=0'},indent=2)+'\n')
+- print(log.strip(),flush=True)
++ print(f'mode={mode} '+log.strip(),flush=True)
+ assert {p:sha(p) for p in inputs}==inputs
+ (D/'commands.json').write_text(json.dumps(commands,indent=2)+'\n')
+ libs=[cc]
