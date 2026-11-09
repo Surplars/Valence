@@ -33,7 +33,28 @@ private[ooo] class CheckedDataRequest(p: OooParams, classifyNextLine: Boolean = 
 class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequests: Boolean = false,
     translationHitFlow: Boolean = false, usePublishedPmpChanges: Boolean = false,
     val queuedHeadSelection: Boolean = false, val alignedNextLinePmp: Boolean = false,
-    val registerNextLineDecision: Boolean = false, val certifiedLoadIngress: Boolean = false) extends Module {
+    val registerNextLineDecision: Boolean = false, val certifiedLoadIngress: Boolean = false,
+    val experimentalParallelIngressAuthorization: Boolean = false) extends Module {
+    // Preserve the original JVM constructor for already-compiled callers.
+    def this(p: OooParams, entries: Int, registerCheckedRequests: Boolean,
+        translationHitFlow: Boolean, usePublishedPmpChanges: Boolean,
+        queuedHeadSelection: Boolean, alignedNextLinePmp: Boolean,
+        registerNextLineDecision: Boolean, certifiedLoadIngress: Boolean) =
+        this(p, entries, registerCheckedRequests, translationHitFlow, usePublishedPmpChanges,
+            queuedHeadSelection, alignedNextLinePmp, registerNextLineDecision, certifiedLoadIngress, false)
+
+    require(!experimentalParallelIngressAuthorization || (
+        p.robEntries == 32 && p.physicalRegs == 64 && p.memoryEntries == 4 && p.tagBits == 64 &&
+        entries == 8 && registerCheckedRequests && p.registeredTranslationHeads &&
+        p.registeredMemoryRequests && p.identityDataRequestFlow && p.physicalLoadIngressFlow &&
+        p.dataNextLinePrefetch && !p.dataStoreNextLinePrefetch && p.pmpEntries == 16 &&
+        !p.registeredPmpRegions && !translationHitFlow && !usePublishedPmpChanges &&
+        !queuedHeadSelection && !alignedNextLinePmp && !registerNextLineDecision && !certifiedLoadIngress &&
+        !p.registeredDataTranslation && !p.factorCheckedNextAllowed && !p.guardedNaturalDataPmp &&
+        !p.loadPayloadNomination && !p.coexistingPhysicalLoadIngress &&
+        !p.virtualRamLoadPrecheck && !p.precheckedDataRequestFlow &&
+        !p.postedStoreMerge && !p.canonicalVirtualStoreOverlap && !p.frozenStoreProofEnabled),
+        "parallel ingress authorization is isolated to the audited physical-ingress 32/64/4 profile")
     // One configuration source; these read-only views keep elaboration audits explicit.
     val registerCanonicalStoreEvent: Boolean = p.registeredCanonicalStoreEvent
     val factorCheckedNextAllowed: Boolean = p.factorCheckedNextAllowed
@@ -705,12 +726,33 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
     // Factoring stores permission before the current-request fault in the existing
     // hint bit; that same record already carries the fault used at dequeue.
     private var constructedNextLineAuthorization: Option[NextLineAuthorization] = None
-    def nextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedNextLineAuthorization
+    // A single helper is not the selected authorization in the experimental profile.
+    // Existing single-helper audits must see None rather than silently inspect the legacy arm.
+    def nextLineAuthorizationInstance: Option[NextLineAuthorization] =
+        if (experimentalParallelIngressAuthorization) None else constructedNextLineAuthorization
+    private var constructedRawIngressAuthorization: Option[NextLineAuthorization] = None
+    def legacyNextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedNextLineAuthorization
+    def rawIngressNextLineAuthorizationInstance: Option[NextLineAuthorization] = constructedRawIngressAuthorization
     val nextAllowed = if (permission.nonEmpty) {
         val evaluator = permission.get
         constructedNextLineAuthorization = evaluator.nextLineAuthorization
         if (registerNextLineDecision) checked.get.enq.bits.nextLineDecision.get := evaluator.io.nextDecision.get
         evaluator.io.nextAllowed
+    } else if (experimentalParallelIngressAuthorization) {
+        // Preserve every raw input, including invalid cycles: only move the final selection.
+        val legacy = Module(new NextLineAuthorization(p, alignedLinePmp = false, exportDecision = false))
+        constructedNextLineAuthorization = Some(legacy)
+        CpuReturnTransport.requestPayload(legacy.io.request, Mux(identityOffer, incoming.bits, request))
+        legacy.io.privilege := Mux(identityOffer, context.dataPrivilege, head.privilege)
+        legacy.io.pmpState := io.pmpState
+        legacy.io.fault := Mux(identityOffer, false.B, fault)
+        val raw = Module(new NextLineAuthorization(p, alignedLinePmp = false, exportDecision = false))
+        constructedRawIngressAuthorization = Some(raw)
+        CpuReturnTransport.requestPayload(raw.io.request, io.virtual.request.bits)
+        raw.io.privilege := io.vmState.dataPrivilege
+        raw.io.pmpState := io.pmpState
+        raw.io.fault := false.B
+        Mux(physicalIngressOffer, raw.io.allowed, legacy.io.allowed)
     } else if (p.dataNextLinePrefetch) {
         val authorize = Module(new NextLineAuthorization(p, alignedLinePmp = alignedNextLinePmp,
             exportDecision = registerNextLineDecision))
@@ -731,6 +773,7 @@ class DataTranslationAdapter(p: OooParams, entries: Int = 8, registerCheckedRequ
             authorize.eligible.get
         } else authorize.io.allowed
     } else false.B
+    def selectedNextLineAllowed: Bool = nextAllowed
     checked.foreach { stage =>
         stage.enq.bits.request.prefetchNextAllowed := (if (p.guardedNaturalDataPmp)
             nextAllowed && !guardedCheckedAlignmentFault.get else nextAllowed)

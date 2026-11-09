@@ -1,0 +1,22 @@
+{
+  "renameWidth": "2",
+  "robEntries": "32",
+  "physicalRegs": "64",
+  "memoryEntries": "4",
+  "alignedFetchPmp": "true",
+  "registeredTranslationHeads": "true",
+  "fetchReplyTurnover": "true",
+  "fetchIdentityTranslation": "true",
+  "pmpEntries": "16",
+  "virtualMemoryLevels": "3",
+  "compressedInstructions": "true",
+  "fetchReadyDataClear": "false",
+  "alignedFetchSinglePage": "false",
+  "machineSystem": "true",
+  "registeredFabricBoundary": "true",
+  "registeredTranslatedResponses": "true",
+  "parallelHomeQualification": "true",
+  "independentFetchCapture": "true",
+  "flowThroughFetchRequests": "true",
+  "bufferedFetchRequests": "true"
+}

@@ -63,9 +63,20 @@ class InstructionFetchTransactionBoundary(packetWords: Int = 2, tokenBits: Int =
   */
 class RegisteredInstructionTranslationEngine(val p: OooParams,
     val sharedTwoWordFetchPmp: Boolean = false, tokenBits: Int = 64,
-    withRequestContext: Boolean = false) extends Module {
+    withRequestContext: Boolean = false,
+    val experimentalFinalResponseFlow: Boolean = false) extends Module {
+    // Keep binary linkage for already-compiled ordinary parents.
+    def this(p: OooParams, sharedTwoWordFetchPmp: Boolean, tokenBits: Int,
+        withRequestContext: Boolean) =
+        this(p, sharedTwoWordFetchPmp, tokenBits, withRequestContext, false)
     require(p.registeredTranslationHeads && p.virtualMemoryLevels > 0 && p.pmpEntries > 0)
     private val packetWords = if (p.compressedInstructions && p.renameWidth == 4) 4 else 2
+    require(!experimentalFinalResponseFlow || (packetWords == 2 && tokenBits == 64 &&
+        p.robEntries == 32 && p.physicalRegs == 64 && p.memoryEntries == 4 &&
+        p.compressedInstructions && p.alignedFetchPmp && !p.alignedFetchSinglePage &&
+        p.fetchIdentityTranslation && p.fetchReplyTurnover && !p.fetchReadyDataClear &&
+        withRequestContext && !sharedTwoWordFetchPmp),
+        "experimental final response flow is restricted to the sealed two-word profile")
     val io = IO(new Bundle {
         val command = Flipped(Decoupled(new FetchTransactionCommand(packetWords, tokenBits)))
         val result = Decoupled(new FetchTransactionResult(packetWords, tokenBits))
@@ -125,10 +136,17 @@ class RegisteredInstructionTranslationEngine(val p: OooParams,
         }
     }
 
+    // This is an offered final response, independent of result.ready. The
+    // physical port retains its original wait-state READY and can always spill
+    // an unconsumed offer into the existing reply registers.
+    val earlyFinalOffer = if (experimentalFinalResponseFlow)
+        !reset.asBool && state === waitFirst && !crosses && io.physical.response.valid
+        else false.B
+    val earlyFinalFire = earlyFinalOffer && io.result.ready
     // Only a committed reply handshake may replace the single owner. The
     // old response remains registered and unchanged until that edge.
     io.command.ready := state === idle ||
-        (if (p.fetchReplyTurnover) state === reply && io.result.ready else false.B)
+        (if (p.fetchReplyTurnover) (state === reply && io.result.ready) || earlyFinalFire else false.B)
     if (p.fetchIdentityTranslation && p.alignedFetchSinglePage) {
         // READY names an idle owner or the old reply consumed on this edge.
         // Capturing an unoffered address changes only dead payload; actual
@@ -136,6 +154,7 @@ class RegisteredInstructionTranslationEngine(val p: OooParams,
         // The translation-response capture below retains final priority.
         when(io.command.ready) { firstPhysical := io.command.bits.virtualAddress }
     }
+    if (!experimentalFinalResponseFlow) {
     when(io.command.fire) {
         if (packetWords == 4 || alignedPacket) {
             assert(io.command.bits.virtualAddress(log2Ceil(4 * packetWords) - 1, 0) === 0.U,
@@ -169,6 +188,7 @@ class RegisteredInstructionTranslationEngine(val p: OooParams,
             state := translateFirst
         }
         issued := false.B
+    }
     }
 
     if (p.fetchReadyDataClear) {
@@ -316,11 +336,58 @@ class RegisteredInstructionTranslationEngine(val p: OooParams,
             state := Mux(crosses && allowed(1), sendSecond, reply)
         }
     }
-    io.result.valid := state === reply
-    io.result.bits.data := data
-    io.result.bits.accessFaults := errors
-    io.result.bits.pageFaults := pageFaults
+    if (experimentalFinalResponseFlow) {
+        io.result.valid := state === reply || earlyFinalOffer
+        io.result.bits.data := Mux(earlyFinalOffer, io.physical.response.bits, data)
+        io.result.bits.accessFaults := Mux(earlyFinalOffer,
+            errors | (io.physical.responseError & allowed), errors)
+        io.result.bits.pageFaults := Mux(earlyFinalOffer,
+            pageFaults | (io.physical.responsePageFault & allowed), pageFaults)
+    } else {
+        io.result.valid := state === reply
+        io.result.bits.data := data
+        io.result.bits.accessFaults := errors
+        io.result.bits.pageFaults := pageFaults
+    }
     // New-owner initialization wins over retiring the prior reply.
     when(io.result.fire && !io.command.fire) { state := idle }
+    // The old result still names activeToken Q. A simultaneous new command
+    // must win ALL initialization writes over the old physical receive.
+    if (experimentalFinalResponseFlow) {
+    when(io.command.fire) {
+        if (packetWords == 4 || alignedPacket) {
+            assert(io.command.bits.virtualAddress(log2Ceil(4 * packetWords) - 1, 0) === 0.U,
+                "aligned instruction packet must preserve its packet offset through translation")
+        }
+        virtualPc := io.command.bits.virtualAddress
+        // The generic cross-page path still needs modulo64 +4, but this
+        // carry completes at request capture, before the TLB lookup.
+        secondVirtualPc.foreach(_ := io.command.bits.virtualAddress + 4.U)
+        requested := io.command.bits.requestMask
+        satp := io.command.bits.satp
+        sum := io.command.bits.sum
+        mxr := io.command.bits.mxr
+        privilege := io.command.bits.privilege
+        secondPageFault.foreach(_ := false.B)
+        secondAccessFault.foreach(_ := false.B)
+        permissionCaptured := false.B
+        allowed := 0.U
+        errors := (if (packetWords == 4) ~io.command.bits.requestMask else 0.U)
+        pageFaults := 0.U
+        if (!p.fetchReadyDataClear) data := 0.U
+        if (p.fetchIdentityTranslation) {
+            // Capture the architectural identity case with the request's
+            // context. PMP still runs in the existing registered send stage;
+            // live CSR changes cannot change the captured address or mode.
+            val identity = io.command.bits.privilege === 3.U || io.command.bits.satp(63, 60) === 0.U
+            if (!p.alignedFetchSinglePage) firstPhysical := io.command.bits.virtualAddress
+            secondPhysical.foreach(_ := io.command.bits.virtualAddress + 4.U)
+            state := Mux(identity, Mux(io.command.bits.requestMask.orR, sendFirst, reply), translateFirst)
+        } else {
+            state := translateFirst
+        }
+        issued := false.B
+    }
+    }
     io.idle := state === idle
 }
