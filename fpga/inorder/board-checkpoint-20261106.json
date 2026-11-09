@@ -1,0 +1,63 @@
+{
+  "status": "PASS_BOARD_RPU_RV_DDR_HANDOFF_SELFTEST_NOT_SETUP_TIMING_QUALIFIED",
+  "date": "2026-11-06",
+  "clock_MHz": {
+    "CPU": 300,
+    "VPU": 300,
+    "SYSTEM": 300
+  },
+  "timing_qualified": false,
+  "CPU_WNS_ns": -0.323,
+  "VPU_WNS_ns": 0.071,
+  "SYSTEM_WNS_ns": 0.107,
+  "resources": {
+    "LUT": 53710,
+    "FF": 38594,
+    "BRAM36": 16,
+    "DSP": 35
+  },
+  "board": {
+    "RPU_phase": 5,
+    "RPU_status": 0,
+    "PL_started": 1,
+    "RV_state": 3,
+    "RV_error": 0,
+    "misa": "0x80000000003411ad",
+    "image_crc": "0x708d26b9",
+    "kernel_checksum": "0x5b380cab",
+    "stale_report_cleared_before_con": true,
+    "fresh_elf_download": true
+  },
+  "GSIM": "four reused board cold-launch cases and negative frequency oracle passed; no vendor-IP simulation claim",
+  "reset_change": "unused active-low auxiliary reset deasserted by one-pin VCC-to-GND ECO after polarity inversion",
+  "script_changes": [
+    "interpret mrd -value numerically",
+    "stop RPU group before exposing PL",
+    "clear registers on group reset",
+    "clear old completion before fresh ELF launch"
+  ],
+  "limitations": [
+    "CPU300 setup timing remains negative",
+    "short board DDR selftest only, no stress test or complete H/V conformance test"
+  ],
+  "artifact_sha256": {
+    "i1_board.bit": "7bc67a960df408a882d07166e246be7db0ca3a5c692a5d869b7a2177f869a72a",
+    "routed-reset-final.dcp": "37c684e9ed5ab44c68045268989926ffb20f992970f4bb546f6a93767bcd1538",
+    "cold-reset-fixed.v": "9f7928ba623da47db711fcf1fe39f8e0d8272918b515c63bcdab4d8080a7d583",
+    "board-clean-retest.log": "4b2c23411fbb934f50810408449d32719ad25dcec3e08d7b7c1d1c8f51548021",
+    "xsdb-script-test.log": "206914e54603c089053416e5e80e72058d7c0509b5ef1eb2567d6e2a9f4c712f",
+    "route-status-final.rpt": "08749eeac2dc87092805765fd9fee0f2bc0843c134b0c508f1477d07f42953b2",
+    "drc-final.rpt": "ca67c484d719318d54df5d7c1a2c8603e84b97b3751251c616d102ca4390f5a9",
+    "timing-final.rpt": "36fa00660a18f81073765a8843bdf5be8287238c8034956f2190b36fe7b8f698",
+    "bus-skew-final.rpt": "acb29318b71847609784c0ab7568350bebe1c7cd52222c2cb544c2a6f499bf3f",
+    "fix_reset.tcl": "7d9d33eb02e203dd6155bd8e02043a42ce241f558e3163d03f3f5dd720b615d7",
+    "finish_reset.tcl": "9cfa1f567301b067869fb64ee20b5c1f79af86bb2cc7ea038d5031a1d732d9fa"
+  },
+  "reproduction": {
+    "board_create": "fpga/inorder/create_board.tcl <staged-board-directory>",
+    "original_r8_reset_eco": "fpga/inorder/r8_reset_eco.tcl <frozen-r8-directory> <fresh-output-directory>",
+    "cold_launch": "software/ps-rpu/run_soc.tcl <package-directory>",
+    "Spinor_lock": "simulator/gsim/config/spinor-integration.json",
+    "GSIM_qualification": "simulator/gsim/tool_fixes/qualify_clock_edges.py"
+  }
+}

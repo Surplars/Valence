@@ -3,7 +3,8 @@ package soc.core.inorder
 import chisel3._
 import chisel3.util._
 
-class FiveStageFetchResponse extends Bundle {
+class FiveStageFetchResponse(p: FiveStageConfig = FiveStageConfig()) extends Bundle {
+    val guest = if (p.withH) Some(new I1GuestFault) else None
     val instruction = UInt(32.W)
     val error = Bool()
     val pageFault = Bool()
@@ -24,12 +25,14 @@ class FiveStageDataRequest(val p: FiveStageConfig) extends Bundle {
     val noAllocate = Bool()
     val atomic = Bool()
     val atomicOperation = UInt(5.W)
+    val guest = if (p.withH) Some(new I1GuestAccess) else None
 }
 
 class FiveStageDataResponse(val p: FiveStageConfig) extends Bundle {
     val data = UInt(p.xlen.W)
     val error = Bool()
     val pageFault = Bool()
+    val guest = if (p.withH) Some(new I1GuestFault) else None
     val fetchSpan = Bool() // complete containing word was authorized for instruction fetch
     val parcelClasses = if (p.cacheFetchPredecode) Some(UInt(8.W)) else None
 }
@@ -96,6 +99,8 @@ class FiveStageDecodeControl(val p: FiveStageConfig) extends Bundle {
     val floating = Bool()
     val fpExecute = Bool()
     val fpWrites = Bool()
+    val spinor = if (p.spinor) Some(Bool()) else None
+    val hypervisor = if (p.withH) Some(new I1HypervisorDecodeControl) else None
 }
 
 class FiveStageInstruction(val p: FiveStageConfig) extends Bundle {
@@ -103,6 +108,7 @@ class FiveStageInstruction(val p: FiveStageConfig) extends Bundle {
     val instruction = UInt(32.W)
     val fetchError = Bool()
     val fetchPageFault = Bool()
+    val fetchGuest = if (p.withH) Some(new I1GuestFault) else None
     val compressed = Bool()
     val fetchSecondHalfFault = Bool()
     val predictedNextPc = UInt(p.xlen.W)
@@ -133,6 +139,7 @@ class FiveStageCompletion(val p: FiveStageConfig) extends Bundle {
     val fault = Bool()
     val cause = UInt(p.xlen.W)
     val tval = UInt(p.xlen.W)
+    val guest = if (p.withH) Some(new I1GuestFault) else None
     val csrWrite = Bool()
     val csrData = UInt(p.xlen.W)
     // Decoded at EX and carried through the existing owner; avoid late WB

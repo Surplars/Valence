@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/Surplars/Spinor.git",
+  "commit": "e151f80e1da3a566d1a6ff5157052757fac0ddcb",
+  "source_root": "build/dependencies/Spinor-e151f80e1da3",
+  "module": "SpinorI1",
+  "interface": "preview-grant-done-v1",
+  "fcsr_owner": "host",
+  "preset": "standard",
+  "token_bits": 80,
+  "scope": "Pinned source intake and standalone GSIM protocol validation; CPU adapter and V ISA advertisement remain separate.",
+  "upstream_scala": "2.13.18",
+  "upstream_chisel": "7.16.0",
+  "valence_scala": "2.13.17",
+  "valence_chisel": "7.3.0"
+}

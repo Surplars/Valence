@@ -4,17 +4,18 @@ import chisel3._
 import chisel3.util._
 
 /** Common reset must reset both transaction endpoints; unilateral reset is NOT supported. */
-class CdcResetRelease extends RawModule {
+class CdcResetRelease(syncStages: Int = 3) extends RawModule {
+    require(syncStages == 2 || syncStages == 3)
     val clockIn = IO(Input(Clock()))
     val asyncReset = IO(Input(AsyncReset()))
     val resetOut = IO(Output(AsyncReset()))
     val release = withClockAndReset(clockIn, asyncReset) {
-        val stages = RegInit(7.U(3.W))
+        val stages = RegInit(((BigInt(1) << syncStages) - 1).U(syncStages.W))
         addAttribute(stages, "ASYNC_REG = \"TRUE\"")
-        stages := Cat(stages(1, 0), false.B)
+        stages := Cat(stages(syncStages - 2, 0), false.B)
         stages
     }
-    resetOut := release(2).asAsyncReset
+    resetOut := release(syncStages - 1).asAsyncReset
 }
 
 /** Distribution stage AFTER a complete reset synchronizer, in the same clock domain.

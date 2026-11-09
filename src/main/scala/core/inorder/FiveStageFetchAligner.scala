@@ -12,9 +12,10 @@ class FiveStageFetchAligner(p: FiveStageConfig) extends Module {
     require(p.withC)
     val io = IO(new Bundle {
         val request = Flipped(Decoupled(UInt(p.xlen.W)))
-        val response = Decoupled(new FiveStageFetchResponse)
+        val response = Decoupled(new FiveStageFetchResponse(p))
         val memoryRequest = Decoupled(new FiveStageDataRequest(p))
         val memoryResponse = Flipped(Decoupled(new FiveStageDataResponse(p)))
+        val bareTurnover = if (p.withH) Some(Input(Bool())) else None
         val invalidate = if (p.fpgaTimingCuts) Some(Input(Bool())) else None
         val addressCandidates = if (p.fpgaTimingCuts) Some(Output(Vec(2, UInt(p.xlen.W)))) else None
         val candidateSecond = if (p.fpgaTimingCuts) Some(Output(Bool())) else None
@@ -26,6 +27,7 @@ class FiveStageFetchAligner(p: FiveStageConfig) extends Module {
         io.memoryRequest <> cuts.io.memoryRequest
         cuts.io.memoryResponse <> io.memoryResponse
         cuts.io.invalidate := io.invalidate.get
+        cuts.io.bareTurnover.foreach(_ := io.bareTurnover.get)
         io.addressCandidates.get := cuts.io.addressCandidates
         io.candidateSecond.get := cuts.io.candidateSecond
     } else {
@@ -49,6 +51,7 @@ class FiveStageFetchAligner(p: FiveStageConfig) extends Module {
         io.response.bits.compressed := state === firstWait && compressed && !io.memoryResponse.bits.error
         io.response.bits.error := io.memoryResponse.bits.error
         io.response.bits.pageFault := io.memoryResponse.bits.pageFault
+        io.response.bits.guest.foreach(_ := io.memoryResponse.bits.guest.get)
         io.response.bits.secondHalfFault := state === secondWait
         io.memoryResponse.ready := Mux(state === firstWait && needSecond, true.B,
             (state === firstWait || state === secondWait) && io.response.ready)

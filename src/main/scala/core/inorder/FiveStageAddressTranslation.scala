@@ -3,22 +3,8 @@ package soc.core.inorder
 import chisel3._
 import chisel3.util._
 
-/** One native owner, physically tagged downstream cache. Direct-mapped small TLB; no payload-reset RAM.
-  * Lookup/PMP use a registered owner, isolated from EX's address carry and upstream READY.
-  * On Sv39 miss, 3-level walker emits read-only PTE requests through the shared physical D-cache.
-  * ASIDLEN=0; SFENCE globally invalidates (legal over-fence). Svade faults on clear A/D, no unsafe PTE RMW.
-  */
-class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
-    parallelInstructionCandidates: Boolean = false, parallelDataCandidates: Boolean = false,
-    registeredInstructionReturn: Boolean = false) extends Module {
-    require(p.xlen == 64 || !p.withSv39)
-    require(!parallelInstructionCandidates ||
-        (instruction && p.fpgaTimingCuts && p.fastInstructionTranslation && p.preparedTranslationProofs))
-    require(!parallelDataCandidates ||
-        (!instruction && p.fpgaTimingCuts && p.fastDataTranslation && p.preparedTranslationProofs))
-    require(!registeredInstructionReturn || (instruction && p.fpgaTimingCuts && p.withC &&
-        p.fastInstructionTranslation))
-    val io = IO(new Bundle {
+class FiveStageTranslationIO(p: FiveStageConfig, instruction: Boolean,
+    parallelInstructionCandidates: Boolean, parallelDataCandidates: Boolean) extends Bundle {
         val request = Flipped(Decoupled(new FiveStageDataRequest(p)))
         val response = Decoupled(new FiveStageDataResponse(p))
         val physical = new Bundle {
@@ -35,6 +21,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         val registeredOwner = Output(Bool())
         val hit = Output(Bool()); val miss = Output(Bool())
         val physicalCacheable = if (instruction && p.fpgaTimingCuts) Some(Output(Bool())) else None
+        val bareTurnover = if (instruction && p.withH) Some(Output(Bool())) else None
         val addressCandidates = if (parallelInstructionCandidates) Some(Input(Vec(2, UInt(p.xlen.W)))) else None
         val candidateSecond = if (parallelInstructionCandidates) Some(Input(Bool())) else None
         val dataCandidates = if (parallelDataCandidates)
@@ -42,7 +29,30 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         val dataCandidateEarly = if (parallelDataCandidates) Some(Input(Bool())) else None
         val readAhead = if (p.dataReplyHandoff && !instruction) Some(Input(Bool())) else None
         val ordinaryStoreAccepted = if (!instruction) Some(Output(Bool())) else None
-    })
+}
+
+/** One native owner, physically tagged downstream cache. Direct-mapped small TLB; no payload-reset RAM.
+  * Lookup/PMP use a registered owner, isolated from EX's address carry and upstream READY.
+  * On Sv39 miss, 3-level walker emits read-only PTE requests through the shared physical D-cache.
+  * ASIDLEN=0; SFENCE globally invalidates (legal over-fence). Svade faults on clear A/D, no unsafe PTE RMW.
+  */
+class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
+    parallelInstructionCandidates: Boolean = false, parallelDataCandidates: Boolean = false,
+    registeredInstructionReturn: Boolean = false,
+    firstStage: Boolean = false, guestPhysicalStage: Boolean = false) extends Module {
+    require(p.xlen == 64 || !p.withSv39)
+    require(!(firstStage && guestPhysicalStage))
+    require(!(firstStage || guestPhysicalStage) || (p.withH &&
+        !p.fastInstructionTranslation && !p.fastDataTranslation))
+    private val vpnBits = if (guestPhysicalStage) 29 else 27
+    require(!parallelInstructionCandidates ||
+        (instruction && p.fpgaTimingCuts && p.fastInstructionTranslation && p.preparedTranslationProofs))
+    require(!parallelDataCandidates ||
+        (!instruction && p.fpgaTimingCuts && p.fastDataTranslation && p.preparedTranslationProofs))
+    require(!registeredInstructionReturn || (instruction && p.fpgaTimingCuts && p.withC &&
+        p.fastInstructionTranslation))
+    val io = IO(new FiveStageTranslationIO(p, instruction,
+        parallelInstructionCandidates, parallelDataCandidates))
     val Seq(idle, lookup, authorize, walkAuthorize, walkSend, walkReceive, walkCheck,
         send, receive, reply, fastHold, authorizeCheck, walkAuthorizeCheck) =
         (if (p.fpgaTimingCuts) (0 until 13).map(i => (BigInt(1) << i).U(13.W)) else Enum(13))
@@ -255,14 +265,22 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
     val pmp = protection()
     pmp.io.entries := io.entries; pmp.io.address := pa
     pmp.io.size := saved.size; pmp.io.privilege := effective
-    pmp.io.execute := instruction.B; pmp.io.write := saved.write
+    val permissionExecute = instruction.B || saved.guest.map(_.execute).getOrElse(false.B)
+    pmp.io.execute := permissionExecute; pmp.io.write := saved.write
     val atomicReadAllowed = WireDefault(true.B)
+    val hypervisorReadAllowed = WireDefault(true.B)
     if (p.withA && !instruction) {
         val readPmp = protection()
         readPmp.io.entries := io.entries; readPmp.io.address := pa; readPmp.io.size := saved.size
         readPmp.io.privilege := effective; readPmp.io.execute := false.B; readPmp.io.write := false.B
         atomicReadAllowed := !saved.atomic || saved.atomicOperation === 2.U ||
             saved.atomicOperation === 3.U || readPmp.io.allow
+    }
+    if (p.withH && !instruction) {
+        val read = protection()
+        read.io.entries := io.entries; read.io.address := pa; read.io.size := saved.size
+        read.io.privilege := effective; read.io.execute := false.B; read.io.write := false.B
+        hypervisorReadAllowed := !(saved.guest.get.execute && !saved.guest.get.fetch) || read.io.allow
     }
     val wordExecuteAllowed = WireDefault(false.B)
     if (instruction && p.withC) {
@@ -360,10 +378,12 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         when(in(authorize)) { nextState := authorizeCheck }
         when(in(walkAuthorize)) { nextState := walkAuthorizeCheck }
     }
+    val normalVectorAddress = !saved.guest.map(_.vector).getOrElse(false.B) ||
+        I1AddressWindow.contains(pa, p.cacheableBase, p.cacheableBytes)
     when(authorizationReady) {
         authorizedCacheable.foreach(_ := !saved.noAllocate && linePmp.io.allow &&
             I1AddressWindow.contains(pa, p.cacheableBase, p.cacheableBytes))
-        when(!pmp.io.allow || !atomicReadAllowed) { fail(false.B) }.otherwise {
+        when(!firstStage.B && (!pmp.io.allow || !atomicReadAllowed || !hypervisorReadAllowed || !normalVectorAddress)) { fail(false.B) }.otherwise {
             noAllocate := saved.noAllocate || !linePmp.io.allow; nextState := send
             span.foreach(_ := wordExecuteAllowed)
         }
@@ -403,14 +423,14 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
     } else {
         val indexBits = log2Ceil(p.tlbEntries)
         val valid = RegInit(0.U(p.tlbEntries.W))
-        val tags = Reg(Vec(p.tlbEntries, UInt(27.W)))
+        val tags = Reg(Vec(p.tlbEntries, UInt(vpnBits.W)))
         val ppns = Reg(Vec(p.tlbEntries, UInt((p.physicalBits - 12).W)))
         val levels = Reg(Vec(p.tlbEntries, UInt(2.W)))
         val permissions = Reg(Vec(p.tlbEntries, UInt(8.W)))
         val fastPage = if (fastEnabled) Some(RegInit(0.U(p.tlbEntries.W))) else None
         val fastWritePage = if (fastEnabled && !instruction) Some(RegInit(0.U(p.tlbEntries.W))) else None
-        val fastReadTag = if (fastEnabled && !instruction) Some(Reg(Vec(p.tlbEntries, UInt(27.W)))) else None
-        val fastWriteTag = if (fastEnabled && !instruction) Some(Reg(Vec(p.tlbEntries, UInt(27.W)))) else None
+        val fastReadTag = if (fastEnabled && !instruction) Some(Reg(Vec(p.tlbEntries, UInt(vpnBits.W)))) else None
+        val fastWriteTag = if (fastEnabled && !instruction) Some(Reg(Vec(p.tlbEntries, UInt(vpnBits.W)))) else None
         val fastWriteReadable = if (fastEnabled && !instruction) Some(RegInit(0.U(p.tlbEntries.W))) else None
         // These are the physical page covered by each existing proof, not new
         // translations/slots. Resolve superpage low PPN bits at authorization,
@@ -440,14 +460,14 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         // any leaf row. Payload uses only the offered VPN index, while full
         // tag/permission/source ownership still controls actual acceptance.
         val instructionProofTags = if (indexedInstructionProof)
-            Some(Reg(Vec(p.tlbEntries, UInt(27.W)))) else None
+            Some(Reg(Vec(p.tlbEntries, UInt(vpnBits.W)))) else None
         val instructionProofFlags = if (indexedInstructionProof)
             Some(Reg(Vec(p.tlbEntries, UInt(8.W)))) else None
         val instructionProofOwner = if (indexedInstructionProof)
             Some(Reg(Vec(p.tlbEntries, UInt(indexBits.W)))) else None
         val fastWritePhysicalPage = if (fastEnabled && !instruction)
             Some(Reg(Vec(p.tlbEntries, UInt((p.physicalBits - 12).W)))) else None
-        val vpn = saved.address(38, 12)
+        val vpn = saved.address(vpnBits + 11, 12)
         def smallIndex(v: UInt): UInt = v(indexBits - 1, 0) ^ v(2 * indexBits - 1, indexBits)
         // With bank mode explicitly selected, all PA/permission payloads are
         // prepared in <=8-row groups. Only completed group results see the
@@ -471,8 +491,8 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         def proofGranted(index: UInt, grants: Seq[Bool]): Bool =
             if (p.bankedTlbProofs) bankSelect(index, grants.map(_.asUInt)).asBool else grants.reduce(_ || _)
         def superHit(v: UInt): Bool = valid(0) && (
-            (levels(0) === 2.U && equal(tags(0)(26, 18), v(26, 18))) ||
-            (levels(0) === 1.U && equal(tags(0)(26, 9), v(26, 9))))
+            (levels(0) === 2.U && equal(tags(0)(vpnBits - 1, 18), v(vpnBits - 1, 18))) ||
+            (levels(0) === 1.U && equal(tags(0)(vpnBits - 1, 9), v(vpnBits - 1, 9))))
         // Entry zero can cover a REAL 2MiB/1GiB mapping. No added entry or 4-way XLEN CAM:
         // one short 9/18-bit prefix check, or the existing direct-mapped 4KiB tag lookup.
         val superPageHit = superHit(vpn)
@@ -488,10 +508,11 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         val walkAddress = Reg(UInt(p.xlen.W))
         val walkNoAllocate = Reg(Bool())
         val translated = effective =/= 3.U && context.satp(63, 60) === 8.U
-        val canonical = saved.address(63, 39) === Fill(25, saved.address(38))
+        val canonical = if (guestPhysicalStage) !saved.address(63, 41).orR
+            else saved.address(63, 39) === Fill(25, saved.address(38))
         def permitted(flags: UInt): Bool = {
-            val rwx = if (instruction) flags(3) else Mux(saved.write, flags(2),
-                flags(1) || (context.mxr && flags(3)))
+            val rwx = if (instruction) flags(3) else Mux(permissionExecute, flags(3),
+                Mux(saved.write, flags(2), flags(1) || (context.mxr && flags(3))))
             val user = Mux(effective === 0.U, flags(4),
                 !flags(4) || (!instruction.B && context.sum))
             rwx && user && flags(6) && (!saved.write || flags(7))
@@ -735,7 +756,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             }
             when(io.invalidate) { fastPage.get := 0.U; fastWritePage.foreach(_ := 0.U) }
         }
-        val walkVpn = MuxLookup(level, vpn(8, 0))(Seq(2.U -> vpn(26, 18), 1.U -> vpn(17, 9)))
+        val walkVpn = MuxLookup(level, vpn(8, 0))(Seq(2.U -> vpn(vpnBits - 1, 18), 1.U -> vpn(17, 9)))
         val pteAddress = table | (walkVpn << 3)
         val walkPmp = protection(walk = true)
         val walkLine = protection(walk = true)
@@ -754,7 +775,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             val waiting = phaseIs(stateStorage, walkSend)
             val returning = phaseIs(stateStorage, walkReceive)
             bits(0) := (waiting && !io.walk.request.ready) ||
-                (phaseIs(stateStorage, walkAuthorizeCheck) && walkPmp.io.allow)
+                (phaseIs(stateStorage, walkAuthorizeCheck) && (firstStage.B || walkPmp.io.allow))
             bits(1) := (waiting && io.walk.request.ready) ||
                 (returning && !io.walk.response.valid)
             bits(2) := returning && io.walk.response.valid && !io.walk.response.bits.error
@@ -778,7 +799,7 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
                 }
         }
         when(walkAuthorizationReady) {
-            when(!walkPmp.io.allow) { fail(false.B) }.otherwise {
+            when(!firstStage.B && !walkPmp.io.allow) { fail(false.B) }.otherwise {
                 walkAddress := pteAddress; walkNoAllocate := !walkLine.io.allow; nextState := walkSend
             }
         }
@@ -959,7 +980,10 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
             case 5 if p.withSv39 => localWalkNext.get(1)
             case 6 if p.withSv39 => localWalkNext.get(2)
             case 7 => (in(send) && !io.physical.request.ready) ||
-                (authorizationReady && pmp.io.allow && atomicReadAllowed) ||
+                // VS produces GPAs; final host/G accesses require every physical
+                // permission, including HLVX R+X and vector normal-memory checks.
+                (authorizationReady && (firstStage.B || (pmp.io.allow && atomicReadAllowed &&
+                    hypervisorReadAllowed && normalVectorAddress))) ||
                 ((!instruction && fastEnabled).B && requestSlot && fastEligible &&
                     !io.invalidate && io.request.fire)
             case 11 => phaseIs(stateStorage, authorize)
@@ -987,4 +1011,9 @@ class FiveStageAddressTranslation(p: FiveStageConfig, instruction: Boolean,
         assert(!io.physical.response.valid || in(receive), "unowned translated memory response")
         assert(!io.walk.response.valid || in(walkReceive), "unowned PTE response")
     }
+    // Physical caches/atomic memory and the host-only walker never create guest faults.
+    io.response.bits.guest.foreach(_ := 0.U.asTypeOf(new I1GuestFault))
+
+    io.bareTurnover.foreach(_ := false.B)
+
 }

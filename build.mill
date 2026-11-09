@@ -289,3 +289,31 @@ object LegacySoC extends CommonNS {
         override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
     }
 }
+
+// Optional source-only Spinor intake. Fetch the locked snapshot explicitly with
+// scripts/fetch_spinor.py; this module adds no dependency to the scalar CPU.
+// Its HardFloat sources match HardFloatLib byte-for-byte at the locked revision.
+object SpinorI1 extends CommonNS {
+    override def moduleDir = pwd
+    override def moduleDeps = super.moduleDeps ++ Seq(HardFloatLib)
+    // Local timing changes replace named files; the pinned upstream clone stays pristine.
+    private val replacements = Set("SpinorIsolated.scala", "RamVector.scala", "VectorMemoryEngine.scala",
+        "VpuHostBoundary.scala")
+    override def sources = Task.Sources((
+        os.walk(pwd / "build/dependencies/Spinor-e151f80e1da3/src/main/scala")
+            .filter(p => p.ext == "scala" && !replacements(p.last)) ++
+        os.walk(pwd / "integration/spinor/overrides").filter(_.ext == "scala"))*)
+    override def scalacOptions = Seq("-language:reflectiveCalls", "-deprecation", "-feature", "-Ymacro-annotations")
+}
+
+// CPU/Spinor binding is opt-in; scalar CPU builds do not depend on Spinor.
+object SpinorHost extends CommonNS {
+    override def moduleDir = pwd
+    override def moduleDeps = super.moduleDeps ++ Seq(SpinorI1, OrbitalI1)
+    override def sources = Task.Sources(pwd / "integration/spinor/src/main/scala")
+    object test extends SbtTests with TestModule.ScalaTest {
+        override def sources = Task.Sources(pwd / "integration/spinor/src/test/scala",
+            pwd / "src/test/scala/ooo/IndependentClockProbeGsim.scala")
+        override def mvnDeps = super.mvnDeps() ++ Seq(deps.scalatest)
+    }
+}

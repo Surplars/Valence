@@ -13,7 +13,9 @@ struct Resolution { uint64_t pc, predicted, next, cycle; };
 struct PredictionCounts { uint64_t count=0, correct=0, directionCount=0, directionCorrect=0; };
 template <class Model> struct I1PredictionMetrics {
     std::deque<Resolution> resolved, lengthResolved;
-    uint64_t lengthRepairs=0;
+    uint64_t lengthRepairs=0, frontendLengthRepairs=0, acceptedFetches=0, fetchResponses=0;
+    struct FetchOwner { uint64_t pc, predicted; };
+    std::optional<FetchOwner> fetchOwner;
     std::map<uint64_t, unsigned> visits, pcKinds;
     std::map<uint64_t, PredictionCounts> perPc, perPcWarm;
     std::optional<Resolution> recovery;
@@ -21,9 +23,39 @@ template <class Model> struct I1PredictionMetrics {
     PredictionCounts total, warm;
     uint64_t instructions=0, first=0, last=0, redirects=0, fetchStalls=0, memoryStalls=0;
     uint64_t loadStalls=0, mduStalls=0, requests=0, recoveryCount=0, recoverySum=0, recoveryMax=0;
-    bool injectObservation=false, injected=false;
+    bool injectObservation=false, injected=false, injectLengthObservation=false, injectedLength=false;
 
     void cycle(Model &d, uint64_t cycle) {
+        const bool response=d.get_observation$$fetchResponseValid();
+        const bool repair=d.get_observation$$lengthRepairValid();
+        need(!repair||response, "prediction observation mismatch: frontend repair without response transfer");
+        // One accepted request owns each response, even after a redirect kills
+        // the instruction. Consume the old response before same-cycle turnover.
+        if(response) {
+            need(fetchOwner.has_value(), "prediction observation mismatch: unowned fetch response");
+            if(repair) {
+                const uint32_t instruction=d.get_observation$$fetchResponseInstruction();
+                const unsigned bytes=(instruction&3)!=3?2:4;
+                uint64_t next=d.get_observation$$lengthRepairNextPc();
+                if(injectLengthObservation&&!injectedLength) {next^=2;injectedLength=true;}
+                const auto owner=*fetchOwner;
+                need(DUT_HAS_C && !d.get_observation$$fetchResponseError() &&
+                    !d.get_observation$$fetchResponsePageFault() &&
+                    d.get_observation$$lengthRepairPc()==owner.pc &&
+                    d.get_observation$$lengthRepairPrediction()==owner.predicted &&
+                    (owner.predicted==fit(owner.pc+2)||owner.predicted==fit(owner.pc+4)) &&
+                    next==fit(owner.pc+bytes) && next!=owner.predicted,
+                    "prediction observation mismatch: independent frontend length repair oracle");
+                ++frontendLengthRepairs;
+            }
+            fetchOwner.reset();++fetchResponses;
+        }
+        if(d.get_observation$$acceptedFetchValid()) {
+            need(!fetchOwner, "prediction observation mismatch: duplicate fetch owner");
+            fetchOwner=FetchOwner{d.get_observation$$acceptedFetchPc(),
+                d.get_observation$$acceptedFetchPrediction()};
+            ++acceptedFetches;
+        }
         fetchStalls += d.get_io$$stallFetch(); memoryStalls += d.get_io$$stallMemory();
         loadStalls += d.get_io$$stallLoadUse(); mduStalls += d.get_io$$stallMulDiv();
         requests += d.get_io$$dataRequestAccepted();
@@ -97,6 +129,10 @@ template <class Model> struct I1PredictionMetrics {
         if (!correct) recovery=row;
     }
     void report(const std::string &name,unsigned latency,uint64_t totalCycles) {
+        // EBREAK ends the run without draining speculative fetches. Its one
+        // remaining owner is allowed; ownership was checked on every transfer.
+        need(acceptedFetches==fetchResponses+unsigned(fetchOwner.has_value()),
+            "prediction observation mismatch: fetch ownership reconciliation");
         need(resolved.empty() && lengthResolved.empty() && !recovery, "prediction observation mismatch: unfinished owner ledger");
         need(instructions>100 && last>=first, "performance ROI did not complete");
         std::cout << "I1_PERF name=" << name << " latency=" << latency
@@ -108,7 +144,10 @@ template <class Model> struct I1PredictionMetrics {
             << " returns=" << kinds[2].count << " returns_correct=" << kinds[2].correct
             << " indirect=" << kinds[3].count << " indirect_correct=" << kinds[3].correct
             << " warm_branches=" << warm.count << " warm_correct=" << warm.correct
-            << " redirects=" << redirects << " length_repairs=" << lengthRepairs << " retired_misses=" << total.count-total.correct
+            << " redirects=" << redirects << " length_repairs=" << lengthRepairs
+            << " frontend_length_repairs=" << frontendLengthRepairs
+            << " accepted_fetches=" << acceptedFetches << " fetch_responses=" << fetchResponses
+            << " retired_misses=" << total.count-total.correct
             << " recovery_count=" << recoveryCount << " recovery_sum=" << recoverySum << " recovery_max=" << recoveryMax
             << " fetch_stalls=" << fetchStalls << " memory_stalls=" << memoryStalls
             << " load_use_stalls=" << loadStalls << " mdu_stalls=" << mduStalls << " data_requests=" << requests << '\n';

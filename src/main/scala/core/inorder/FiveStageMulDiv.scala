@@ -174,9 +174,24 @@ class FiveStageMulDiv(p: FiveStageConfig) extends Module {
     } else nextQuotient
     val remainderMagnitude = if (p.fastDivision)
         Mux(state === quickDivide, 0.U(n.W), nextRemainder(n - 1, 0)) else nextRemainder(n - 1, 0)
-    val q = Mux(zeroDivisor, Fill(n, 1.U(1.W)),
-        Mux(quotientNegative, -quotientMagnitude, quotientMagnitude))
-    val rem = Mux(zeroDivisor, left, Mux(remainderNegative, -remainderMagnitude, remainderMagnitude))
+    // -(2*p+b) = 2*(-p-b)+b. Prepare both negative prefixes from the
+    // registered quotient while the last divide bit is still being computed.
+    // The final divide carry now selects a prefix instead of entering a second adder.
+    val prefix = quotient(n - 2, 0)
+    val negativePrefix = Mux(divisionStep.io.quotientBit, ~prefix, -prefix)
+    val iterativeQuotient = Cat(Mux(quotientNegative, negativePrefix, prefix), divisionStep.io.quotientBit)
+    val signedQuotient = if (p.fastDivision) Mux(state === quickDivide,
+        Mux(quotientNegative, -quotientMagnitude, quotientMagnitude), iterativeQuotient) else iterativeQuotient
+    val q = Mux(zeroDivisor, Fill(n, 1.U(1.W)), signedQuotient)
+    // Restore a negative remainder in parallel with the final unsigned borrow.
+    // -(window-divisor) = divisor-window: the late quotient bit selects an
+    // already completed subtraction, rather than starting a second carry chain.
+    val negativeRemainder = if (p.fpgaTimingCuts) {
+        val window = divisionStep.io.window(n - 1, 0)
+        val restored = Mux(divisionStep.io.quotientBit, divisor - window, -window)
+        if (p.fastDivision) Mux(state === quickDivide, 0.U(n.W), restored) else restored
+    } else -remainderMagnitude
+    val rem = Mux(zeroDivisor, left, Mux(remainderNegative, negativeRemainder, remainderMagnitude))
     val finishDivision = state === divide && count === 1.U
     val finishNumerical = if (p.fastDivision) finishDivision || state === quickDivide else finishDivision
     when(finishNumerical) {

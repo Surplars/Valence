@@ -31,7 +31,7 @@ struct Test {
     std::optional<Backend> backend;
     std::optional<std::array<uint64_t, 7>> heldRequest;
     std::optional<std::array<uint64_t, 2>> heldResponse;
-    uint64_t cycle = 0, requests = 0, hits = 0, misses = 0;
+    uint64_t cycle = 0, requests = 0, hits = 0, misses = 0, unownedChanges = 0;
     unsigned errorBeat = 999; bool invalidateFill = false;
     bool sideEffectOnError = false;
     bool responseReady = false;
@@ -67,6 +67,21 @@ struct Test {
         heldRequest.reset();
         if (d.get_io$$memory$$request$$valid() && !ready) heldRequest = req;
         std::array<uint64_t, 2> rsp{d.get_io$$response$$bits$$data(), d.get_io$$response$$bits$$error()};
+#ifdef CACHE_METADATA
+        if (d.get_io$$response$$valid() && !d.get_io$$response$$bits$$error()) {
+            // RISC-V parcel prefixes: independently enumerate the 32-bit
+            // forms and compressed quadrants from the returned raw bytes.
+            unsigned classes=0;
+            for(unsigned lane=0;lane<4;++lane) {
+                unsigned prefix=(rsp[0]>>(16*lane))&31;
+                if((prefix&3)!=3) classes|=1U<<(lane+4);
+                switch(prefix) {case 3:case 7:case 11:case 15:case 19:case 23:case 27:
+                    classes|=1U<<lane;break;default:break;}
+            }
+            need(d.get_io$$response$$bits$$parcelClasses()==(classes^unsigned(classInject)),
+                "independent cached parcel prefix oracle");
+        }
+#endif
         if (heldResponse) need(d.get_io$$response$$valid() && rsp == *heldResponse,
             "cache CPU response changed under backpressure");
         heldResponse.reset();
@@ -93,7 +108,16 @@ struct Test {
         responseReady = false; d.set_io$$response$$ready(0);
         bool accepted = false;
         for (unsigned n = 0; n < 200; ++n) {
-            if (accepted) d.set_io$$request$$valid(0);
+            if (accepted) {
+                d.set_io$$request$$valid(0);
+                // Unoffered inputs are unconstrained. Change banks, tags and
+                // write payload while the real owner waits or holds its reply.
+                d.set_io$$request$$bits$$address((BASE + ((cycle * 0x1040) ^ 0x8000)) & MASK);
+                d.set_io$$request$$bits$$write(cycle & 1);
+                d.set_io$$request$$bits$$data(~cycle & MASK);
+                d.set_io$$request$$bits$$mask(cycle & ((1U << WORD) - 1));
+                ++unownedChanges;
+            }
             responseReady = accepted && cycle % 3 == 0; d.set_io$$response$$ready(responseReady);
             step(int(n) == invalidateCycle);
             bool response = d.get_io$$response$$valid() && responseReady;
@@ -237,8 +261,10 @@ int main(int argc, char **argv) { try {
         else checkRead(a);
         if (j % 97 == 0) t.invalidate();
     }
+    need(t.unownedChanges > 100, "cache unowned-input variation coverage missing");
     std::cout << "FIVE_STAGE_CACHE_PASS bytes=" << CACHE_BYTES << " xlen=" << DUT_XLEN
         << " requests=" << t.requests << " hits=" << t.hits << " misses=" << t.misses
+        << " unowned_input_changes=" << t.unownedChanges
         << " partial_store_error_refill_error_stale_fill_mmio_backpressure_warm_reset_window_alias_admission_invalidate=PASS\n";
     return 0;
 } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; } }

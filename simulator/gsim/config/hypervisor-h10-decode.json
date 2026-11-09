@@ -1,0 +1,17 @@
+{
+  "scope": "H 1.0 additional instruction and permission decoder only; no CPU H integration or ISA advertisement",
+  "isa": "RV32I/RV64I H 1.0",
+  "manual": "https://docs.riscv.org/reference/isa/v20240411/priv/hypervisor.html",
+  "upstream_encodings": [
+    {
+      "repository": "riscv/riscv-opcodes",
+      "path": "extensions/rv_h",
+      "git_blob_sha1": "84a361d4090eabff26cba6a96c9e99e922ec9a06"
+    },
+    {
+      "repository": "riscv/riscv-opcodes",
+      "path": "extensions/rv64_h",
+      "git_blob_sha1": "75589e1ab2965e1829c27e91d82a0c8c57121e5a"
+    }
+  ]
+}

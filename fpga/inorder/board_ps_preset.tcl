@@ -1,0 +1,41 @@
+# XCZU15EG_CORE+ V1.0: four MT40A512M16LY-062E x16 parts, one 64-bit rank.
+# First-board profile uses 800 MHz DDR clock (1600 MT/s); training still requires hardware.
+proc i1_board_ps_preset {ps} {
+    set_property -dict [list \
+        CONFIG.PSU__PSS_REF_CLK__FREQMHZ {33.333333} \
+        CONFIG.PSU__DDRC__ENABLE {1} \
+        CONFIG.PSU__DDRC__MEMORY_TYPE {DDR 4} \
+        CONFIG.PSU__DDRC__COMPONENTS {Components} \
+        CONFIG.PSU__DDRC__BUS_WIDTH {64 Bit} \
+        CONFIG.PSU__DDRC__DRAM_WIDTH {16 Bits} \
+        CONFIG.PSU__DDRC__DEVICE_CAPACITY {8192 MBits} \
+        CONFIG.PSU__DDRC__RANK_ADDR_COUNT {0} \
+        CONFIG.PSU__DDRC__BG_ADDR_COUNT {1} \
+        CONFIG.PSU__DDRC__BANK_ADDR_COUNT {2} \
+        CONFIG.PSU__DDRC__ROW_ADDR_COUNT {16} \
+        CONFIG.PSU__DDRC__COL_ADDR_COUNT {10} \
+        CONFIG.PSU__DDRC__ECC {Disabled} \
+        CONFIG.PSU__CRF_APB__DDR_CTRL__SRCSEL {DPLL} \
+        CONFIG.PSU__CRF_APB__DDR_CTRL__FREQMHZ {800} \
+        CONFIG.PSU__DDRC__SPEED_BIN {DDR4_1600K} \
+        CONFIG.PSU__DDRC__CL {12} \
+        CONFIG.PSU__DDRC__CWL {9} \
+        CONFIG.PSU__DDRC__T_RCD {12} \
+        CONFIG.PSU__DDRC__T_RP {12} \
+        CONFIG.PSU__DDRC__T_RC {50} \
+        CONFIG.PSU__DDRC__T_RAS_MIN {35} \
+        CONFIG.PSU__DDRC__T_FAW {40} \
+        CONFIG.PSU__DDRC__DDR4_ADDR_MAPPING {0} \
+        CONFIG.PSU__DDRC__DM_DBI {DM_NO_DBI} \
+        CONFIG.PSU__DDRC__TRAIN_DATA_EYE {1} \
+        CONFIG.PSU__DDRC__TRAIN_READ_GATE {1} \
+        CONFIG.PSU__DDRC__TRAIN_WRITE_LEVEL {1} \
+        CONFIG.PSU__DDRC__VREF {1} \
+        CONFIG.PSU_BANK_0_IO_STANDARD {LVCMOS18} \
+        CONFIG.PSU_BANK_1_IO_STANDARD {LVCMOS18} \
+        CONFIG.PSU_BANK_2_IO_STANDARD {LVCMOS18} \
+        CONFIG.PSU__USE__M_AXI_GP2 {0} \
+        CONFIG.PSU__FPGA_PL0_ENABLE {1} \
+        CONFIG.PSU__CRL_APB__PL0_REF_CTRL__SRCSEL {IOPLL} \
+        CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {100}] $ps
+}

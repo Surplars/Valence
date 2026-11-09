@@ -62,11 +62,12 @@ class FiveStageAlu(xlen: Int, timingCuts: Boolean = false) extends Module {
             val low = Mux1H(choices.flatMap { case (select, full, word) =>
                 Seq((select && !io.word) -> full(31, 0), (select && io.word) -> word)
             })
-            val high = Mux1H(choices.map { case (select, full, _) =>
-                (select && !io.word) -> full(63, 32)
-            })
+            val high = Mux1H(choices.map { case (select, full, _) => select -> full(63, 32) })
+            // Select W signs directly from the narrow operation results. The
+            // sign must not traverse the full/word low-half mux and then drive
+            // another high-half mux across all 32 extension bits.
             val wordSign = choices.map { case (select, _, word) => select && word(31) }.reduce(_ || _)
-            io.result := Cat(high | Fill(32, io.word && wordSign), low)
+            io.result := Cat(Mux(io.word, Fill(32, wordSign), high), low)
         } else {
             io.result := Mux1H(choices.map { case (select, full, _) => select -> full })
         }

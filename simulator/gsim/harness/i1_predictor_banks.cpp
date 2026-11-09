@@ -45,9 +45,13 @@ int main(int argc,char **argv) {try {
     const bool mutation=argc==2&&std::string(argv[1])=="--inject-target";
     SFiveStageBranchPredictor d;
     std::array<StoredBranch,DUT_ENTRIES> ledger{};
+    // FPGA C lengths deliberately alias without owning a BTB slot. Keep this
+    // software bit array independent of the full-PC branch ownership ledger.
+    constexpr bool separateLength=DUT_C&&DUT_TIMING;
+    std::array<bool,DUT_ENTRIES> lengths{};
     d.set_reset(1);d.set_io$$train$$valid(0);d.set_io$$invalidate(0);d.set_io$$pc(0x80000000);
     d.step();d.step();d.set_reset(0);
-    unsigned checks=0,hits=0,aliases=0,invalidations=0,falseControls=0,shortHits=0,sameSlot=0;
+    unsigned checks=0,hits=0,aliases=0,invalidations=0,falseControls=0,shortHits=0,sameSlot=0,preservedBranches=0;
     auto cycle=[&](uint64_t pc,uint64_t trainPc,bool train,bool control,bool conditional,bool taken,
                    bool compressed,uint64_t target,bool invalidate=false) {
         pc=fit(pc);trainPc=fit(trainPc);target=fit(target);
@@ -56,8 +60,12 @@ int main(int argc,char **argv) {try {
         d.set_io$$train$$bits$$taken(taken);d.set_io$$train$$bits$$target(target);
         d.set_io$$train$$bits$$compressed(compressed);d.set_io$$invalidate(invalidate);d.step();
         const auto look=ledger[slot(pc)];const bool hit=look.valid&&look.pc==pc;
-        uint64_t expected=hit&&look.control&&(!look.conditional||look.counter>=2)?look.target:
-            fit(pc+(DUT_C&&hit&&look.compressed?2:4));
+        const bool shortPrediction=separateLength?lengths[slot(pc)]:DUT_C&&hit&&look.compressed;
+        const bool takenPrediction=hit&&look.control&&(!look.conditional||look.counter>=2);
+        require(bool(d.get_io$$taken())==takenPrediction && bool(d.get_io$$compressed())==shortPrediction,
+                "independent predictor taken/length class oracle");
+        uint64_t expected=takenPrediction?look.target:
+            fit(pc+(shortPrediction?2:4));
         if(mutation&&hit)expected^=4;
         if(bool(d.get_io$$hit())!=hit||d.get_io$$nextPc()!=expected) {
             std::cerr<<"predictor check="<<std::dec<<checks<<" pc="<<std::hex<<pc
@@ -83,18 +91,19 @@ int main(int argc,char **argv) {try {
         for(unsigned i=0;i<values.size();++i)if((mask>>i)&1)selected|=values[i];
         require(std::popcount(mask)==1&&selected==expected,"independent bank-local candidate selection mismatch");
 #endif
-        ++checks;hits+=hit;shortHits+=hit&&look.compressed;
+        ++checks;hits+=hit;shortHits+=shortPrediction;
         sameSlot+=train&&slot(pc)==slot(trainPc);
         if(train) {
             auto &entry=ledger[slot(trainPc)];const bool old=entry.valid&&entry.pc==trainPc;
             aliases+=entry.valid&&!old;
-            if(control||DUT_C) {
+            if(separateLength)lengths[slot(trainPc)]=compressed;
+            if(control||(DUT_C&&!DUT_TIMING)) {
                 const unsigned counter=!old?(taken?2:1):taken?std::min(3U,entry.counter+1):
                     (entry.counter?entry.counter-1:0);
                 entry={trainPc,target,counter,true,conditional,control,DUT_C&&compressed};
             }else if(old){entry.valid=false;++falseControls;}
         }
-        if(invalidate){for(auto &entry:ledger)entry.valid=false;++invalidations;}
+        if(invalidate){for(auto &entry:ledger)entry.valid=false;lengths.fill(false);++invalidations;}
     };
     // Every slot participates; exact full PCs reject aliases at arbitrary upper bits.
     const unsigned stride=DUT_C?2:4;
@@ -106,6 +115,24 @@ int main(int argc,char **argv) {try {
         const uint64_t pc=0x80000000+stride*i;
         cycle(pc,0,false,false,false,false,false,0);
         require(d.get_io$$hit(),"predictor did not use every configured slot");
+    }
+    if constexpr(separateLength) {
+        // An ordinary instruction at a different full PC may change the
+        // aliased length bit, but must not evict this not-taken branch.
+        constexpr unsigned bits=std::countr_zero(unsigned(DUT_ENTRIES));
+        const uint64_t pc=0x80000000, alias=pc+(uint64_t{1}<<(2+2*bits));
+        require(slot(pc)==slot(alias),"directed length alias missed its slot");
+        cycle(pc,0,false,false,false,false,false,0,true);
+        cycle(pc,pc,true,true,true,false,false,pc+64);
+        cycle(pc,alias,true,false,false,false,true,0);
+        cycle(pc,0,false,false,false,false,false,0);
+        require(d.get_io$$hit()&&d.get_io$$nextPc()==pc+2,
+                "ordinary alias evicted branch or failed to train independent length");
+        ++preservedBranches;
+        cycle(pc,pc,true,false,false,false,false,0);
+        cycle(pc,0,false,false,false,false,false,0);
+        require(!d.get_io$$hit()&&d.get_io$$nextPc()==pc+4,
+                "same-PC ordinary replacement failed to clear obsolete branch");
     }
     // Counter saturation, same-address lookup/train, false-code replacement and invalidate priority.
     for(unsigned i=0;i<40;++i)cycle(0x80000000,0x80000000,true,true,true,i<16||i>=32,DUT_C,0x80000100);
@@ -142,13 +169,16 @@ int main(int argc,char **argv) {try {
     }
     d.set_reset(1);d.set_io$$train$$valid(0);d.set_io$$invalidate(0);d.step();d.step();d.set_reset(0);
     for(auto &entry:ledger)entry.valid=false;
+    lengths.fill(false);
     cycle(0x80000000,0,false,false,false,false,false,0);
     require(hits>30&&aliases>100&&invalidations>50&&sameSlot>100,"predictor coverage incomplete");
     if(DUT_C)require(shortHits>10,"compressed prediction coverage missing");
-    else require(falseControls>0,"false-control invalidation coverage missing");
+    if(separateLength)require(preservedBranches==1,"separate length/branch ownership coverage missing");
+    if(!DUT_C||separateLength)require(falseControls>0,"false-control invalidation coverage missing");
     std::cout<<"I1_BANKED_PREDICTOR_PASS entries="<<DUT_ENTRIES<<" xlen="<<DUT_XLEN
         <<" C="<<DUT_C<<" hashed="<<DUT_HASHED<<" checks="<<checks<<" hits="<<hits
         <<" aliases="<<aliases<<" invalidations="<<invalidations<<" same_slot="<<sameSlot
+        <<" preserved_branch_alias="<<preservedBranches
         <<" saturation_false_control_invalidate_warm_reset_candidates=PASS\n";
     return 0;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}}

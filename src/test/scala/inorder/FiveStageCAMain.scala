@@ -13,7 +13,10 @@ object FiveStageFetchAlignerMain extends App {
         fpgaTimingCuts = cuts, pipelineProfile = if (cuts) "fpga8" else "compact5")), Array("--target-dir", args.head))
 }
 object FiveStageAtomicMain extends App {
-    ChiselStage.emitCHIRRTLFile(new FiveStageAtomicMemory(FiveStageConfig(xlen = args(1).toInt, withA = true)),
+    val cuts = args.contains("--timing-cuts")
+    require(args.drop(2).forall(_ == "--timing-cuts"), "unknown atomic option")
+    ChiselStage.emitCHIRRTLFile(new FiveStageAtomicMemory(FiveStageConfig(xlen = args(1).toInt, withA = true,
+        fpgaTimingCuts = cuts, pipelineProfile = if (cuts) "fpga8" else "compact5")),
         Array("--target-dir", args.head))
 }
 object FiveStageSocRtlMain extends App {

@@ -1,0 +1,80 @@
+/dts-v1/;
+/ {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    model = "Valence I1 PS-DDR CPU300 VPU300";
+    compatible = "openion,valence-i1-ps-ddr";
+    chosen {
+        stdout-path = "serial0:460800n8";
+        bootargs = "earlycon=sbi console=ttyS0,460800n8 rdinit=/init loglevel=7";
+    };
+    aliases { serial0 = &uart0; };
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        timebase-frequency = <300000000>;
+        cpu0: cpu@beef {
+            device_type = "cpu";
+            reg = <0xbeef>;
+            status = "okay";
+            compatible = "riscv";
+            riscv,isa = "rv64imafdcvh_zicsr_zifencei_svade";
+            riscv,isa-base = "rv64i";
+            riscv,isa-extensions = "i", "m", "a", "f", "d", "c", "h", "v", "zicsr", "zifencei", "svade";
+            mmu-type = "riscv,sv39";
+            clock-frequency = <300000000>;
+            cpu_intc: interrupt-controller {
+                #interrupt-cells = <1>;
+                #address-cells = <0>;
+                interrupt-controller;
+                compatible = "riscv,cpu-intc";
+            };
+        };
+    };
+    memory@80000000 {
+        device_type = "memory";
+        reg = <0 0x80000000 0 0x10000000>;
+    };
+    /* Top 2 MiB hold the relocated DTB and the RPU/RV handoff mailbox. */
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+        handoff@8fe00000 {
+            reg = <0 0x8fe00000 0 0x200000>;
+            no-map;
+        };
+    };
+    soc {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        compatible = "simple-bus";
+        ranges;
+        clint@2000000 {
+            compatible = "riscv,clint0";
+            reg = <0 0x02000000 0 0x10000>;
+            interrupts-extended = <&cpu_intc 3 &cpu_intc 7>;
+        };
+        plic: interrupt-controller@c000000 {
+            compatible = "riscv,plic0";
+            /* Context 1 ends at 0x202000; round to one NAPOT region, not 64MiB. */
+            reg = <0 0x0c000000 0 0x400000>;
+            #interrupt-cells = <1>;
+            #address-cells = <0>;
+            interrupt-controller;
+            riscv,ndev = <8>;
+            interrupts-extended = <&cpu_intc 11 &cpu_intc 9>;
+        };
+        uart0: serial@10000000 {
+            compatible = "ns16550a";
+            reg = <0 0x10000000 0 8>;
+            clock-frequency = <7372800>;
+            current-speed = <460800>;
+            reg-shift = <0>;
+            reg-io-width = <1>;
+            interrupt-parent = <&plic>;
+            interrupts = <3>;
+            status = "okay";
+        };
+    };
+};

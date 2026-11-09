@@ -9,7 +9,8 @@ if {[file exists $output]} {error "fresh evidence required"}
 set sources [lsort [glob -nocomplain -directory $rtl *.sv]]
 if {![llength $sources]} {error "missing frozen core RTL"}
 file mkdir $output
-set_param general.maxThreads 4
+set_param general.maxThreads 8
+puts "VIVADO_THREADS [get_param general.maxThreads]"
 create_project -in_memory -part xczu15eg-ffvb1156-2-i
 read_verilog -sv $sources
 set fd [open [file join $output context.xdc] w]

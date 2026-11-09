@@ -63,9 +63,15 @@ struct Program {
         fp(0x00, 3, 1, 2, 0xffffffff40600000ULL); // 1.5 + 2 = 3.5
         fp(0x08, 4, 1, 2, 0xffffffff40400000ULL); // 1.5 * 2 = 3
         fp(0x0c, 5, 4, 1, 0xffffffff40000000ULL); // 3 / 1.5 = 2
+        // During FDIV the younger integer ID addresses name different FPR
+        // rows. The live FP owner must use its captured operands, not new reads.
+        emit(rr(0x33, 18, 0, 10, 10), 18, 0xc000);
+        emit(rr(0x33, 19, 4, 18, 10), 19, 0xa000);
+        emit(ri(0x13, 20, 0, 19, 1), 20, 0xa001);
         emit(0x0180a387, 7, 0xffffffff40800000ULL, true);
         fp(0x2c, 6, 7, 0, 0xffffffff40000000ULL); // sqrt(4) = 2
         emit(1<<27 | 2<<20 | 1<<15 | 8<<7 | 0x43, 8, 0xffffffff40900000ULL, true); // FMA = 4.5
+        emit(7<<27 | 2<<20 | 1<<15 | 17<<7 | 0x43, 17, 0xffffffff40e00000ULL, true); // distinct f1*f2+f7 = 7
         emit(0xc00415d3, 11, 4, false, 1); // FCVT.W.S RTZ, NX
         emit(0xe0018653, 12, 0x40600000); // FMV.X.W f3
         emit(0x0230a027); // FSW f3,32(x1)
@@ -78,12 +84,20 @@ struct Program {
         emit(0x0300b587, 11, 0x4000000000000000ULL, true);
         fp(0x01, 12, 10, 11, 0x400c000000000000ULL);
         fp(0x09, 13, 10, 11, 0x4008000000000000ULL);
+        fp(0x0d, 18, 13, 10, 0x4000000000000000ULL); // FDIV.D 3 / 1.5 = 2
+        emit(rr(0x33, 21, 0, 19, 18), 21, 0x16000); // younger ID reads f19/f18 while FP is busy
         emit(0x0380b707, 14, 0x4010000000000000ULL, true);
+        emit(14<<27 | 1<<25 | 11<<20 | 10<<15 | 19<<7 | 0x43,
+            19, 0x401c000000000000ULL, true); // distinct f10*f11+f14 = 7
         fp(0x2d, 14, 14, 0, 0x4000000000000000ULL);
         fp(0x21, 15, 3, 0, 0x400c000000000000ULL); // FCVT.D.S
         fp(0x20, 16, 10, 1, 0xffffffff3fc00000ULL); // FCVT.S.D
         emit(0x04c0b027); // FSD f12,64(x1)
         emit(0x0400b783, 15, 0x400c000000000000ULL);
+        // A D-format value is not NaN-boxed S: computational S treats it
+        // as quiet canonical NaN, independent of the otherwise valid 1.5 bits.
+        fp(0x00, 20, 10, 1, 0xffffffff7fc00000ULL);
+        emit(ri(0x73, 23, 2, 0, 1), 23, 9); // only the original NX | DZ flags
 #endif
 #endif
         emit(0x00100073, 0, 0, false, 0, 4, true);
@@ -134,6 +148,9 @@ int main(int argc, char **argv) { try {
 #endif
 #ifdef I1_WITH_F
         need(memory.load(BASE+0x1020,4) == 0x40600000, "extension FP store RAM oracle");
+#ifdef I1_WITH_D
+        need(memory.load(BASE+0x1040) == 0x400c000000000000ULL, "extension double store RAM oracle");
+#endif
 #endif
         std::cout << "I1_EXTENSIONS_PASS latency=" << latency << " instructions=" << checked
             << " fp_writes=" << fpWrites << " precise_retire_integer_FP_flags_memory=PASS\n";

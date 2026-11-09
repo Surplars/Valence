@@ -17,6 +17,10 @@
 新增参数现在是独立的接入预留，不是可启用的 SoC 配置项。不能仅切换布尔值获得 VPU。
 独立 OrbitalI1 Mill 模块尚不包含这个未使用目录；真正接入时才增加其依赖。
 
+## 2026-11-04 后续工作授权
+
+用户授权 I1 H/V 接入与时序优化同步推进，VPU 复用用户提供的现成实现；不单独开发向量执行数据通路。具体仓库/路径待用户提供。当前 M0 状态保持真实，CPU adapter、CSR、内存与退休接线按实际 VPU 协议推进。H 独立译码 GSIM 已通过，详细进展见 [I1 H/V 接入进展](i1-hv-integration-20261104.md)。
+
 ## 当前架构审查和后续接入点
 
 - `platform/CommonCpuProfile.scala`、`CommonI1CpuTile.scala`、`CommonA1CpuTile.scala`：

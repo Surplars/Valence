@@ -12,8 +12,8 @@ struct PerformanceObserver : FiveStageObserver, I1PredictionMetrics<SFiveStageCo
         I1PredictionMetrics<SFiveStageCore>::cycle(dut, cycle);
     }
     void retire(SFiveStageCore &dut, uint64_t cycle, uint64_t pc, uint32_t instruction,
-                uint64_t next, bool trap) override {
-        I1PredictionMetrics<SFiveStageCore>::retire(dut, cycle, pc, instruction, next, trap);
+                uint64_t next, bool trap, unsigned instructionBytes=4) override {
+        I1PredictionMetrics<SFiveStageCore>::retire(dut, cycle, pc, instruction, next, trap, instructionBytes);
     }
 };
 

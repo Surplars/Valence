@@ -6,15 +6,16 @@ import chisel3.util._
 /** Optional caches wrap IF/MEM handshakes; named CPU pipeline profiles remain independently selectable. */
 class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolean = false,
     acknowledgedDataInvalidate: Boolean = false, externalQuiesce: Boolean = false,
-    runtimeMaintenance: Boolean = false) extends Module {
+    runtimeMaintenance: Boolean = false, reportQuiescence: Boolean = false) extends Module {
     require(!runtimeMaintenance || (externalQuiesce && p.coherentCaches))
     require(!acknowledgedDataInvalidate || (externalDataInvalidate && p.coherentCaches))
+    private val observeQuiescence = runtimeMaintenance || reportQuiescence
     val io = IO(new Bundle {
         val quiesceRequest = if (externalQuiesce) Some(Input(Bool())) else None
         val architecturalStopped = if (externalQuiesce) Some(Output(Bool())) else None
         val runtimeFlush = if (runtimeMaintenance) Some(Input(Bool())) else None
         val runtimeFlushDone = if (runtimeMaintenance) Some(Output(UInt(2.W))) else None
-        val privateCachesQuiescent = if (runtimeMaintenance) Some(Output(Bool())) else None
+        val privateCachesQuiescent = if (observeQuiescence) Some(Output(Bool())) else None
         val instructionMemory = new FiveStageBurstPort(p)
         val dataMemory = new FiveStageBurstPort(p)
         val coherent = if (p.coherentCaches) Some(Vec(2, new soc.bus.tilelink.TLBundle(
@@ -29,6 +30,9 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val fenceIFlush = if (p.externalFenceICompletion) Some(Output(Bool())) else None
         val fenceIFlushReady = if (p.externalFenceICompletion) Some(Input(Bool())) else None
         val fenceIFetchDrained = if (p.externalFenceICompletion) Some(Output(Bool())) else None
+        val spinor = if (p.spinor) Some(new I1SpinorPort) else None
+        val spinorMemoryFault = if (p.spinor && p.withH) Some(Flipped(Valid(new I1SpinorMemoryFault))) else None
+        val spinorMemory = if (p.spinor) Some(Flipped(new I1SpinorMemoryPort(p))) else None
         val retire = Valid(new FiveStageRetire(p))
         val trapTaken = Output(Bool())
         val trapPc = Output(UInt(p.xlen.W))
@@ -62,6 +66,38 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     protected def instantiateCore(config: FiveStageConfig, quiesce: Boolean): FiveStageCore =
         new FiveStageCore(config, externalQuiesce = quiesce)
     val core = Module(instantiateCore(p, externalQuiesce))
+    // One scalar or vector owner traverses the existing atomic/cache path.
+    // Serial vector WB guarantees no competing scalar memory instruction.
+    val sharedDataRequest = if (p.spinor) Wire(Decoupled(new FiveStageDataRequest(p)))
+        else core.io.dataRequest
+    val sharedDataResponse = if (p.spinor) Wire(Decoupled(new FiveStageDataResponse(p)))
+        else core.io.dataResponse
+    private val sharedDataIdle = if (observeQuiescence && p.spinor) Some(Wire(Bool())) else None
+    if (p.spinor) {
+        io.spinor.get <> core.io.spinor.get
+        val vector = io.spinorMemory.get
+        val active = RegInit(false.B)
+        val vectorOwner = Reg(Bool())
+        val chooseVector = vector.request.valid
+        sharedDataRequest.valid := !active && (core.io.dataRequest.valid || vector.request.valid)
+        sharedDataRequest.bits := Mux(chooseVector, vector.request.bits, core.io.dataRequest.bits)
+        core.io.dataRequest.ready := !active && !chooseVector && sharedDataRequest.ready
+        vector.request.ready := !active && chooseVector && sharedDataRequest.ready
+        sharedDataResponse.ready := active && Mux(vectorOwner, vector.response.ready, core.io.dataResponse.ready)
+        vector.response.valid := active && vectorOwner && sharedDataResponse.valid
+        core.io.dataResponse.valid := active && !vectorOwner && sharedDataResponse.valid
+        vector.response.bits := sharedDataResponse.bits
+        core.io.dataResponse.bits := sharedDataResponse.bits
+        when(sharedDataRequest.fire) { active := true.B; vectorOwner := chooseVector }
+        when(sharedDataResponse.fire) { active := false.B }
+        sharedDataIdle.foreach(_ := !active && !vector.request.valid &&
+            !core.io.dataRequest.valid && !sharedDataResponse.valid)
+        when(!reset.asBool) {
+            assert(!(vector.request.valid && core.io.dataRequest.valid), "scalar/vector memory owners overlap")
+            assert(!sharedDataResponse.valid || active, "shared data response has no owner")
+        }
+    }
+    core.io.spinorMemoryFault.foreach(_ := io.spinorMemoryFault.get)
     core.io.quiesceRequest.foreach(_ := io.quiesceRequest.get)
     io.architecturalStopped.foreach(_ := core.io.architecturalStopped.get)
     io.fenceIFlush.foreach(_ := core.io.fenceIFlush.get)
@@ -77,20 +113,20 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     val useInstructionPma = p.fpgaTimingCuts && (p.withSv39 || p.pmpEntries > 0)
     val icache = Module(new FiveStageWordCache(p, p.instructionCacheBytes, allowHitReplacement = true,
         trustedReadOnlyCacheability = useInstructionPma,
-        reportMaintenance = runtimeMaintenance, reportQuiescence = runtimeMaintenance))
+        reportMaintenance = runtimeMaintenance, reportQuiescence = observeQuiescence))
     val dcache = Module(new FiveStageWordCache(p, p.dataCacheBytes,
         reportMaintenance = acknowledgedDataInvalidate || runtimeMaintenance,
-        reportQuiescence = runtimeMaintenance))
+        reportQuiescence = observeQuiescence))
     io.invalidateDataDone.foreach(_ := dcache.io.invalidateDone.get)
-    private val privateArbitrationIdle = if (runtimeMaintenance) Some(WireDefault(true.B)) else None
+    private val privateArbitrationIdle = if (observeQuiescence) Some(WireDefault(true.B)) else None
     io.runtimeFlushDone.foreach(_ := Cat(dcache.io.invalidateDone.get, icache.io.invalidateDone.get))
     io.privateCachesQuiescent.foreach(_ := icache.io.quiescent.get && dcache.io.quiescent.get &&
-        privateArbitrationIdle.get)
+        privateArbitrationIdle.get && sharedDataIdle.getOrElse(true.B))
     if (runtimeMaintenance) when(io.runtimeFlush.get) {
         assert(core.io.architecturalStopped.get, "runtime cache flush began before precise core stop")
     }
-    val acceptedOrdinaryStore = WireDefault(core.io.dataRequest.fire &&
-        core.io.dataRequest.bits.write && !core.io.dataRequest.bits.atomic)
+    val acceptedOrdinaryStore = WireDefault(sharedDataRequest.fire &&
+        sharedDataRequest.bits.write && !sharedDataRequest.bits.atomic)
     if (p.coherentCaches) {
         for ((cache, i) <- Seq(icache, dcache).zipWithIndex) {
             io.coherent.get(i) <> cache.io.coherence.get
@@ -110,6 +146,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         else io.invalidateData.getOrElse(false.B))
     val fetchRequest = Wire(Decoupled(new FiveStageDataRequest(p)))
     val fetchResponse = Wire(Decoupled(new FiveStageDataResponse(p)))
+    val bareInstructionTurnover = if (p.withH) Some(WireDefault(false.B)) else None
     val fetchCandidates = Wire(Vec(2, UInt(p.xlen.W)))
     fetchCandidates.foreach(_ := fetchRequest.bits.address)
     val fetchCandidateSecond = WireDefault(false.B)
@@ -117,6 +154,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         val aligner = Module(new FiveStageFetchAligner(p))
         aligner.io.request <> core.io.instructionRequest; core.io.instructionResponse <> aligner.io.response
         fetchRequest <> aligner.io.memoryRequest; aligner.io.memoryResponse <> fetchResponse
+        aligner.io.bareTurnover.foreach(_ := bareInstructionTurnover.get)
         aligner.io.addressCandidates.foreach(fetchCandidates := _)
         aligner.io.candidateSecond.foreach(fetchCandidateSecond := _)
         // Clear on every privilege/context transition, including traps/xRET,
@@ -135,10 +173,12 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
             else fetchResponse.bits.data)
         core.io.instructionResponse.bits.error := fetchResponse.bits.error
         core.io.instructionResponse.bits.pageFault := fetchResponse.bits.pageFault
+        core.io.instructionResponse.bits.guest.foreach(_ := fetchResponse.bits.guest.get)
         core.io.instructionResponse.bits.compressed := false.B
         core.io.instructionResponse.bits.secondHalfFault := false.B
         fetchResponse.ready := core.io.instructionResponse.ready
     }
+    val physicalAtomicOwner = WireDefault(false.B)
     val physicalDataRequest = Wire(Decoupled(new FiveStageDataRequest(p)))
     val physicalDataResponse = Wire(Decoupled(new FiveStageDataResponse(p)))
     val instructionPhysicalRequest = Wire(Decoupled(new FiveStageDataRequest(p)))
@@ -148,14 +188,21 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     // physical address/tag, and the final old response can turn over in-place.
     // Quiescence sees a conservative pre-authorization request bound. No
     // ordinary cache admission, response, probe or owner handshake is altered.
-    icache.io.quiescenceRequestPending.foreach(_ := fetchRequest.valid)
-    dcache.io.quiescenceRequestPending.foreach(_ := core.io.dataRequest.valid)
+    // The core's registered fetch owner also covers aligner second parcels and
+    // same-word reuse. Quiescence never waits on BRAM length -> live fetch VALID.
+    icache.io.quiescenceRequestPending.foreach(_ := core.io.fetchOwner)
+    dcache.io.quiescenceRequestPending.foreach(_ := sharedDataRequest.valid || physicalAtomicOwner)
+    if (observeQuiescence) when(!reset.asBool) {
+        assert(!fetchRequest.valid || core.io.fetchOwner,
+            "fetch quiescence bound omitted an aligner offer")
+    }
     icache.io.request <> instructionPhysicalRequest
     instructionPhysicalResponse <> icache.io.response
     if (p.coherentCaches) {
         dcache.io.request <> physicalDataRequest; physicalDataResponse <> dcache.io.response
     } else if (p.withA) {
         val atomic = Module(new FiveStageAtomicMemory(p))
+        physicalAtomicOwner := atomic.io.registeredOwner
         atomic.io.request <> physicalDataRequest; physicalDataResponse <> atomic.io.response
         dcache.io.request <> atomic.io.memoryRequest; atomic.io.memoryResponse <> dcache.io.response
         atomic.io.invalidateReservation := core.io.clearReservation || io.invalidateData.getOrElse(false.B) ||
@@ -165,46 +212,53 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
     }
     if (p.withSv39 || p.pmpEntries > 0) {
         val splitInstruction = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation && p.preparedTranslationProofs
-        val it = Module(new FiveStageAddressTranslation(p, instruction = true,
-            parallelInstructionCandidates = splitInstruction,
-            registeredInstructionReturn = p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation))
-        val dt = Module(new FiveStageAddressTranslation(p, instruction = false,
-            parallelDataCandidates = core.io.dataCandidates.isDefined))
-        for (translator <- Seq(it, dt)) {
-            translator.io.context := core.io.translation; translator.io.entries := core.io.pmp
-            translator.io.invalidate := core.io.invalidateTranslation
+        def translation(instruction: Boolean, splitInstruction: Boolean = false,
+            splitData: Boolean = false): FiveStageTranslationIO = {
+            val registered = instruction && p.fpgaTimingCuts && p.withC && p.fastInstructionTranslation
+            if (p.withH) Module(new I1HypervisorTranslation(p, instruction,
+                splitInstruction, splitData, registered)).io
+            else Module(new FiveStageAddressTranslation(p, instruction,
+                splitInstruction, splitData, registered)).io
         }
-        it.io.request <> fetchRequest; fetchResponse <> it.io.response
-        dt.io.request <> core.io.dataRequest; core.io.dataResponse <> dt.io.response
-        acceptedOrdinaryStore := dt.io.ordinaryStoreAccepted.get
-        dt.io.dataCandidates.foreach(_ := core.io.dataCandidates.get)
-        dt.io.dataCandidateEarly.foreach(_ := core.io.dataCandidateEarly.get)
-        dt.io.readAhead.foreach(_ := core.io.dataReadAhead.get)
-        instructionPhysicalRequest <> it.io.physical.request
-        it.io.physical.response <> instructionPhysicalResponse
-        icache.io.readCacheable.foreach(_ := it.io.physicalCacheable.get)
-        it.io.addressCandidates.foreach(_ := fetchCandidates)
-        it.io.candidateSecond.foreach(_ := fetchCandidateSecond)
+        val it = translation(instruction = true, splitInstruction = splitInstruction)
+        val dt = translation(instruction = false, splitData = core.io.dataCandidates.isDefined)
+        for (translator <- Seq(it, dt)) {
+            translator.context := core.io.translation; translator.entries := core.io.pmp
+            translator.invalidate := core.io.invalidateTranslation
+        }
+        it.request <> fetchRequest; fetchResponse <> it.response
+        bareInstructionTurnover.foreach(_ := it.bareTurnover.get)
+        dt.request <> sharedDataRequest; sharedDataResponse <> dt.response
+        acceptedOrdinaryStore := dt.ordinaryStoreAccepted.get
+        dt.dataCandidates.foreach(_ := core.io.dataCandidates.get)
+        dt.dataCandidateEarly.foreach(_ := core.io.dataCandidateEarly.get)
+        dt.readAhead.foreach(_ := core.io.dataReadAhead.get)
+        instructionPhysicalRequest <> it.physical.request
+        it.physical.response <> instructionPhysicalResponse
+        icache.io.readCacheable.foreach(_ := it.physicalCacheable.get)
+        it.addressCandidates.foreach(_ := fetchCandidates)
+        it.candidateSecond.foreach(_ := fetchCandidateSecond)
         // Three logical users, ONE physical D-cache owner. The offer is sticky under READY stalls.
         // PTW does not instantiate a new cache, AXI master, MSHR or unbounded request queue.
-        val instructionPending = fetchRequest.valid || it.io.registeredOwner
-        val dataPending = core.io.dataRequest.valid || dt.io.registeredOwner || instructionPending
+        val instructionPending = core.io.fetchOwner || it.registeredOwner
+        val dataPending = sharedDataRequest.valid || physicalAtomicOwner || dt.registeredOwner || instructionPending
         icache.io.quiescenceRequestPending.foreach(_ := instructionPending)
         dcache.io.quiescenceRequestPending.foreach(_ := dataPending)
-        val ports = Seq(dt.io.physical, dt.io.walk, it.io.walk)
+        val ports = Seq(dt.physical, dt.walk, it.walk)
         val active = RegInit(false.B); val owner = Reg(UInt(2.W))
         val offered = RegInit(false.B); val heldGrant = Reg(UInt(2.W))
         dcache.io.quiescenceRequestPending.foreach(_ := dataPending || active || offered)
-        privateArbitrationIdle.foreach(_ := !active && !offered &&
-            !dataPending && !ports.map(_.response.valid).reduce(_ || _))
+        // Every routed response below is qualified by active; checking VALID
+        // again only duplicates the registered physical-owner proof.
+        privateArbitrationIdle.foreach(_ := !active && !offered && !dataPending)
         val roundRobin = RegInit(0.U(2.W))
         val available = ports.map(_.request.valid)
-        val choice = if (p.fpgaTimingCuts && p.coherentBandwidth) {
-            // PRIVATE CPU arbiter: each walker has one owner and at most
-            // three PTE reads, no A/D retry loop; a blocked in-order demand
-            // bounds younger fetches by existing frontend capacity. Give
-            // finite PTWs priority, rotating between them. Demand VALID
-            // (late proof) qualifies transfer, never the RAM payload address.
+        val choice = if (p.fpgaTimingCuts && (p.coherentBandwidth || p.withH)) {
+            // PRIVATE CPU arbiter: finite, read-only Svade walkers take
+            // priority, rotating between them. H may translate each VS PTE
+            // through G; neither walker retries A/D writes. In-order demand
+            // and frontend capacity bound younger work, so both sides drain.
+            // Late demand VALID qualifies transfer, never the RAM address.
             // This is not a general unbounded-master fairness policy.
             Mux(roundRobin === 2.U,
                 Mux(available(2), 2.U, Mux(available(1), 1.U, 0.U)),
@@ -237,7 +291,7 @@ class FiveStageCachedCore(val p: FiveStageConfig, externalDataInvalidate: Boolea
         // Preserve the measured M-only fast path when translation/protection are disabled.
         instructionPhysicalRequest <> fetchRequest; fetchResponse <> instructionPhysicalResponse
         fetchResponse.bits.fetchSpan := true.B
-        physicalDataRequest <> core.io.dataRequest; core.io.dataResponse <> physicalDataResponse
+        physicalDataRequest <> sharedDataRequest; sharedDataResponse <> physicalDataResponse
     }
     core.io.time := io.time; core.io.externalIrq := io.externalIrq || imsic.map(_.io.interrupts(0)).getOrElse(false.B)
     core.io.timerIrq := io.timerIrq; core.io.softwareIrq := io.softwareIrq

@@ -1,0 +1,314 @@
+--- a/include/common.h
++++ b/include/common.h
+@@ -150,3 +150,6 @@
+ void getENodeRelyNodes(ENode* enode, std::set<Node*>& allNodes);
+ 
+ #endif
++
++// Explicit-edge evaluation is opt-in; legacy global-tick models are unchanged.
++extern bool explicitClockEdges;
+--- a/src/clockOptimize.cpp
++++ b/src/clockOptimize.cpp
+@@ -13,6 +13,7 @@
+   clockVal(bool invalid) { isInvalid = invalid; }
+ };
+ 
++bool explicitClockEdges = std::getenv("GSIM_CLOCK_EDGES") != nullptr;
+ std::map<Node*, clockVal*> clockMap;
+ 
+ clockVal* ENode::clockCompute() {
+@@ -175,6 +176,19 @@
+     Assert(!node->isArray(), "clock %s is array", node->name.c_str());
+     if (node->type == NODE_INP) clockMap[node] = new clockVal(node);
+     else node->clockCompute();
++  }
++
++  if (explicitClockEdges) {
++    // The current explicit-edge profile supports aliases of top-level clocks.
++    // Reject gated/generated clocks rather than silently global-ticking them.
++    for (auto entry : allSignals) {
++      Node* node = entry.second;
++      if (!node->clock) continue;
++      clockVal* value = clockMap.at(node->clock);
++      Assert(value->node && value->node->type == NODE_INP && !value->gateENode,
++             "explicit-edge mode requires a top-level clock alias: %s", node->name.c_str());
++      node->clock = value->node;
++    }
+   }
+ 
+   for (auto iter : allSignals) {
+--- a/src/Node.cpp
++++ b/src/Node.cpp
+@@ -144,6 +144,7 @@
+   duplicate->isClock = isClock;
+   duplicate->reset = reset;
+   duplicate->lineno = lineno;
++  if (explicitClockEdges) duplicate->clock = clock;
+   for (int dim : dimension) duplicate->dimension.push_back(dim);
+   for (auto param : params) duplicate->params.push_back(param);
+ 
+--- a/src/AST2Graph.cpp
++++ b/src/AST2Graph.cpp
+@@ -1182,6 +1182,7 @@
+ void visitWhenPrintf(graph* g, PNode* print) {
+   TYPE_CHECK(print, 3, 3, P_PRINTF);
+   Node* n = allocNode(NODE_SPECIAL, prefixName(SEP_MODULE, "PRINTF_" + std::to_string(print->lineno)), print->lineno);
++  if (explicitClockEdges) n->clock = visitExpr(g, print->getChild(0))->getExpRoot()->getNode();
+   ASTExpTree* exp = visitExpr(g, print->getChild(1)); // cond
+ 
+   ENode* expRoot = exp->getExpRoot();
+@@ -1215,6 +1216,7 @@
+   TYPE_CHECK(ass, 3, 3, P_ASSERT);
+   std::string assertName = ass->name.empty() ? format("ASSERT_%d", ass->lineno) : ass->name;
+   Node* n = allocNode(NODE_SPECIAL, prefixName(SEP_MODULE, assertName), ass->lineno);
++  if (explicitClockEdges) n->clock = visitExpr(g, ass->getChild(0))->getExpRoot()->getNode();
+ 
+   ASTExpTree* pred = visitExpr(g, ass->getChild(1));
+   ASTExpTree* en = visitExpr(g, ass->getChild(2));
+@@ -1249,6 +1251,7 @@
+   TYPE_CHECK(stop, 2, 2, P_STOP);
+   std::string stopName = stop->name.empty() ? format("STOP_%d", stop->lineno) : stop->name;
+   Node* n = allocNode(NODE_SPECIAL, prefixName(SEP_MODULE, stopName), stop->lineno);
++  if (explicitClockEdges) n->clock = visitExpr(g, stop->getChild(0))->getExpRoot()->getNode();
+ 
+   ASTExpTree* exp = visitExpr(g, stop->getChild(1));
+ 
+@@ -1336,6 +1339,7 @@
+ void visitPrintf(graph* g, PNode* print) {
+   TYPE_CHECK(print, 3, 3, P_PRINTF);
+   Node* n = allocNode(NODE_SPECIAL, prefixName(SEP_MODULE, print->name), print->lineno);
++  if (explicitClockEdges) n->clock = visitExpr(g, print->getChild(0))->getExpRoot()->getNode();
+   ASTExpTree* exp = visitExpr(g, print->getChild(1));
+ 
+   ENode* enode = new ENode(OP_PRINTF);
+@@ -1370,6 +1374,7 @@
+ 
+   std::string stopName = stop->name.empty() ? format("STOP_%d", stop->lineno) : stop->name;
+   Node* n = allocNode(NODE_SPECIAL, prefixName(SEP_MODULE, stopName), stop->lineno);
++  if (explicitClockEdges) n->clock = visitExpr(g, stop->getChild(0))->getExpRoot()->getNode();
+   n->valTree = new ExpTree(enode, new ENode(n));
+   addSignal(n->name, n);
+   g->specialNodes.push_back(n);
+@@ -1383,6 +1388,7 @@
+   TYPE_CHECK(ass, 3, 3, P_ASSERT);
+   std::string assertName = ass->name.empty() ? format("ASSERT_%d", ass->lineno) : ass->name;
+   Node* n = allocNode(NODE_SPECIAL, prefixName(SEP_MODULE, assertName), ass->lineno);
++  if (explicitClockEdges) n->clock = visitExpr(g, ass->getChild(0))->getExpRoot()->getNode();
+ 
+   ASTExpTree* pred = visitExpr(g, ass->getChild(1));
+   ASTExpTree* en = visitExpr(g, ass->getChild(2));
+--- a/src/instsGenerator.cpp
++++ b/src/instsGenerator.cpp
+@@ -1387,6 +1387,11 @@
+       ret->valStr = format("%s[%s]%s = %s;", memory->name.c_str(), ChildInfo(0, valStr).c_str(), indexStr.c_str(), ChildInfo(1, valStr).c_str());
+     }
+   }
++  if (explicitClockEdges) {
++    Assert(node->clock, "memory writer has no clock: %s", node->name.c_str());
++    ret->valStr = format("if (_gsim_memory_commit && _gsim_edge_%s) { %s }",
++                         node->clock->name.c_str(), ret->valStr.c_str());
++  }
+   ret->opNum = -1;
+   ret->type = TYPE_STMT;
+   return ret;
+@@ -1461,13 +1466,27 @@
+   }
+ 
+   valInfo* resetVal = Child(1, computeInfo);
++  std::string edgeCondition;
++  if (explicitClockEdges && node->reset == UINTRESET) {
++    Assert(node->clock, "synchronous reset register has no clock: %s", node->name.c_str());
++    // Synchronous reset changes the candidate only; all sources commit together.
++    Assert(lvalue.compare(0, node->name.size(), node->name) == 0, "unexpected reset lvalue");
++    lvalue.replace(0, node->name.size(), node->getDst()->name);
++    edgeCondition = " && _gsim_edge_" + node->clock->name;
++  }
+   std::string ret;
+   if (node->isArray() && isSubArray(lvalue, node)) {
+       ret = arrayCopy(lvalue, node, resetVal);
+   } else {
+     ret = format("%s = %s;", lvalue.c_str(), resetVal->valStr.c_str());
+   }
+-  computeInfo->valStr = format("if %s { %s }", addBracket(ChildInfo(0, valStr)).c_str(), ret.c_str());
++  if (explicitClockEdges && node->reset == ASYRESET) {
++    Assert(!node->isArray(), "explicit-edge asynchronous reset arrays are unsupported");
++    ret = format("_gsim_reset_changed |= (%s != %s); %s", node->name.c_str(),
++                 resetVal->valStr.c_str(), ret.c_str());
++  }
++  computeInfo->valStr = format("if (%s%s) { %s }", ChildInfo(0, valStr).c_str(),
++                               edgeCondition.c_str(), ret.c_str());
+   computeInfo->opNum = -1;
+   computeInfo->type = TYPE_STMT;
+   computeInfo->sameConstant = resetVal->sameConstant;
+@@ -1772,13 +1791,19 @@
+     case OP_STMT_NODE: {
+       Assert(!isENode, "invalid stmt node\n");
+       Node* node = tree->getlval()->getNode();
++      // Registers are committed simultaneously by the explicit-edge step wrapper.
++      if (explicitClockEdges && node->type == NODE_REG_SRC) break;
+       valInfo* linfo = tree->getlval()->compute(node, INVALID_LVALUE, false, true);
+       valInfo* rinfo = tree->getRoot()->compute(node, linfo->valStr, true);
+       if (!linfo->boundsCheck.empty()) {
+         insts.emplace_back(format("if (%s) {", linfo->boundsCheck.c_str()), SUPER_INFO_IF);
+       }
+       if (rinfo->status == VAL_FINISH || node->type == NODE_SPECIAL) { // printf / assert
+-        insts.emplace_back(rinfo->valStr);
++        if (explicitClockEdges && node->type == NODE_SPECIAL) {
++          Assert(node->clock, "clocked side effect has no clock: %s", node->name.c_str());
++          insts.emplace_back(format("if (_gsim_memory_commit && _gsim_edge_%s) { %s }",
++                                   node->clock->name.c_str(), rinfo->valStr.c_str()));
++        } else insts.emplace_back(rinfo->valStr);
+       } else if (rinfo->status == VAL_INVALID) {
+       } else if (rinfo->opNum >= 0) {
+         if (rinfo->valStr != linfo->valStr) {
+--- a/src/cppEmitter.cpp
++++ b/src/cppEmitter.cpp
+@@ -40,6 +40,7 @@
+ extern int maxConcatNum;
+ bool nameExist(std::string str);
+ static int resetFuncNum = 0;
++static std::set<Node*> edgeResetSignals;
+ 
+ static bool isAlwaysActive(int cppId) {
+   return alwaysActive.find(cppId) != alwaysActive.end();
+@@ -509,6 +510,7 @@
+ }
+ 
+ bool Node::isLocal() { // TODO: isArray is OK
++  if (explicitClockEdges && edgeResetSignals.count(this)) return false;
+   return status == VALID_NODE && type == NODE_OTHERS && !anyNextActive() && !isArray() && !isReset();
+ }
+ 
+@@ -634,13 +636,35 @@
+ 
+ void graph::genResetDef(SuperNode* super, bool isUIntReset, int indent) {
+   emitBodyLock(indent ++, "void S%s::subReset%d(){ // %s reset\n", name.c_str(), resetFuncNum, isUIntReset ? "uint" : "async");
+-  if (super2ResetId.find(super->resetNode) != super2ResetId.end()) {
++  if (super2ResetId.find(super->resetNode) == super2ResetId.end()) {
+     super2ResetId[super->resetNode] = std::make_pair(-1, -1);
+   }
+   if (isUIntReset) super2ResetId[super->resetNode].first = resetFuncNum;
+   else super2ResetId[super->resetNode].second = resetFuncNum;
+   resetFuncNum ++;
+   std::string resetName = super->resetNode->type == NODE_REG_SRC ? RESET_NAME(super->resetNode).c_str() : super->resetNode->name.c_str();
++  if (explicitClockEdges) {
++    emitBodyLock(indent++, "if (%s) {\n", resetName.c_str());
++    std::set<Node*> emitted;
++    for (Node* member : super->member) {
++      Node* reg = member->type == NODE_REG_RESET ? member->getResetSrc() : member;
++      if (!emitted.insert(reg).second) continue;
++      Assert(!reg->isArray(), "explicit-edge reset arrays must be split: %s", reg->name.c_str());
++      valInfo* value = reg->resetTree->getRoot()->getChild(1)->compute(reg, reg->name, false);
++      if (isUIntReset) {
++        emitBodyLock(indent, "if (_gsim_edge_%s) %s = %s;\n", reg->clock->name.c_str(),
++                     reg->getDst()->name.c_str(), value->valStr.c_str());
++      } else {
++        emitBodyLock(indent, "_gsim_reset_changed |= (%s != %s);\n", reg->name.c_str(), value->valStr.c_str());
++        emitBodyLock(indent, "%s = %s;\n", reg->name.c_str(), value->valStr.c_str());
++        if (reg->getDst()->status == VALID_NODE)
++          emitBodyLock(indent, "%s = %s;\n", reg->getDst()->name.c_str(), value->valStr.c_str());
++      }
++    }
++    emitBodyLock(--indent, "}\n");
++    emitBodyLock(--indent, "}\n");
++    return;
++  }
+   emitBodyLock(indent ++, "if(unlikely(%s)) {\n", resetName.c_str());
+   std::set<int> allNext;
+   for (size_t i = 0; i < super->member.size(); i ++) {
+@@ -703,6 +727,62 @@
+ }
+ 
+ void graph::genStep(int subStepIdxMax) {
++  if (explicitClockEdges) {
++    std::vector<Node*> liveRegs;
++    for (Node* reg : regsrc) {
++      if (reg->status != VALID_NODE || !definedNode.count(reg)) continue;
++      Assert(reg->clock && reg->regSplit, "explicit-edge register needs a distinct candidate: %s", reg->name.c_str());
++      Assert(definedNode.count(reg->getDst()), "explicit-edge candidate missing: %s", reg->name.c_str());
++      liveRegs.push_back(reg);
++    }
++    auto copy = [&](Node* target, Node* source, int indent) {
++      if (target->isArray()) emitBodyLock(indent, "memcpy(%s, %s, sizeof(%s));\n",
++          target->name.c_str(), source->name.c_str(), target->name.c_str());
++      else emitBodyLock(indent, "%s = %s;\n", target->name.c_str(), source->name.c_str());
++    };
++    auto asyncResets = [&](int indent) {
++      for (auto entry : super2ResetId) if (entry.second.second >= 0)
++        emitBodyLock(indent, "subReset%d();\n", entry.second.second);
++    };
++    emitFuncDecl(0, "void S%s::evaluateClockCombinational() {\n", name.c_str());
++    // Conditional candidates must start at the current source on EVERY eval.
++    // Otherwise an enable pulse before an edge would leave a stale candidate.
++    for (Node* reg : liveRegs) copy(reg->getDst(), reg, 1);
++    for (Node* reg : liveRegs) if (reg->isReset())
++      emitBodyLock(1, "%s = %s;\n", RESET_NAME(reg).c_str(), reg->name.c_str());
++    emitBodyLock(1, "activateAll();\n");
++    for (int i = 0; i <= subStepIdxMax; ++i) emitBodyLock(1, "subStep%d();\n", i);
++    asyncResets(1);
++    emitBodyLock(0, "}\n");
++    emitFuncDecl(0, "void S%s::settleClockCombinational() {\n", name.c_str());
++    emitBodyLock(1, "unsigned delta = 0;\n");
++    emitBodyLock(1, "do {\n");
++    emitBodyLock(2, "assert(++delta <= 1024 && \"asynchronous reset network did not settle\");\n");
++    emitBodyLock(2, "_gsim_reset_changed = false;\n");
++    emitBodyLock(2, "evaluateClockCombinational();\n");
++    emitBodyLock(1, "} while (_gsim_reset_changed);\n}\n");
++    emitFuncDecl(0, "void S%s::step() {\n", name.c_str());
++    std::string anyEdge = "false";
++    for (Node* port : input) if (port->isClock) {
++      emitBodyLock(1, "_gsim_edge_%s = %s && !_gsim_previous_%s;\n",
++                   port->name.c_str(), port->name.c_str(), port->name.c_str());
++      anyEdge += " || _gsim_edge_" + port->name;
++    }
++    emitBodyLock(1, "_gsim_memory_commit = false;\nsettleClockCombinational();\n");
++    emitBodyLock(1, "if (%s) {\n", anyEdge.c_str());
++    emitBodyLock(2, "_gsim_memory_commit = true;\nevaluateClockCombinational();\nresetAll();\n");
++    for (Node* reg : liveRegs) {
++      emitBodyLock(2, "if (_gsim_edge_%s) {\n", reg->clock->name.c_str());
++      copy(reg, reg->getDst(), 3);
++      emitBodyLock(2, "}\n");
++    }
++    emitBodyLock(2, "_gsim_memory_commit = false;\nsettleClockCombinational();\n");
++    emitBodyLock(1, "}\n");
++    for (Node* port : input) if (port->isClock)
++      emitBodyLock(1, "_gsim_previous_%s = %s;\n", port->name.c_str(), port->name.c_str());
++    emitBodyLock(1, "cycles++;\n}\n");
++    return;
++  }
+   emitFuncDecl(0, "void S%s::step() {\n", name.c_str());
+   emitBodyLock(1, "resetAll();\n");
+   for (SuperNode* super : sortedSuper) {
+@@ -784,6 +864,7 @@
+ }
+ 
+ void graph::cppEmitter() {
++  if (explicitClockEdges) for (SuperNode* super : allReset) edgeResetSignals.insert(super->resetNode);
+   for (SuperNode* super : sortedSuper) {
+     if (!super->instsEmpty() || super->superType == SUPER_EXTMOD || super->superType == SUPER_ASYNC_RESET) {
+       super->cppId = superId ++;
+@@ -870,6 +951,14 @@
+ 
+   // header: node definition; src: node evaluation
+   fprintf(header, "uint32_t _var_start;\n");
++  if (explicitClockEdges) {
++    fprintf(header, "bool _gsim_memory_commit, _gsim_reset_changed;\n");
++    for (Node* port : input) if (port->isClock) {
++      fprintf(header, "bool _gsim_previous_%s, _gsim_edge_%s;\n", port->name.c_str(), port->name.c_str());
++    }
++    fprintf(header, "void evaluateClockCombinational(); void settleClockCombinational();\n");
++  }
++
+   for (SuperNode* super : sortedSuper) {
+     // std::string insts;
+     if (super->superType == SUPER_VALID || super->superType == SUPER_ASYNC_RESET) {
+--- a/src/replication.cpp
++++ b/src/replication.cpp
+@@ -61,6 +61,7 @@
+   size_t oldNum = countNodes();
+   size_t oldSuper = sortedSuper.size();
+   std::set<Node*> mustNodes;
++  if (explicitClockEdges) for (SuperNode* reset : allReset) mustNodes.insert(reset->resetNode);
+   for (SuperNode* super : sortedSuper) { // TODO: support op in index
+     for (Node* member : super->member) {
+       if (!member->isArray()) continue;

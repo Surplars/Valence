@@ -1,4 +1,10 @@
-#ifdef DUT_OOO
+#ifdef I1_SPINOR_CPU_DUAL
+#include "I1SpinorDualClockFixture.h"
+using Model = SI1SpinorDualClockFixture;
+#elif defined(I1_SPINOR_CPU)
+#include "I1SpinorCoreFixture.h"
+using Model = SI1SpinorCoreFixture;
+#elif defined(DUT_OOO)
 #include "InorderMatchedOooCoremark.h"
 using Model = SInorderMatchedOooCoremark;
 #else
@@ -106,7 +112,8 @@ int main(int argc, char **argv) { try {
     uint64_t errorsAddress = std::stoull(argv[2], nullptr, 0), ticksAddress = std::stoull(argv[3], nullptr, 0);
     uint64_t crcsAddress = std::stoull(argv[4], nullptr, 0); unsigned latency = std::stoul(argv[5]);
     bool smoke = crcsAddress == 0;
-    const bool injectRegister = argc == 7 && std::string(argv[6]) != "--inject-prediction-observer";
+    const bool injectRegister = argc == 7 && std::string(argv[6]) != "--inject-prediction-observer" &&
+        std::string(argv[6]) != "--inject-length-observer";
     Model d; Memory memory(d, image, latency); Oracle oracle(image);
     d.set_reset(1);
 #ifndef DUT_OOO
@@ -127,6 +134,7 @@ int main(int argc, char **argv) { try {
 #ifdef I1_COREMARK_PREDICTION
     I1PredictionMetrics<Model> prediction;
     prediction.injectObservation = argc == 7 && std::string(argv[6]) == "--inject-prediction-observer";
+    prediction.injectLengthObservation = argc == 7 && std::string(argv[6]) == "--inject-length-observer";
     PredictionCounts roiPredictionStart, roiPrediction, roiWarmStart, roiWarm;
     std::array<PredictionCounts, 4> roiKindsStart{}, roiKinds{};
     std::map<uint64_t, PredictionCounts> roiPcStart, roiPc;

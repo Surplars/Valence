@@ -17,9 +17,11 @@ class FiveStageAtomicMemory(p: FiveStageConfig) extends Module {
         val memoryResponse = Flipped(Decoupled(new FiveStageDataResponse(p)))
         val invalidateReservation = Input(Bool())
         val reservationValid = Output(Bool())
+        val registeredOwner = Output(Bool())
     })
     val idle :: bypass :: readSend :: readWait :: modify :: writeSend :: writeWait :: reply :: Nil = Enum(8)
     val state = RegInit(idle)
+    io.registeredOwner := state =/= idle
     val saved = Reg(new FiveStageDataRequest(p))
     val result = Reg(new FiveStageDataResponse(p))
     val oldWord = Reg(UInt(p.xlen.W)); val updatedWord = Reg(UInt(p.xlen.W))
@@ -86,21 +88,37 @@ class FiveStageAtomicMemory(p: FiveStageConfig) extends Module {
             }.otherwise { state := modify }
     }
     val offset = saved.address(log2Ceil(p.xlen / 8) - 1, 0)
-    val oldShifted = oldWord >> Cat(offset, 0.U(3.W))
-    val operandShifted = saved.data >> Cat(offset, 0.U(3.W))
     val word = saved.size === 2.U
-    val left = if (p.xlen == 64) Mux(word, Cat(Fill(32, oldShifted(31)), oldShifted(31, 0)), oldShifted)
-        else oldShifted
-    val right = if (p.xlen == 64)
-        Mux(word, Cat(Fill(32, operandShifted(31)), operandShifted(31, 0)), operandShifted) else operandShifted
-    val unsignedLess = if (p.xlen == 64) Mux(word, left(31, 0) < right(31, 0), left < right) else left < right
+    // Admission guarantees natural W/D alignment. FPGA AMOs only choose the
+    // lower/upper 32-bit lane; byte barrel shifters add no legal operation.
+    val upperWord = if (p.xlen == 64) word && saved.address(2) else false.B
+    def alignedOperand(value: UInt): UInt = if (p.fpgaTimingCuts) {
+        if (p.xlen == 64) Mux(upperWord, value(63, 32).pad(64), value) else value
+    } else value >> Cat(offset, 0.U(3.W))
+    val oldShifted = alignedOperand(oldWord)
+    val operandShifted = alignedOperand(saved.data)
+    // W operations consume only the low result lane. Keep sign selection out
+    // of the XLEN data operands and share one unsigned comparison for MIN/MAX.
+    val left = oldShifted
+    val right = operandShifted
+    val unsignedLess = if (p.xlen == 64) {
+        val low = left(31, 0) < right(31, 0)
+        (!word && left(63, 32) < right(63, 32)) ||
+            ((word || I1TimingMath.equal(left(63, 32), right(63, 32))) && low)
+    } else left < right
+    val leftSign = if (p.xlen == 64) Mux(word, left(31), left(63)) else left(31)
+    val rightSign = if (p.xlen == 64) Mux(word, right(31), right(63)) else right(31)
+    val signedLess = Mux(leftSign =/= rightSign, leftSign, unsignedLess)
     val combined = MuxLookup(saved.atomicOperation, right)(Seq(
         0.U -> (left + right), 1.U -> right, 4.U -> (left ^ right), 8.U -> (left | right),
-        12.U -> (left & right), 16.U -> Mux(left.asSInt < right.asSInt, left, right),
-        20.U -> Mux(left.asSInt < right.asSInt, right, left),
+        12.U -> (left & right), 16.U -> Mux(signedLess, left, right),
+        20.U -> Mux(signedLess, right, left),
         24.U -> Mux(unsignedLess, left, right), 28.U -> Mux(unsignedLess, right, left)))
     when(state === modify) {
-        updatedWord := (combined << Cat(offset, 0.U(3.W)))(p.xlen - 1, 0); state := writeSend
+        updatedWord := (if (p.fpgaTimingCuts) {
+            if (p.xlen == 64) Mux(upperWord, Cat(combined(31, 0), 0.U(32.W)), combined) else combined
+        } else (combined << Cat(offset, 0.U(3.W)))(p.xlen - 1, 0))
+        state := writeSend
     }
     when(state === writeWait && io.memoryResponse.fire) {
         result.data := Mux(sc, 0.U, oldWord); result.error := io.memoryResponse.bits.error; state := reply
@@ -112,4 +130,7 @@ class FiveStageAtomicMemory(p: FiveStageConfig) extends Module {
             "atomic backend response without owner")
         assert(!(state === bypass && saved.atomic), "atomic operation leaked into normal bypass")
     }
+    // Physical caches/atomic memory and the host-only walker never create guest faults.
+    io.response.bits.guest.foreach(_ := 0.U.asTypeOf(new I1GuestFault))
+
 }

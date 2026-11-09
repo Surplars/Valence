@@ -4,7 +4,7 @@ set rtl_root [file normalize [lindex $argv 0]]
 set report_root [file normalize [lindex $argv 1]]
 if {[file exists $report_root]} { error "refusing to overwrite existing OOC evidence: $report_root" }
 file mkdir $report_root
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 foreach profile {rv64-dsp rv64-no-m rv64-lutram} {
     set input [file join $rtl_root $profile]
     set files [lsort [glob -nocomplain -directory $input *.sv]]

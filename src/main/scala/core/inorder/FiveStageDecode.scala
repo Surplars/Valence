@@ -131,5 +131,32 @@ class FiveStageDecode(p: FiveStageConfig) extends Module {
             c.legal := fp.supported(i, p.floatingConfig)
         }
     }
+    if (p.spinor) when(I1SpinorDecode.routed(i)) {
+        c.legal := true.B; c.spinor.get := true.B; c.serial := true.B
+        c.usesRs1 := I1SpinorDecode.integerLeft(i); c.usesRs2 := I1SpinorDecode.integerRight(i)
+        c.writesRd := false.B; c.load := false.B; c.store := false.B; c.csr := false.B
+        c.mulDiv := false.B; c.fpExecute := false.B; c.fpWrites := false.B
+        c.floating := I1SpinorDecode.floating(i)
+        c.useImmediate := false.B; c.immediate := 0.U
+    }
+    if (p.withH) {
+        // Encoding classification is independent of the current privilege;
+        // EX checks the real architectural permission after serial drain.
+        val h = Module(new I1HypervisorDecode(p.xlen))
+        h.io.instruction := i; h.io.privilege := 3.U; h.io.virtualized := false.B
+        h.io.hu := false.B; h.io.tvm := false.B
+        when(h.io.recognized) {
+            c.legal := true.B; c.serial := true.B
+            c.load := h.io.load; c.store := h.io.store
+            c.usesRs1 := h.io.load || h.io.store; c.usesRs2 := h.io.store
+            c.writesRd := h.io.load; c.useImmediate := true.B; c.immediate := 0.U
+            c.funct3 := Cat(h.io.unsigned, h.io.size)
+            c.sfence := h.io.fenceVs || h.io.fenceGuest
+            c.hypervisor.get.memory := h.io.load || h.io.store
+            c.hypervisor.get.execute := h.io.executePermission
+            c.hypervisor.get.fence := h.io.fenceVs || h.io.fenceGuest
+            c.csr := false.B
+        }
+    }
     io.control := c
 }

@@ -53,8 +53,16 @@ case class FiveStageConfig(
     withAia: Boolean = false,
     externalFenceICompletion: Boolean = false,
     fastDivision: Boolean = false,
-    hashedBranchIndex: Boolean = false
+    hashedBranchIndex: Boolean = false,
+    spinor: Boolean = false,
+    withH: Boolean = false
 ) {
+    // H uses the ordinary private caches after two-stage translation.
+    // Spinor V ISA advertisement remains separate from native integration.
+    require(!spinor || (xlen == 64 && withF && withD && hartId >= 0 && hartId < 65536))
+    require(!spinor || ((!withSv39 || withH) && !fastDataTranslation && !coherentCaches))
+    require(!withH || (xlen == 64 && withSupervisor && withSv39 && !withAia),
+        "H requires RV64 S/U and Sv39; guest AIA is a separate extension")
     require(!fastDivision || withM, "division shortcuts require the M extension")
     require(!hashedBranchIndex || branchPredictorEntries > 0, "hashed branch index requires a predictor")
     require(Set(32, 64).contains(xlen), "XLEN must be 32 or 64")
@@ -79,8 +87,10 @@ case class FiveStageConfig(
         instructionCacheBytes >= 128 && instructionCacheBytes <= 32768 &&
         instructionCacheBytes == dataCacheBytes && instructionCacheBytes / (64 * coherentCacheWays) >= 2),
         "dual-client TL-C uses equal RV64 I/D caches, 64-byte lines, at least two sets")
-    require(!cacheFetchPredecode || (withC && coherentCaches && coherentControlCuts && coherentCacheWays == 2),
-        "cached parcel predecode requires C, two-way coherent caches and explicit FPGA cuts")
+    require(!cacheFetchPredecode || (withC && xlen == 64 &&
+        (if (coherentCaches) coherentControlCuts && coherentCacheWays == 2
+         else fpgaTimingCuts && instructionCacheBytes > 0)),
+        "cached parcel predecode requires C and a supported 64-bit instruction-cache layout")
     require(!indexedDataProofs || (withSv39 && fpgaTimingCuts && fastDataTranslation && preparedTranslationProofs),
         "indexed data proofs require Sv39, bounded fast data authorization and FPGA timing mode")
     require(!bankedTlbProofs || (withSv39 && fpgaTimingCuts && Set(16, 32).contains(tlbEntries)),
@@ -129,7 +139,7 @@ case class FiveStageConfig(
     require(cacheableBase >= 0 && cacheableBytes > 0 && cacheableBase + cacheableBytes < (BigInt(1) << xlen))
     require(cacheableBase % cacheLineBytes == 0 && cacheableBytes % cacheLineBytes == 0)
     val isa: String = "rv" + xlen + "i" + (if (withM) "m" else "") + (if (withA) "a" else "") +
-        (if (withF) "f" else "") + (if (withD) "d" else "") + (if (withC) "c" else "") +
+        (if (withF) "f" else "") + (if (withD) "d" else "") + (if (withC) "c" else "") + (if (withH) "h" else "") +
         "_zicsr_zifencei" + (if (withSv39) "_svade" else "")
     val registerReadStage: Boolean = pipelineProfile == "fpga8"
     val addressStage: Boolean = pipelineProfile != "compact5"
