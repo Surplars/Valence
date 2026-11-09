@@ -1,0 +1,84 @@
+{
+  "baseline_commit": "d5a2d1c144e79cc71c0778b4647077d86ae9715e",
+  "baseline_directory": "../posted_full_line_stagea_r1",
+  "baseline_files": {
+    "README.md": {
+      "bytes": 3194,
+      "sha256": "ab829b9b786d709776a9dbe3b6b430d2f489fd8a87cd90daf846483cee1ecf96"
+    },
+    "REPRODUCE.md": {
+      "bytes": 3204,
+      "sha256": "921de266d8e257d97b5bc5b6b6026836045e4002068d0940fd9c205cae963d1e"
+    },
+    "SOURCE_HASHES.json": {
+      "bytes": 2325,
+      "sha256": "0fa0661dfb9ec844a4569bde47047a01699cee1c25ff6e44d306937c558a877b"
+    },
+    "VERIFIED_OUTCOMES.json": {
+      "bytes": 2819,
+      "sha256": "aa09f451e0f00ab45be7b136ae87cd5c899fa6b19f04e671056322bbe852fc28"
+    },
+    "baseline/PostedStoreMerge.scala": {
+      "bytes": 22509,
+      "sha256": "73ac04230dfc09fa7f6c091f86b4b0e6b6cecfefb597555d5b23f66a628b10cd"
+    },
+    "baseline/contract_oracle.py": {
+      "bytes": 16952,
+      "sha256": "3409c3f4e6d2b334817aa510d45dfb5b756ee0abaa019725c822c3fdbee51533"
+    },
+    "baseline/fixture.py": {
+      "bytes": 27131,
+      "sha256": "c5a72f91a6ed3784a24fb085d3e710d36e1141658a3c623bc7f10e6d33abf112"
+    },
+    "baseline/ports.py": {
+      "bytes": 5178,
+      "sha256": "fc84e28e1db072ddafcc51efebe6adde42857ad06fda85e391528504279b4fbc"
+    },
+    "fixtures/PostedOwnerOffGsimMain.scala": {
+      "bytes": 358,
+      "sha256": "a97c33f733f04ce06f59e6e8282c3b2540fe339b5743cc6fb790048be1d527aa"
+    },
+    "fixtures/PostedShortPoliciesGsim.scala": {
+      "bytes": 2534,
+      "sha256": "ddb72f980f4093f8d33c5d2aea606480925039d394598f5bc2d3c18eec39328d"
+    },
+    "fixtures/PostedStoreMergeGsim.scala": {
+      "bytes": 7925,
+      "sha256": "577b1f77a88a356dac7cb7e05c623f5531cac748218a59838e0d7e19fd99dcc7"
+    },
+    "host/driver.cpp": {
+      "bytes": 27536,
+      "sha256": "19638789a8a88dda785346a0a7e4f291272e047a0c9d6e8d9ce0e948e27135ff"
+    },
+    "host/full_line_cases.py": {
+      "bytes": 38342,
+      "sha256": "da8c107e85cc85f6419763ab4eae248c0c517018817c8eb7f5048753d06c93ee"
+    },
+    "host/ports.py": {
+      "bytes": 5453,
+      "sha256": "8c1105370cda9f8e9e301183993fa451c6dca9bddb1ed2248e487ec29b3231ed"
+    },
+    "host/short_cases.cpp": {
+      "bytes": 3495,
+      "sha256": "1af80fb5755f8aa248bb1b6c113b2a717ab961a3855d5c34ef9f0d73be4c9909"
+    },
+    "prepare_cases.py": {
+      "bytes": 2478,
+      "sha256": "e441fd94d9d6927a98a796a055213e6c19eadccfd76845f16448fbf5aee94557"
+    },
+    "source/PostedFullLinePolicy.scala": {
+      "bytes": 2958,
+      "sha256": "c537f0fc70098b50046f579e67b37a2108e7aa7fc0004a13116a769ba63a3fe8"
+    },
+    "source/PostedStoreMerge.scala": {
+      "bytes": 24888,
+      "sha256": "f7424e492a57bd29d0ad35ff3930d94473b3caf7a5be39acd0c97d89c5d513df"
+    }
+  },
+  "historical_source": {
+    "commit": "5614cb808b5475ce893e564e3b6f25e73cfb6b02",
+    "path": "../translated_response_empty_flow_r1/historical-qualified-source.tar.gz",
+    "sha256": "9d9c10c2103d6b12651fa4dc155eeb0373eaa094cb8cf42a681d21c06c40754d",
+    "qualified_revision": "50cb0c5d4b17318904d6cf818ad23829821d5d93"
+  }
+}

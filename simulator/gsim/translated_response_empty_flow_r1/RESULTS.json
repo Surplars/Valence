@@ -1,0 +1,119 @@
+{
+  "scope": "one matched 16KiB BootROM RX simulation; actual CPU image/sentinel readback passes; FPGA timing unqualified",
+  "historical_base": "50cb0c5d4b17318904d6cf818ad23829821d5d93",
+  "historical_commit_remote_lookup": "GitHub422 no commit found; exact source preserved in included archive",
+  "only_parameter_delta": {
+    "translatedResponseEmptyFlow": [
+      false,
+      true
+    ]
+  },
+  "full_Mbps": [
+    41.48231418852628,
+    42.96301637925666
+  ],
+  "interior_Mbps": [
+    42.57390581285567,
+    44.12287473742796
+  ],
+  "full_ratio": 1.0356947826970542,
+  "interior_ratio": 1.0363830589418124,
+  "phases": [
+    {
+      "phase": "stream_crc",
+      "baseline_cycles": 133301,
+      "candidate_cycles": 125109,
+      "saved_cycles": 8192,
+      "baseline_retired": 139570,
+      "candidate_retired": 139570,
+      "baseline_ipc": 1.0470289045093435,
+      "candidate_ipc": 1.1155872079546636
+    },
+    {
+      "phase": "rx_sum16",
+      "baseline_cycles": 65206,
+      "candidate_cycles": 65154,
+      "saved_cycles": 52,
+      "baseline_retired": 86333,
+      "candidate_retired": 86333,
+      "baseline_ipc": 1.324003926019078,
+      "candidate_ipc": 1.3250606255947448
+    },
+    {
+      "phase": "tx_sum16",
+      "baseline_cycles": 1697,
+      "candidate_cycles": 1697,
+      "saved_cycles": 0,
+      "baseline_retired": 1245,
+      "candidate_retired": 1245,
+      "baseline_ipc": 0.7336476134354744,
+      "candidate_ipc": 0.7336476134354744
+    },
+    {
+      "phase": "store",
+      "baseline_cycles": 54697,
+      "candidate_cycles": 52594,
+      "saved_cycles": 2103,
+      "baseline_retired": 34229,
+      "candidate_retired": 34229,
+      "baseline_ipc": 0.6257930051008282,
+      "candidate_ipc": 0.6508156823972316
+    },
+    {
+      "phase": "header_crc",
+      "baseline_cycles": 774,
+      "candidate_cycles": 744,
+      "saved_cycles": 30,
+      "baseline_retired": 581,
+      "candidate_retired": 580,
+      "baseline_ipc": 0.7506459948320413,
+      "candidate_ipc": 0.7795698924731183
+    },
+    {
+      "phase": "other",
+      "baseline_cycles": 60296,
+      "candidate_cycles": 59784,
+      "saved_cycles": 512,
+      "baseline_retired": 21733,
+      "candidate_retired": 21918,
+      "baseline_ipc": 0.360438503383309,
+      "candidate_ipc": 0.36661983139301485
+    },
+    {
+      "phase": "total",
+      "baseline_cycles": 315971,
+      "candidate_cycles": 305082,
+      "saved_cycles": 10889,
+      "baseline_retired": 283691,
+      "candidate_retired": 283875,
+      "baseline_ipc": 0.8978387257058401,
+      "candidate_ipc": 0.9304875410545361
+    }
+  ],
+  "conservation": {
+    "image_bytes": 16384,
+    "image_crc": 4075208620,
+    "frames": 19,
+    "line_acks": 258,
+    "fifo_beats": 4342,
+    "posts": 22,
+    "pops": 18,
+    "capture_requests": 2161
+  },
+  "source_archive_sha256": "9d9c10c2103d6b12651fa4dc155eeb0373eaa094cb8cf42a681d21c06c40754d",
+  "source_archive_bytes": 581650,
+  "focused": {
+    "buffer_and_LSU": "positive and negative ownership/oracle tests pass",
+    "lsu_matrix_cycles": [
+      354,
+      337
+    ],
+    "ON_empty_bypasses": 20
+  },
+  "tiny_buffer_mapping": {
+    "OFF_LUT": 142,
+    "ON_LUT": 212,
+    "FF": 140,
+    "scope": "tiny buffer only, no full-core area or timing claim"
+  }
+}

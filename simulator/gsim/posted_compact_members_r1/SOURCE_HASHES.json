@@ -1,0 +1,30 @@
+{
+  "DEPENDENCIES.json": {
+    "bytes": 3074,
+    "sha256": "52c89c8be898b47a38b1f3e3c0f3f869609bccd98ab631aec6e3195e98557a9b"
+  },
+  "README.md": {
+    "bytes": 2767,
+    "sha256": "1ff520e8324e16c4c37f6be19332ae8aee41861437397a4967c0b4d3b2562027"
+  },
+  "REPRODUCE.md": {
+    "bytes": 4108,
+    "sha256": "5823fd1eaadfc3ee205266a9da663eb8c37f0de85af180c464cc9bdace74eb45"
+  },
+  "RESULTS.json": {
+    "bytes": 1641,
+    "sha256": "c11d92e281eef366ca1b17818b96048170b6cb675d6c6318bb1f1902749f4c63"
+  },
+  "fixtures/PostedStoreMergeGsim.scala": {
+    "bytes": 8097,
+    "sha256": "69fac0a094139b3467ef118fc24accd0c5a590aaa644a2770c1b365d26f230f6"
+  },
+  "host/compact_lifetime_cases.py": {
+    "bytes": 16214,
+    "sha256": "fc4195ef7518828eb549159bc8cc88fe833a1d1889f2d34620ebe365b9952051"
+  },
+  "source/PostedStoreMerge.scala": {
+    "bytes": 27398,
+    "sha256": "67e58d1a7420e36241ae95bafa37d64caec1b1b5841e7ca4f18a5f7cea5439c1"
+  }
+}

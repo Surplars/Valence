@@ -1,0 +1,48 @@
+{
+  "scope": "one actual decoded backend authority/ownership case and saved-observation sensitivity",
+  "native": {
+    "cycles": 226,
+    "accepted": 21,
+    "retired": 21,
+    "memory_starts_requests_replies": 2,
+    "qualified_reads": 1,
+    "younger_suppressed_cycles": 68,
+    "held_qualified_request_cycles": 5,
+    "store_start": 109,
+    "store_local_retire": 111,
+    "read_start": 184,
+    "read_request": 190,
+    "read_reply": 191,
+    "read_retire": 192,
+    "external_store_completion": 194
+  },
+  "observation_controls": {
+    "positive": "226frames/full counters/complete owner histories/final registers match",
+    "head-token": {
+      "cycle": 184,
+      "error": "INDEPENDENT_HEAD_FULL_TOKEN"
+    },
+    "younger-qualified": {
+      "cycle": 119,
+      "error": "YOUNGER_READ_MINTED_BEFORE_ACTUAL_HEAD"
+    },
+    "external-release": {
+      "cycle": 113,
+      "error": "EXTERNAL_BUSY_INDEPENDENT_LEDGER"
+    }
+  },
+  "preserved_failures": [
+    "Fixture-only SourceInfo/indexing ambiguity corrected in fresh output; backend logic unchanged.",
+    "Pre-run control premise corrected: issued DIV head pending=false.",
+    "Initial positive replay reached226frames then failed tuple/list owner comparison; diagnosis found exactly21 token-container representation differences. Corrected replay retains every field/value."
+  ],
+  "seal_sha256": "c0b221552c72b10a4dd244e75dfa8fc40974b7642f79b51263aa94bc1d765636",
+  "independent_final_gate_sha256": "6f6796767c9abb9af56c3e93dc849401b5cea32f8352bb770fbe20b70b5eafd4",
+  "trace_sha256": "16f0423fb263f3fd88a87db688600d19b835135768da88c1259151b2b31a4cc9",
+  "limits": [
+    "candidate payload without candidate-valid is diagnostic only",
+    "broad producer exclusions remain untested",
+    "explicit memory responder; no cache collection, instruction fetch, Linux or board performance claim",
+    "portable source reconstruction not hardware-executed"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "IntegerBackend.scala": {
+    "baseline_sha256": "9b58fc3a1940796456b30e807d01d2803e609eff568dc7ee18acb643f0b148c7",
+    "candidate_sha256": "8e33b490b81e3f758a46339ac7e6d70b342608d66d7d5aeae6ff4a0b93346ec2",
+    "bytes": 211940,
+    "changed": true
+  },
+  "IntegerCore.scala": {
+    "baseline_sha256": "a91ddc9bd7d2150cd4680905dc2b438f4005fd5d1c41a13357e8356b2434d598",
+    "candidate_sha256": "d159812b5fff2790910b244eec929a974c03f43670d097b88be66d2c454844be",
+    "bytes": 31779,
+    "changed": true
+  },
+  "MachineCore.scala": {
+    "baseline_sha256": "03f1056196324363c68f462692de5dc630f3d8a302fc76d2ccdff8df89ddf45d",
+    "candidate_sha256": "7798b2e26eb3db1bea52f33dcc9e5205a4a61492f31699d675da80a2c9b947d3",
+    "bytes": 7347,
+    "changed": true
+  },
+  "MappedMachineCore.scala": {
+    "baseline_sha256": "7617d05a33ab5789420aa5edb0600db04dc61b182e50cca974aaf08df5ca014e",
+    "candidate_sha256": "1bfdd66f1492b62e88e7a62b1dff36f17757bb2b8b3b2bd39ceb748e93f7383a",
+    "bytes": 15255,
+    "changed": true
+  }
+}

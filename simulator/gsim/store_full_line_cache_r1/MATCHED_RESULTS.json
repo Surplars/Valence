@@ -1,0 +1,109 @@
+{
+  "positive_cases": 9,
+  "expected_mutation_cases": 1,
+  "parity_traces": 10,
+  "total_edges": 6094,
+  "compared_output_values": 342654,
+  "parity": [
+    {
+      "mode": "collect_read",
+      "name": "collect_read.jsonl.gz",
+      "baseline": "collect_read/collect_read.jsonl.gz",
+      "equal": true,
+      "cycles": 650,
+      "compared_output_values": 36541,
+      "canonical_sha256": "71eb8ff052e3139498b73d27d49c45f5be39f2d7466b2f50e86b816156083240",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "collect_write",
+      "name": "collect_write.jsonl.gz",
+      "baseline": "collect_write/collect_write.jsonl.gz",
+      "equal": true,
+      "cycles": 647,
+      "compared_output_values": 36385,
+      "canonical_sha256": "e578a2d0c02e2d5cfe3da25c64d10410c3a82aeac4f10adfecfdc09f0cf902ee",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "installed_read",
+      "name": "installed_read.jsonl.gz",
+      "baseline": "installed_read/installed_read.jsonl.gz",
+      "equal": true,
+      "cycles": 659,
+      "compared_output_values": 36835,
+      "canonical_sha256": "1ca50a09959829ca072e56e2ebba97569e2e63d4206327ddefbb8a27ac07e226",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "installed_write",
+      "name": "installed_write.jsonl.gz",
+      "baseline": "installed_write/installed_write.jsonl.gz",
+      "equal": true,
+      "cycles": 655,
+      "compared_output_values": 36624,
+      "canonical_sha256": "368c0e1a920fbf6db5d5817682ee985d3fe6c01c689b58bad1f17a4d261db3bc",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "mutation",
+      "name": "full.jsonl.gz",
+      "baseline": "mutation/full.jsonl.gz",
+      "equal": true,
+      "cycles": 25,
+      "compared_output_values": 1692,
+      "canonical_sha256": "0c754528c7684a5d0eea409795315958f436af033c8d8f9fae62862e8d0b7de0",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "positive",
+      "name": "full.jsonl.gz",
+      "baseline": "positive/full.jsonl.gz",
+      "equal": true,
+      "cycles": 597,
+      "compared_output_values": 33371,
+      "canonical_sha256": "55b3163571250888a76d1f5bafc496e3cd7221377b7523775b7edbaff5687b04",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "positive",
+      "name": "partial_seal.jsonl.gz",
+      "baseline": "positive/partial_seal.jsonl.gz",
+      "equal": true,
+      "cycles": 635,
+      "compared_output_values": 35704,
+      "canonical_sha256": "31abc6ca4c4e19501f63601f4166f2ff92e53bd2dd360dfc925d533e469050d1",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "positive",
+      "name": "partial_timeout.jsonl.gz",
+      "baseline": "positive/partial_timeout.jsonl.gz",
+      "equal": true,
+      "cycles": 863,
+      "compared_output_values": 48244,
+      "canonical_sha256": "52e1e7c6df9edb061120442b92b7378dbafdc709ff5589de2f03cde32a2ef6eb",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "transient",
+      "name": "transient.jsonl.gz",
+      "baseline": "transient/transient.jsonl.gz",
+      "equal": true,
+      "cycles": 648,
+      "compared_output_values": 36231,
+      "canonical_sha256": "b5333b7143af256e031c31e7f9bfea42b2fb2d3f2411c801e3b2a9d4c57107a1",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    },
+    {
+      "mode": "victim",
+      "name": "victim.jsonl.gz",
+      "baseline": "victim/victim.jsonl.gz",
+      "equal": true,
+      "cycles": 715,
+      "compared_output_values": 41027,
+      "canonical_sha256": "6d56e699e55bae56c3eb1744c99efad01dfb80a3902622174e5c55619da5a7f0",
+      "scope": "all cycle-stamped public values; payload excluded only while its valid selector is false"
+    }
+  ]
+}

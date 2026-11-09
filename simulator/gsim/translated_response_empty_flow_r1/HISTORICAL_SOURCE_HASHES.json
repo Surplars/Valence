@@ -1,0 +1,1688 @@
+{
+  "historical-repo/src/main/scala/bus/tilelink/TileLink.scala": {
+    "bytes": 6990,
+    "sha256": "22d024123aae4bbbfe42142a653f73e23335211d2535f0041880388b3ab93a18",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/AlignedMemoryDisjoint.scala": {
+    "bytes": 1474,
+    "sha256": "34b3b6c0570c677720d0970d086475347451c2af87b53c10fe44f85ab2d7cd80",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/AtomicDataMemory.scala": {
+    "bytes": 3960,
+    "sha256": "dbb91d547b54bb231682a9a0e02cc785ba215ea29afd57881f77c8fb93587ef3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/AuipcPredictionQualification.scala": {
+    "bytes": 1550,
+    "sha256": "f1f0f2889bcee88a86c2687b2bf473313238a1761367692dc0e0a5b5ff164ee6",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BackendCapacityConfig.scala": {
+    "bytes": 972,
+    "sha256": "60522dfe62cf78b72b691c668f5ca3ac3aea123b0c5de395fe42c929fe147cf8",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BackendPmpAlignment.scala": {
+    "bytes": 781,
+    "sha256": "5cbb1f0482718c4b326d0e88706378378b92a5e372ebe0e74c6253fddaa6014f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BackendTypes.scala": {
+    "bytes": 2534,
+    "sha256": "418f39616f8e161caabb44cdf344e5f8f2577c5fac32f2b42e9948b99de5d30a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BalancedBranchCompare.scala": {
+    "bytes": 1159,
+    "sha256": "55cfccbe14dd2c8b0749c4ab93101bbe4b56138f3485f9eec05e1d6675898f6c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BankedIssuePayload.scala": {
+    "bytes": 4390,
+    "sha256": "94e433d7c71f6d7f4dc78ea664c789ab30ad24b661a8409b3cd7ab5747b33a86",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BankedOneHotRead.scala": {
+    "bytes": 866,
+    "sha256": "3eb6183a729d70438208b34e052cc56e9ad41f48e4923b0e48e1ce430f18cd6a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BankedRobPayload.scala": {
+    "bytes": 1690,
+    "sha256": "d51313a07857e39e7b09e84edfaa7267352cc809042113517777b8577771e574",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BoardSocTop.scala": {
+    "bytes": 42120,
+    "sha256": "8be13c1eff697de290b8204cbb804be090be72192b4ce096636a2cf8c4c6ca41",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BranchPredictor.scala": {
+    "bytes": 3159,
+    "sha256": "a4dad1e82fd0158b3c05f00c8615753099ba0ac14af80a1b74b247ae89992964",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/BranchUnit.scala": {
+    "bytes": 2417,
+    "sha256": "317ef0698d9d5953a4bd6d10d9607c32d306fcbfa35f70281e60be498689c3c4",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CacheTagConfig.scala": {
+    "bytes": 1930,
+    "sha256": "c95465356aac43f52772cbc4cf5a195a4e423c0c68342787148dbd09e35188ab",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CachedDataMemory.scala": {
+    "bytes": 2765,
+    "sha256": "ccff0ae3970e8da2fbcfdda55c8d0a6c8d158df38ce7dae7fe4d8ad62d650694",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CanonicalVirtualStore.scala": {
+    "bytes": 7910,
+    "sha256": "5a867dad37e64a77a2feab6db8e76954908d03ffe3fdfc5cd2967e6a47c83488",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CheckedStorePrefetchObservation.scala": {
+    "bytes": 4293,
+    "sha256": "5e9d7e404194caba931a60fc40c6101046b4d345f01ae94a0455a357c86a6a49",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CircularIssueSelector.scala": {
+    "bytes": 3960,
+    "sha256": "59498679ce21c9baed0a8dcfca6bfc5e9c31914d25254da5952b79f14f08ea47",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CoherentCacheConcurrency.scala": {
+    "bytes": 11009,
+    "sha256": "2e66ea6c0f94d2e6a2f138439882e5a8af99fd7232fce309248c5670bb8e8ba6",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CoherentHomeUlBoundary.scala": {
+    "bytes": 1331,
+    "sha256": "4031698f8d89e72041bc91d8edfd87853e3520afcf3b4835598ea0979bd1747b",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CoherentLineCache.scala": {
+    "bytes": 18832,
+    "sha256": "78257025b837e6064239b292adcfbf67393c7dbfcd660a262d046a206051d90f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CoherentLineHome.scala": {
+    "bytes": 23475,
+    "sha256": "78b3bbb43e6915152d58f8a3e6880d896665ea6bfafdac20c4d40f76b98bf446",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CoherentWriteDispatch.scala": {
+    "bytes": 1498,
+    "sha256": "2f7ad2df46c38b69ae80eb5d81651f845e14ffc25e623314f7af7aef95db18ea",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CommitPredictionTraining.scala": {
+    "bytes": 2698,
+    "sha256": "3afa687a512e9b241076fb411240435843be32db52ec7ac7ad9fad89e61b07db",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CompactFetchCacheKeys.scala": {
+    "bytes": 2179,
+    "sha256": "b72d36d27b7dc15b083d21c95a8b516db1fe3355a6b0e0d77c74600e8d72260f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CoreRegisterRouter.scala": {
+    "bytes": 2876,
+    "sha256": "f1b60958326ada8ab690e587e95722f2de4f21b7e7541b5e7f329791b18ad84c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/CpuReturnConfig.scala": {
+    "bytes": 3126,
+    "sha256": "c9c38ed150a7bbff55c2d37b9d6ca00b599798dab1d6067f3be2feae4685809f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/DataRequestBuffer.scala": {
+    "bytes": 1813,
+    "sha256": "d24e9f83b62544e3903a291056b32fad1696ecdc8e0c91997e43e2e39ed58a60",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/DataResponseBuffer.scala": {
+    "bytes": 2849,
+    "sha256": "c2e5d41f0ed3797dbdcfe8128a9e7b74dc8b9c56b10937bb8e811083e39f2a06",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/DataTranslationAdapter.scala": {
+    "bytes": 46992,
+    "sha256": "8fec1d0a36a8fcedbafdf79f6a5d48d288ac4a1dfb9135e85a69f9ab32904320",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/DdrBridgeConfig.scala": {
+    "bytes": 3015,
+    "sha256": "e8aab8cac1a8a258f0287072a0b5fba1cd263002f8a97416d2ac712415aa72c0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/DirectPredictionQualification.scala": {
+    "bytes": 1012,
+    "sha256": "93786bc4b993dfcc4512b99035e3c014c7b1b643bce123db2ecb3f26514565ee",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/DmaRegisterDataAdapter.scala": {
+    "bytes": 1632,
+    "sha256": "78c6a704f7c4898a9e00e726500e5c37a36f225c6af549ef608720e51cc4b906",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/EarlyRedirectCapture.scala": {
+    "bytes": 1699,
+    "sha256": "781f1d15ca75110e1085445c08b27ad3a89430cdcac18c6267c98c2967462595",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/EthernetSocTop.scala": {
+    "bytes": 10751,
+    "sha256": "7ac69efc4e7bf592893b634d1f3c60620fef9a7aac0d9a9a6c85101f2ab32d5e",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FaultAwareRenameCandidates.scala": {
+    "bytes": 8680,
+    "sha256": "59a21c0f9066f1248bf61fa5e4659a3643fb3e1a7cded9d5f541dc2485c3dfe5",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FetchPacketPermission.scala": {
+    "bytes": 2929,
+    "sha256": "f4e15be5cf6326eb0fe06dde149ea93256ab664eb7631b0dae832d3a4cd35981",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FixedApertureRange.scala": {
+    "bytes": 1792,
+    "sha256": "bc01fc50e499ada37f6d9fe599a8308c0fa0b5505fd6460cdd0b24e12f2165bf",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointAdd.scala": {
+    "bytes": 3283,
+    "sha256": "96d3f7459ac27235af75ffb1014a9d35f65cc618dbce3ea81231b5a4d8239501",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointArithmetic.scala": {
+    "bytes": 10121,
+    "sha256": "ea98e24691d508785b4511019fc2098ffbeb7e492dad308a507ffb218bbbd593",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointConfig.scala": {
+    "bytes": 1158,
+    "sha256": "b003786e9d3c639365749b1a47a031b755a1ddee9216a8ea3a25fa3f699fe291",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointDecode.scala": {
+    "bytes": 4166,
+    "sha256": "9a9de63b86c976475c9e2c2a095a599880324548b1e1c17fdf69fd8ed11b3453",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointExecute.scala": {
+    "bytes": 13697,
+    "sha256": "b1c3cafcd0aab3fa6907d602f924f4e87e9de93c0f84457080820659e9f9e4bd",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointMemoryPipeline.scala": {
+    "bytes": 4215,
+    "sha256": "d9397cd55ce7688577fd4d8fde084dcea38222cb67be7e22675864d1f0f7766d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointRawMultiplyFused.scala": {
+    "bytes": 5890,
+    "sha256": "2ab93043eebdcbc8ca22f7924e2317f44f3b89e10227af81e06577a2369d7bf1",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointResourceConfig.scala": {
+    "bytes": 1192,
+    "sha256": "1c34968745a944c7c58c9e94d411fa0d1bebe1442fab5ef7ab385c29a5364150",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointSharedArithmetic.scala": {
+    "bytes": 10351,
+    "sha256": "48122ac295b17e327235218670676a1b6e5cc4651d9f0d250f2ac9195bea020f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointState.scala": {
+    "bytes": 10210,
+    "sha256": "f69ade1c7df4f8abc843ba23d1a4b62260482c77ea6f339f2ddeb988cae4b366",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointSystem.scala": {
+    "bytes": 5547,
+    "sha256": "6f5d5746ce811dd0c40407c004936f0f1a013b52ddb7536d1c2a070eba9bab20",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FloatingPointToIntegerShared.scala": {
+    "bytes": 1761,
+    "sha256": "441f9b3c78dde9cc506bcb2d0dcf9aed0348098edcf1c0bce341d943a51ec57d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FpgaIntegerCore.scala": {
+    "bytes": 3095,
+    "sha256": "f60790cab93103cef3ed2635957cbafd8c4d624a2f51e316f5c91319abf9d98a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FpgaNextConfig.scala": {
+    "bytes": 46499,
+    "sha256": "54897badda8b43af0fbdbc2e6286465e0b1cdcf6c0578816a2296fd208fb90d5",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FpgaNextSocTop.scala": {
+    "bytes": 4311,
+    "sha256": "70ec83c01810f0b8cd4eb18ef6d2f8eb6e6697b9c14c99103f1e3c64e32e3320",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FpgaStorageConfig.scala": {
+    "bytes": 2751,
+    "sha256": "46e94035d688818f6edeb6217e061d761bad2844faa23cb2c383f2961bcbb067",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/FrontendControlDecode.scala": {
+    "bytes": 1806,
+    "sha256": "e0ad1a8c64505a8ce54d32a30c78e95ee2337f446c94b58d564f54efcd7e9b95",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/HeadDrainClass.scala": {
+    "bytes": 1541,
+    "sha256": "c2a55d971503193cf1765ab740b1b33e0e71afc23e8555ef8ab69a985fce6286",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/InstructionLineCache.scala": {
+    "bytes": 22780,
+    "sha256": "a3129848d336fab4b11625c1c896b5e617f02b7570dca0784bae11f990cd77c1",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/InstructionRequestBuffer.scala": {
+    "bytes": 3292,
+    "sha256": "94c428e6e78bad7a0dcd71a2c7f5e1d1a2b7fd9c889298a983557ec4d3674844",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/InstructionRom.scala": {
+    "bytes": 40282,
+    "sha256": "a4c43c731f6493129072f438d746c6512a0e8d1f2b101c6d170f6af9d8c5a266",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/InstructionTileLinkBridge.scala": {
+    "bytes": 12919,
+    "sha256": "5236597109a9209613fbccdf2a1269719bb239ec63cd8a3bada3cf20733270f5",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/InstructionTranslationAdapter.scala": {
+    "bytes": 24112,
+    "sha256": "a673af084bb4a6eca4dfe3db66b54ca6985c491f77bb502c789ae369414671bb",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IntegerAlu.scala": {
+    "bytes": 5387,
+    "sha256": "fb036e8f22b8c20c1a27f88996a43cb2f633613437e252d5cef8651b78c200d3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IntegerBackend.scala": {
+    "bytes": 209285,
+    "sha256": "9b58fc3a1940796456b30e807d01d2803e609eff568dc7ee18acb643f0b148c7",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IntegerBitDecode.scala": {
+    "bytes": 9966,
+    "sha256": "ba9de721cea66099cf95324707acfc8bf5c36b79e8ac6fc18fe56b042bf7aba7",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IntegerBitManip.scala": {
+    "bytes": 8596,
+    "sha256": "e70d2e0d630750ac526a6567dd52003f49c8e90ad17998ee2a42a3fa1da556ac",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IntegerCore.scala": {
+    "bytes": 31605,
+    "sha256": "a91ddc9bd7d2150cd4680905dc2b438f4005fd5d1c41a13357e8356b2434d598",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IntegerDecode.scala": {
+    "bytes": 9524,
+    "sha256": "9fc8c6a99588a36d7b068380955cb439a0f225a6c96384366ada7f01680b2f1e",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IssueExecuteStage.scala": {
+    "bytes": 1649,
+    "sha256": "deca4214838b89574dcb22ccabfec5e11bb7667f51d5e419dcab0ebd1606a7e9",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IssueOperandReadiness.scala": {
+    "bytes": 591,
+    "sha256": "a3885c48f471811088f25c5d2a1cbb7df38b219d661c04bb09e44207a3ac191c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/IssuePhysicalOperands.scala": {
+    "bytes": 3345,
+    "sha256": "572bafdda8669569708926c14eecb826067352a80d9e7bb38b848b943ee20a53",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/LoadReplaySelector.scala": {
+    "bytes": 1940,
+    "sha256": "1f167b72c33dbeb5dc0a009309eca2e3c30de9f755f0fd6a7471f5e8a875e8b9",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/LoadStoreUnit.scala": {
+    "bytes": 20646,
+    "sha256": "f8e8b48b6d44e44e558edc9bcc8a714090f7a62b9d3381937f6a9b158f066d62",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MachineCore.scala": {
+    "bytes": 7176,
+    "sha256": "03f1056196324363c68f462692de5dc630f3d8a302fc76d2ccdff8df89ddf45d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MachinePlatform.scala": {
+    "bytes": 58341,
+    "sha256": "a3fb43cf4c03016fbf5bbcb449cddc0fe17f0ad677b81e85f18c34fb6e2bedf0",
+    "category": "main-production",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/main/scala/core/ooo/MachineSystemUnit.scala": {
+    "bytes": 30669,
+    "sha256": "b016cb74d8b0251d59928aeb16ff7301a241b9d165ad83ca17849028ef5c79fd",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MappedMachineCore.scala": {
+    "bytes": 14638,
+    "sha256": "7617d05a33ab5789420aa5edb0600db04dc61b182e50cca974aaf08df5ca014e",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MemoryPreparationDescriptor.scala": {
+    "bytes": 3853,
+    "sha256": "6ed1f1c1dfae17bb365dc40b0ac5f111750d5e8513b2e79b26ee7202aa4f5489",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MemoryPreparationLocality.scala": {
+    "bytes": 571,
+    "sha256": "7857a0b231545820e584e8b5997ec383ae012ebec9bb5f9cdb1a883d50800066",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MemoryPreparationSelector.scala": {
+    "bytes": 2646,
+    "sha256": "984f3d61e4cf6037aaffe2a493d10e7b096cf37977e437841ffb52dab7f2d623",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MemoryProofFrontier.scala": {
+    "bytes": 18110,
+    "sha256": "a64f2439d6b94e5114114ebb13708bfbac0179169ee638966f667d596934cd20",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MixedCoherentLineHome.scala": {
+    "bytes": 48702,
+    "sha256": "5a984e1f148b4c1c8b8245e62e2b1e65833213003b9b8e4a7b326d4482bd0304",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MixedMemoryConfig.scala": {
+    "bytes": 3157,
+    "sha256": "57b7aa84616fdeab539a352e974834b546b23e1e537e1b13ef4c1bed98636b6f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/MultiplyDivide.scala": {
+    "bytes": 5786,
+    "sha256": "b714e778a8bf3f97a90f2b87068d72f15501426a9b8b1cee2a45c8d07f521bd7",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/NearbyWordRelations.scala": {
+    "bytes": 2333,
+    "sha256": "4b797ad684d426efe718b270c88996a055dc4fc1ce34f9ccdb6068ac44f71a27",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/NextLineAuthorization.scala": {
+    "bytes": 3050,
+    "sha256": "61ea79868fc3db6a49beacb70765e626e24ca370f89b83b47e5fa2cdf4c5d7c2",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/NonBlockingCoherentLineCache.scala": {
+    "bytes": 111348,
+    "sha256": "9232f8f745f35c7e51113884fb646fdaec52ba41d37e481a3559d05978315b97",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/NonBlockingCoherentLineHome.scala": {
+    "bytes": 22080,
+    "sha256": "ae67ebcfcf4bcf2dc3490bb523d4fc3ec05ba675d6213e3142bc06757ce889bf",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/OooParams.scala": {
+    "bytes": 40542,
+    "sha256": "ab9882cc1088725d9b9da18b7821a99b84281a7060c571f3af458c28703e91dc",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/OrderedAxi4Bridge.scala": {
+    "bytes": 4987,
+    "sha256": "3886c005c5a2424689db3dba04c39da7c8cafe3899d71996eb6f18de67b2a84d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/OrderedTileLinkBridge.scala": {
+    "bytes": 9535,
+    "sha256": "13ea1f22e0a1ab83fb16ec6c25045bc271461b31516df1d194ae9b49b483ddbe",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/OwnerBankedFetchHints.scala": {
+    "bytes": 2659,
+    "sha256": "e48e73532f2bfc21c2b26446a86f51c09f2eb1b9efef09965d0cf5de0bf890d3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/OwnerBankedPhysicalRegisterFile.scala": {
+    "bytes": 2868,
+    "sha256": "6176544eb3a02407890bf2df377c678ff93842601bbbc00d34bf901f6860d9af",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/OwnerOperandReady.scala": {
+    "bytes": 6233,
+    "sha256": "b2a9530d799b5804663119edde35107548c04385c6732dcfa761cfb75903b6fb",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PacketFetchPmp.scala": {
+    "bytes": 8407,
+    "sha256": "ece603b5a0040275043578752d1c3e63df9dd763a7bde0a058fc19189e7ba9b4",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelBitLegality.scala": {
+    "bytes": 1592,
+    "sha256": "f4f25d720a60426885925f3fc2d62b86b828e466475738f7128493982235a420",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelCompletionPayload.scala": {
+    "bytes": 1287,
+    "sha256": "37bf469e46995cfe52f38b8f3ec2b2f820c0fcdb2a1b600b71798702999948c6",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelFetchAlignment.scala": {
+    "bytes": 2759,
+    "sha256": "1fe1b528ade066fc2e6c7b00d19a994185fb45e1b659e0c877013b7b7d909000",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelFetchTagLookup.scala": {
+    "bytes": 1704,
+    "sha256": "4e17589b8cb5e0a0a11643738fbae5a2644fb4d213f762757beaa21dea268e36",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelHomeQualification.scala": {
+    "bytes": 1840,
+    "sha256": "be4b5b1f29988c19521acdadcd957ec08c5b80a73eeee2d971b68dfc56005fb6",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelIntegerLegality.scala": {
+    "bytes": 2350,
+    "sha256": "71a034aa8587d05356837c0140fc7e9c3d961b2bd59d7ab53d1b50e0287d749f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelLoadStoreUnit.scala": {
+    "bytes": 23130,
+    "sha256": "fb291d44076c0d220d5212d97c10666a3d24ddc3a9bca5b6d7adc7b1a0d8121a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelMinMaxResult.scala": {
+    "bytes": 1312,
+    "sha256": "ee33535ca901da920c5469d0ad2d91b04a982f952cf16663b2872d74e3d0feb0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelRecoveryAdmission.scala": {
+    "bytes": 3881,
+    "sha256": "665cac2b73bee4e66c64b7a9a5aeaaf172e7a93ec27c3390286f7635e591961e",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ParallelRegisterRouter.scala": {
+    "bytes": 6771,
+    "sha256": "930828ec64c2fff269e55931f610287334641713954c2ff1dbc40c3d7d4073a8",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PendingStoreProofRobMapping.scala": {
+    "bytes": 3573,
+    "sha256": "b158ff5954d610cffbf30b20c717d868335b347baad3c6856b721f7f6ee40d60",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PendingVirtualStoreProof.scala": {
+    "bytes": 23258,
+    "sha256": "a6c7a6696b7ac6d0987e71eec61ea793e40d9f0b974affdfa0b30873f55b4634",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PhysicalMemoryProtection.scala": {
+    "bytes": 10032,
+    "sha256": "e1a82cb472fbc5d23b76e806a1e63974bd45660a0f096a62850ddb361563ffcf",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PhysicalReadyUpdate.scala": {
+    "bytes": 1130,
+    "sha256": "a159ba0284e3c0e94998c3eb335cc880906fb88ec7ac6bf4c724c23cc1e37cd1",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PipelinedMultiply.scala": {
+    "bytes": 7566,
+    "sha256": "39c175f7a7609fe730afa647dd17508fdd4b7e94e7265b5167ad83cf51890a1b",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PostedStoreCachePort.scala": {
+    "bytes": 2370,
+    "sha256": "6eeb81e537323bc6c91a1e2a858b1b897dfce3801be8b9d23fc323c8f7c65128",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PostedStoreCpu.scala": {
+    "bytes": 2222,
+    "sha256": "c04aa1730dac94c3ed900f80795a26827c73c565dad07cde121ff39b98d7cceb",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PostedStoreMerge.scala": {
+    "bytes": 22509,
+    "sha256": "73ac04230dfc09fa7f6c091f86b4b0e6b6cecfefb597555d5b23f66a628b10cd",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PostedStoreProof.scala": {
+    "bytes": 6078,
+    "sha256": "1e29f994f77cc13c754b7bedf7b136595cbe94144ad585dab58b2aef1f93e5fb",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PostedYoungerLoadSeal.scala": {
+    "bytes": 1385,
+    "sha256": "59f95a08ba98ef0a96e057dd0efd4993a8ae34b94fdb3099c8d392ebd0ec0dfe",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PredictionSourceQualification.scala": {
+    "bytes": 984,
+    "sha256": "9ae9f3439a94e393ac0f2ac07ed66dc66818696f76b355b3aa732aae7ca80a7d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PreparedStorePool.scala": {
+    "bytes": 565,
+    "sha256": "c42ddc653d08adcd1cb6d96b890d9752e8bd9b0c1cb8ec0a94fad9c3116f0790",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/PreselectedRedirectTokenQualification.scala": {
+    "bytes": 1298,
+    "sha256": "06cbc07b3142ef8170d21b7b4cc33d94fa53a472fdf93df3f2335e8764e6ebf2",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/QueuedPhysicalSourceDecode.scala": {
+    "bytes": 1064,
+    "sha256": "528fb94dab9129572d2eb9d564a1d4957a92f77cf341a321d6a73fd8b23c8a27",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RedirectTokenQualification.scala": {
+    "bytes": 943,
+    "sha256": "21a6cf44a7d7b0f6953c700aa914320cdaca338f96216aa835933ad9396c3cd9",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RegisteredFetchPacket.scala": {
+    "bytes": 26969,
+    "sha256": "603d2d9e3f7c0babc6b524e2a3a77e41ea87ac7592847146f4facb1f09360a27",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RegisteredFetchWindow.scala": {
+    "bytes": 6073,
+    "sha256": "cfe4ceb7ba210ae0a4ed663ac5720f8b8bbb0f3c909f777a21fb419eae8eda35",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RegisteredRequestQueue.scala": {
+    "bytes": 4072,
+    "sha256": "f1c1cdfe3b778c1fa60c3e3e5038967941daf3ed45cb42ed5506331cb244098c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RegisteredRobHeadMask.scala": {
+    "bytes": 1252,
+    "sha256": "34098dc7d4c42ca936b8e6a1ee86c65443e4e9ff312a500ad2ab9e184d286921",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RenameAllocationCapacity.scala": {
+    "bytes": 1608,
+    "sha256": "104eb314acafd1e7af6f62f073186b85ce19f5ec969ee06bdee1f74c428fc6ba",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RenameDestinationCandidates.scala": {
+    "bytes": 2147,
+    "sha256": "ec5fc55d9e8e861e021386d72a878c49d3dea42dead23b212341b859660d5c0a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RenameRob.scala": {
+    "bytes": 35683,
+    "sha256": "646e9ef51f8268f2fa52a513e299800992b19d25b92d435fddb3a5812dc857b6",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/ResidentMemoryPreparationSelector.scala": {
+    "bytes": 4927,
+    "sha256": "18e3c0c6991de0878de89013d2640b42ac406fab250b59df5ce7630ed6a0fb91",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/RetirementReturnStack.scala": {
+    "bytes": 5023,
+    "sha256": "774d4cdaa45c232df8032a74bfc34434cf51e7d4128723a602dea8552f3179aa",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/SharedDataArbiter.scala": {
+    "bytes": 2313,
+    "sha256": "5339fedd4dbb384ac500d40eea41f4f669b2a907383f53ab1b3c267dbfe2a9df",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/SpeculativeRamRange.scala": {
+    "bytes": 2054,
+    "sha256": "6efde680774e6de7b2d59423e8b02090ac7a96cda0195a95ba7d28ae8b0ad419",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/SplitMulDivSelector.scala": {
+    "bytes": 2077,
+    "sha256": "ccada5c1f74043a892db22835ec51e717efdad9e67df785a7acc7fe111828a4f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/StoreBuffer.scala": {
+    "bytes": 18677,
+    "sha256": "897659a070a0b50d22dbdddab05627f85c07f31f6645ce4a3ae5c5a32fb6b9f0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/StorePrefetchHistory.scala": {
+    "bytes": 1280,
+    "sha256": "c8123ff767f0d29675fe74050262cdb2975b99b0a6cafdfac12520ff25443d34",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/StorePreparationEligibility.scala": {
+    "bytes": 1786,
+    "sha256": "ac1c0e726da7849c98a53e02f98d9d5ca97cacaf8ac5a117c0cf93c3cbb80262",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/SvPageTableWalker.scala": {
+    "bytes": 7404,
+    "sha256": "6fc5f0d02bc513a7e7df3fce695015623cd79cf3f01ed34798908b271245189b",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/SvTranslationService.scala": {
+    "bytes": 12399,
+    "sha256": "e96f82a4daf20a3000a7e17bf1120aa118ec73717a788d41a58326310b8d3b49",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/SynchronousDataRam.scala": {
+    "bytes": 6308,
+    "sha256": "f2f41dc253ae5979dafda02f1d1c98109bdaad975be7cc49b44f62990d685dd3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/TileLinkAxi4Bridge.scala": {
+    "bytes": 4424,
+    "sha256": "c6b5c2224d082e2af59dccd0f09dfb0241f7229e76370813f3d39343aef6a22b",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/TileLinkAxi4BurstBridge.scala": {
+    "bytes": 16909,
+    "sha256": "9b01304c9770a01cf862db20f6b862e1032728c54aa7b53c244904b870462d98",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/TileLinkAxi4OutstandingBridge.scala": {
+    "bytes": 20288,
+    "sha256": "bf4176fe6d026f0c34c537f6d512f480843a5066b6529035a7665f1f7827b4a3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/TileLinkDataRamAdapter.scala": {
+    "bytes": 10978,
+    "sha256": "5b0dff17e132561e2e5a53a4261869e49220cf1cb40bd35a6705e7d4f8159f23",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/TileLinkTransferBeatCount.scala": {
+    "bytes": 667,
+    "sha256": "2664995b14ad1db34cf3b62c8fadb99d69d221f21e5703d37bd2be7b4c5f43be",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/TimingArithmetic.scala": {
+    "bytes": 3797,
+    "sha256": "764922930c470759a6d07054a0db6a6e845e184d9fd135b6b73fe43f72efd694",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/VirtualRamLoadPrecheck.scala": {
+    "bytes": 4691,
+    "sha256": "0c4011ff844a57bd6748f2cf842e60191b5fb641391937491ef6176ed94799da",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/VivadoMemories.scala": {
+    "bytes": 2406,
+    "sha256": "b65743a84f77b22fb9eb6964c1822e7a71ad23f47d2e6735388c447560e100f8",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/WideInstructionAdapter.scala": {
+    "bytes": 2612,
+    "sha256": "b83fd725e74480fbd6882c38edd4328f678e00ee9c9b726071c4c2e8d7b8d21d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/WiredMachineCore.scala": {
+    "bytes": 3146,
+    "sha256": "fdc9b6bf66e508f47910123db7cc05a4a3953a15a26929b22d64eb5236d91a37",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/core/ooo/WriterBankedRobCompletionPayload.scala": {
+    "bytes": 3019,
+    "sha256": "d4fdcd25c2d1ba6148a96d2e0dd038ebe06dfcafac83404e5965ba97d5edfa2e",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/axi/Axi4MemoryPort.scala": {
+    "bytes": 1342,
+    "sha256": "1dd55eeedb66ec31e6606ae54ce4a6d097a7afe5684e78226a71af4ac6b92159",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/axi/RegisterAxiLite.scala": {
+    "bytes": 3688,
+    "sha256": "64f8e4ca815e4962c508fbd674b4a6ca39b5e19050f56afa1e9257cdb98a1333",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/CdcDataChannels.scala": {
+    "bytes": 8996,
+    "sha256": "9a59fb681537913cf2787a8b0335565d974991a93467e6140a19f4178695c5bd",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/ClockDomainCrossing.scala": {
+    "bytes": 8685,
+    "sha256": "1f4bc2b23bb7bd2111be268ba89c1bf80c4c87e92c3f05724c3669e3279908a2",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/MirroredHeadQueue.scala": {
+    "bytes": 3236,
+    "sha256": "ae34369c8bb5f761036cfcb5e2f72d9f56c3bec7050a4c5a89069e402168e894",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/PeripheralClockControl.scala": {
+    "bytes": 4546,
+    "sha256": "a9dfb0654334bd85685cfad89e43776ad3d00d96aa77ade4c47956ddecb1a02d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/RegisterArbiter.scala": {
+    "bytes": 1854,
+    "sha256": "e7d3aa201c951db38de7c518197e3f296144d0bf524bf0e0f1b65379e8528287",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/RegisterPort.scala": {
+    "bytes": 949,
+    "sha256": "02b1aa841ad461ddc9eba87a2f31b32f6d05e49541be33ac64ccbfc2f3013733",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/ResetHold.scala": {
+    "bytes": 660,
+    "sha256": "2569133a0d4b896c20352a9e0af192545833088518dc9f72be18f944ae72c25f",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/TwoEntryRegisterQueue.scala": {
+    "bytes": 1251,
+    "sha256": "ddfbecffccf989087ea81bbfbaa7e053c6be9e99688eec225f74cbb978d87af2",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/bus/TwoMasterRegisterArbiter.scala": {
+    "bytes": 1568,
+    "sha256": "a9fd05ae05c6284c399b09f09ebaa3312e321954fc4daea04e057fc8a877354d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/clock/ClockManagementUnit.scala": {
+    "bytes": 10121,
+    "sha256": "2a66be20f38567e9488f897916914f46946f4139bfeeed94ba16d1757f6d41d0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/clock/FpgaClockResources.scala": {
+    "bytes": 3439,
+    "sha256": "ec47299e2e005ea42d9131cfc6057ac5014edad4e9c738e11601d6c58ba793f8",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/clock/ManagedPeripheralBank.scala": {
+    "bytes": 6130,
+    "sha256": "72baf3c5611e81ba63f7d206804a53dc572ba2a80ba0845984bf2f1bb0322b72",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/clock/ManagedPeripheralSupport.scala": {
+    "bytes": 6695,
+    "sha256": "29e273774d99ec80ad4c9c6f173101b373d762b17b943fd7cffffeb34e67cf41",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/clock/TileLinkClockManagement.scala": {
+    "bytes": 3448,
+    "sha256": "d63be2194a12a31cb8fd91c0d84f20aad57e0567a3972ac698821135383e4ac0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/debug/BscanRamTransport.scala": {
+    "bytes": 1224,
+    "sha256": "9e5739736265ea2c4a80343918554efefa7cd9e45b41e31b69a54a1385a224cd",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/debug/HartDebugContract.scala": {
+    "bytes": 5108,
+    "sha256": "fc6ecb11bf3d494f55949f0f12f317129508db532cf9faf99256731ed2bb668b",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/debug/JtagDebugReservation.scala": {
+    "bytes": 5460,
+    "sha256": "445a8c1f2305f515a696d13c95369c227a1bedccc710949b699b8637dddfe98a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/debug/JtagRamLoader.scala": {
+    "bytes": 11303,
+    "sha256": "d698ba1db6f636fb8356671ed327c75cf279cbe38bc094bdc01b3fa69f50df85",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/dma/DmaLineArbiter.scala": {
+    "bytes": 6997,
+    "sha256": "8e450592f0d0d5f0bcf2f6a90a0c4f8514501da9b7c778d94b87fba32b398b24",
+    "category": "main-production",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/main/scala/ip/dma/DmaLinePort.scala": {
+    "bytes": 1052,
+    "sha256": "e05abab97a79e9b5fac82d0a7dc28c9edefffcec0e31f68a3846a76efd2e419d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/dma/EthernetPacketDma.scala": {
+    "bytes": 35428,
+    "sha256": "903649db3d3b3d4718c1f270defbb57e32e63226fab14d900d11032c2178f5be",
+    "category": "main-production",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/main/scala/ip/dma/EthernetTxDescriptorQueue.scala": {
+    "bytes": 6167,
+    "sha256": "d012a4e9c4c90ee5f82bb9342e54ed4b1e00c67e9f562073f42a53eaee595c17",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/dma/MemoryCopyDma.scala": {
+    "bytes": 13937,
+    "sha256": "7a8bf2f27a9f959d927b19c7f695632792b3133c9f91460fd3b55fde38378c36",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/dma/NetworkDmaConfig.scala": {
+    "bytes": 3018,
+    "sha256": "1bace2528815cdfaca274aa729d30a2f04f9a6d6eec25e58c81feaa86e9acd9a",
+    "category": "main-production",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetClockCrossing.scala": {
+    "bytes": 2607,
+    "sha256": "525286500cd18f7002be28b27ad9ef2f9ae0ff7d9db1aa97658f6c2bcd5a06d0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetCrc32.scala": {
+    "bytes": 1946,
+    "sha256": "eaeecaa745bd753973c7b5a8018d3c3d581ccd385293c03f1683901ba3182a84",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetDmaFrameAdapter.scala": {
+    "bytes": 4173,
+    "sha256": "6a6027b75efe2d9c1bdef73975cf1a166e5e8bdce15fb9c64c45026746cb134c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetMediaTransition.scala": {
+    "bytes": 8040,
+    "sha256": "9a2545be6b519ba42997ecf704b224e2672d9599944c10dc0863dfce1bd97be3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetPhysicalIngress.scala": {
+    "bytes": 10034,
+    "sha256": "0b0cd4f391f1cd5a8506aa6d58b92990c96e0d4a75066c4d30177e9330659da1",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetPort.scala": {
+    "bytes": 4816,
+    "sha256": "99afa6742bfc409b1f55729f539928782c512c806c8913aed832b6eb7979007d",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/EthernetRxAdmissionStop.scala": {
+    "bytes": 2700,
+    "sha256": "2720bddeba49f266320f53c6c2805471d538447c093131676918a355abc0cf84",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/GmiiFrameRx.scala": {
+    "bytes": 10396,
+    "sha256": "33845185419e8fd45be39a112f0e6e2ea90f8abb5ea530e63648987b766c4ef1",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/GmiiFrameTx.scala": {
+    "bytes": 6606,
+    "sha256": "daecef74c480de35479cbf25491e53edb03d4aa7d180e553298c4eba5fd897e2",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/MacRawHandoff.scala": {
+    "bytes": 1863,
+    "sha256": "e557103067193c1282cb76ba49cab46497ab9bf862b0294bb55b10b6f4e5df3c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/ManagedGmac.scala": {
+    "bytes": 13823,
+    "sha256": "ce10265d4d4901d3570113e9de61c156c81bbe05e57cbe45cde23c975a055bd9",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/MdioClause22.scala": {
+    "bytes": 3159,
+    "sha256": "40294abe46e7c2b5669448045c70a3710621918831626f5574e7af592125dc3c",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/QueuedGmiiFrameTx.scala": {
+    "bytes": 7581,
+    "sha256": "af7a3952a849bfb2b4c5bd2cdb8502317d55a00c4961b9344c0996889d3f23e4",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/Rtl8211fPhyManager.scala": {
+    "bytes": 11968,
+    "sha256": "d31e6968130b8a668a88883b25625d9574e644ec89b89ce7808ebba8c3deffdf",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/TileLinkGmacControl.scala": {
+    "bytes": 10771,
+    "sha256": "39514d69b3a22026ee73e60beaf56be50b42ef07810348fdc4b7f8a3a47a535a",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/TriSpeedManagedGmac.scala": {
+    "bytes": 22638,
+    "sha256": "7eb389466b29d6b12fb1b8a7f7848c3acb73eab78512af5e08f004905c5650b8",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/ethernet/TriSpeedRgmii.scala": {
+    "bytes": 6943,
+    "sha256": "d90e9efa83a75eab750d7fb47a0b3331db676b2d181353c190eadb6abc8f04b0",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/interrupt/Aplic.scala": {
+    "bytes": 8399,
+    "sha256": "201d8ca1e73fc176ef50fea2b60d51f785430c8b14bdce0885340909ebecd786",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/interrupt/Imsic.scala": {
+    "bytes": 6898,
+    "sha256": "a99baf75e7cc7b98f6901fa7af567e582d138fad1f7042748f5697bc184e5c89",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/memory/AtomicMemory.scala": {
+    "bytes": 13438,
+    "sha256": "552d5b795a4dee18cdfc891a397464fe97d17f6b144de50e996ca0a6b6cc1993",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/memory/SharedReadCache.scala": {
+    "bytes": 9282,
+    "sha256": "dce6366c92222d2d081e75ff91eabb32540abcb1e4866eef12cc05de68901035",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/periph/I2C.scala": {
+    "bytes": 695,
+    "sha256": "d97009d36b0372106b643fa57e519c6e7037adf0455da2aeb1f1def23a546c55",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/LineGrant.scala": {
+    "bytes": 563,
+    "sha256": "77d023d9fbbd1c1813a3248fa84d7745950371985dd318681e535cabdb20be46",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/LineReadMemoryPort.scala": {
+    "bytes": 604,
+    "sha256": "806546ea9556ca08f3f7ba9b56f92b3d2bfa73b532feb4fc4fde21b6a8ab34a3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/RegisteredTileLinkBoundary.scala": {
+    "bytes": 1263,
+    "sha256": "f4e1e0ba0dce35fc2155ad8d06d78e9ac7efe0440bb7cc7a37f0648ea5baa2a4",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TileLinkLineAcquireEngine.scala": {
+    "bytes": 9831,
+    "sha256": "c7e9d1bcd75b75f440ec2197d6a51a4e72a2469047dedcb46da938f6b4f84e63",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TileLinkLineFillEngine.scala": {
+    "bytes": 5747,
+    "sha256": "fe5e0d495287e52794797dfd38079373cbf104c89e29d208ecf4320253dabcf5",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TileLinkLineProbeEngine.scala": {
+    "bytes": 6178,
+    "sha256": "adafc67b001e1fc75734722002fe7351075161e954bf37eeeba57f38194895b4",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TileLinkLineTransfer.scala": {
+    "bytes": 3226,
+    "sha256": "f410aaddd6f35343f0bcf7e06db4fee8ef6755c16db70549383345e5d000887e",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TileLinkLineWriteEngine.scala": {
+    "bytes": 7590,
+    "sha256": "30e180659c14650b2cc4291b0cb2c3ee26265017ca6fcc6995b72ec92f8a1212",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TwoBankAddressDecoder.scala": {
+    "bytes": 1750,
+    "sha256": "d0c3f863ac773e5b1d76c0ece2acee98827e25516ee18a57488ec9696d599a15",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TwoBankTileLinkRouter.scala": {
+    "bytes": 8328,
+    "sha256": "9c1fc440b1ca79ea9fcdfcffbb67a2ad7e167136cd7e6c2c0b27d12eb1ded066",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TwoMasterTileLinkArbiter.scala": {
+    "bytes": 7555,
+    "sha256": "56eda7563090737695b2027741c042888532defc9498ee21a7f7fdffb75d0c10",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/tilelink/TwoMasterTwoBankTileLinkCrossbar.scala": {
+    "bytes": 1437,
+    "sha256": "c5d43c12d1e8fe806ee1bfb67304b24c214bf2ef805dde3dcb8a709059fd7771",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/timer/MachineTimer.scala": {
+    "bytes": 2098,
+    "sha256": "21b384f45cf8ef5dbb26732b31ecc816676c5998cc10c98d90da885f212b0af2",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/uart/ManagedUart.scala": {
+    "bytes": 4221,
+    "sha256": "e97f89c3bb4eda2a2ad8d1583728af963b30722810d23e980dfbc993d5084dc3",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/ip/uart/UartConsole.scala": {
+    "bytes": 12002,
+    "sha256": "64ad8f9e2fed9c7059e8fa6c23a5b3167b415a3dc4223742f6198baf79bd7feb",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/isa/CSR.scala": {
+    "bytes": 3435,
+    "sha256": "5a5532ee8119c1f76c5400330af93a5234518250c192ba4c51b024f13b4b6c45",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/isa/Compressed.scala": {
+    "bytes": 9702,
+    "sha256": "6bc803cdb4494288e5552e816097ad1246ee02c30a28de09930dc5f18309c822",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/scala/isa/Instruction.scala": {
+    "bytes": 3817,
+    "sha256": "f5825d517527f77e4d7f4ba26a46d868cba7232dc9ffad830607dda0766edf84",
+    "category": "main-production",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/BoardSocGsimMain.scala": {
+    "bytes": 56565,
+    "sha256": "019de48b618b432df13fffe7fc098c00d121b73fc6983517020f019fe5904d0c",
+    "category": "minimal-test-closure",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/test/scala/ooo/CombinedTimingPmpR1Profile.scala": {
+    "bytes": 4755,
+    "sha256": "48e438e5013c6501a80ddf942cc3ce0b62fa49be4797c47aa61ecae7fbaff891",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/CombinedTimingR1Audit.scala": {
+    "bytes": 10745,
+    "sha256": "76d2fe905cadfa37ea9f2ba7bc9cc39f861a1f109a8d47bcab21f9041f89dc87",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/CombinedTimingR1FabricAudit.scala": {
+    "bytes": 58405,
+    "sha256": "e1bb42e3f10ab0546a20ce2abbd9c91d2e6f84a13c37c96cabc3ebe2039473f4",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "isolated-experiment/CombinedTimingRepairR1Audit.scala": {
+    "bytes": 16231,
+    "sha256": "8893a2cdd3b17f61e97395360f2e0b58c93df9a6cccdf29c8ee989ce98823125",
+    "category": "minimal-test-closure",
+    "provenance": "independently-reviewed-R3-isolated-test"
+  },
+  "isolated-experiment/CombinedTimingRepairR1FabricAudit.scala": {
+    "bytes": 62176,
+    "sha256": "1104dc5c95a58d70f2d0d137a1bd915c78aef8566fce4792e27b5636efcbd402",
+    "category": "minimal-test-closure",
+    "provenance": "independently-reviewed-R3-isolated-test"
+  },
+  "historical-repo/src/test/scala/ooo/CombinedTimingRepairR1Profile.scala": {
+    "bytes": 820,
+    "sha256": "cb77460bbba361829919a687b848eba0cba3674cafd80a492f287ba3e1bd852b",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/EagerPrefixActualAudit.scala": {
+    "bytes": 1713,
+    "sha256": "aadc815514e146efd3a8e7bd853af85a39f3336af9c2ef63fc5b771a860f52f4",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/FpgaNextBoardGsimMain.scala": {
+    "bytes": 6475,
+    "sha256": "d5070ef439da012d01c3f02880c84c2d10092d6716e1300f81e9ca7f7a36c382",
+    "category": "minimal-test-closure",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/test/scala/ooo/FutureHomeActualAudit.scala": {
+    "bytes": 1156,
+    "sha256": "3ebc95c6b8ab2c2255d222acf2440678653d7e6e264f7e331e1d0cc3c8085676",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/HeadDrainActualAudit.scala": {
+    "bytes": 2486,
+    "sha256": "a21558f56da48c1e4988e61437e1e15a60919df8721120a633ce0b284492440d",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/HeldAluIntegrationActualAudit.scala": {
+    "bytes": 2282,
+    "sha256": "ff2d53e859c9ae493d849010849b9804729ea489299a482613490e026c565666",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/MatchingFabricAudit.scala": {
+    "bytes": 8013,
+    "sha256": "47e6cea5798a92f37e136d73149d0fe6ea474ecbcc187ab7be88a76296f5c60d",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/MatchingGmacCpu.scala": {
+    "bytes": 10774,
+    "sha256": "d43de9a6d2ef32b9838540a29adc64dff30c5d64f9a1375c2ea832af5e2358cc",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/MatchingManagedBoard.scala": {
+    "bytes": 20001,
+    "sha256": "15a154b2a73076b206c4ca42cc725337a945e954bebc1061bf4a1a5c6984a463",
+    "category": "minimal-test-closure",
+    "provenance": "qualified-Ethernet-delta"
+  },
+  "historical-repo/src/test/scala/ooo/MemoryPreparationLocalityActualAudit.scala": {
+    "bytes": 1937,
+    "sha256": "3db935c2c8dc8c8c30704c16989dfa1b7cb6315e7e0931313b2b0e3d049d1865",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/NearTermAActualAudit.scala": {
+    "bytes": 2114,
+    "sha256": "1f55c8516bb9299e52a3279e49431948660aea4189f233c1122cc5157c66791e",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/OwnerRowActualAudit.scala": {
+    "bytes": 7243,
+    "sha256": "02736ffb407375409e11ef8f82d1e161a6941b049df40a7654ffe6f635b813af",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/PlacedTimingActualAudit.scala": {
+    "bytes": 5917,
+    "sha256": "79ea83afad252c59f94111b1a541113df9ea901ecca9ecb831a9cb0037491f2e",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/PlacedTimingProfileBridge.scala": {
+    "bytes": 14505,
+    "sha256": "da225c7c218c4b31f4b0d6f58524e3d175b5c597fc69a053154bdcf6c51d131e",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/PostedStoreBoardLineageGsim.scala": {
+    "bytes": 13694,
+    "sha256": "959c70cff55eed35f20e10b9856a26603e6b20a0c1b0f646596247b5fe4a63c8",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/PostedStoreCpuLineageGsim.scala": {
+    "bytes": 9506,
+    "sha256": "527e7340d79c7385e8ad46081887587da12ff34488cd264e9ae47d0fed9a37cd",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/ProfileAbi77.scala": {
+    "bytes": 13538,
+    "sha256": "8fbafe9daefd4344f3fdcd8cd0647894c51b8c08fee06dd30847b09b907abd7b",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/ResidentMemoryIntegrationActualAudit.scala": {
+    "bytes": 4880,
+    "sha256": "a421d6c527a23dbaea3469dc7805985316f9c46a5302cc9a02256cd216166014",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/RetirementIntentActualAudit.scala": {
+    "bytes": 1640,
+    "sha256": "d347e21f852802d91fdc0c1f7c66d6402cedbe4ace7fee9aa406344ac442638c",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/TaggedBoardTrace.scala": {
+    "bytes": 2459,
+    "sha256": "17243e6d967925fa66e9f259fa726297052b8647fa2113fba4a39e81475c3051",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/TimingBatchActualAudit.scala": {
+    "bytes": 5049,
+    "sha256": "cd11655562e64087b892403798d5d5081468f0a7d2260ae2109f8f877ae550e5",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/TimingClosureActualAudit.scala": {
+    "bytes": 5901,
+    "sha256": "e6c713602641b6f86aaea9ac33b65fa7616925f1c110679631583e66dc4211e9",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/test/scala/ooo/ZeroCycleCleanupActualAudit.scala": {
+    "bytes": 5041,
+    "sha256": "8182caf525f49535252ceb5d8c0715a96ee6ba71314df6db43501bd658eceef3",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "isolated-experiment/EthernetEmptyFlow275GsimMain.scala": {
+    "bytes": 4763,
+    "sha256": "64956ba34514fee1a7ac9e24b082a6f38b0fec497995853b24590ed4a3c1a251",
+    "category": "minimal-test-closure",
+    "provenance": "independently-reviewed-R3-isolated-test"
+  },
+  "historical-repo/src/test/scala/ooo/FpgaNextProfileMain.scala": {
+    "bytes": 5313,
+    "sha256": "bd9c9fdcfb5b2bfb390058c9d330e40583f9cd655c5d01a3f81224e1641392a1",
+    "category": "minimal-test-closure",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/resources/debug/ValenceBscanDebugPort.sv": {
+    "bytes": 13955,
+    "sha256": "1bfcbcdc6578d4bbf5e1eb57e0132bcfa53703c8c3003180b0128f2e015db9a3",
+    "category": "main-resource",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/resources/debug/ValenceJtagDebugPort.sv": {
+    "bytes": 14832,
+    "sha256": "b175dfd6bfad17661f33af3218f8783632d85abc2fbef343f491b30369c63aa4",
+    "category": "main-resource",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/src/main/resources/ethernet/ValenceMacRawFallingSample.sv": {
+    "bytes": 441,
+    "sha256": "f761f11da10f19211c6d46863f973560bdc3a0b7e34480fbc7f0bec84beac630",
+    "category": "main-resource",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/docs/recovery/combined-timing-r1/expected-baseline.json": {
+    "bytes": 21455,
+    "sha256": "0c5a85d624ccd148a8ae7a20bf15d46c2c2d699a181f2babbd48bd2749052f5d",
+    "category": "test-audit-input",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/docs/recovery/combined-timing-r1/expected-fabric-baseline.json": {
+    "bytes": 126212,
+    "sha256": "c254581ec7ef48afbbe31a6a9780bd6330fa8c9988e9ce4d78f2b8b5716515ba",
+    "category": "test-audit-input",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/docs/recovery/combined-timing-pmp-r1/expected-full-c1.json": {
+    "bytes": 21453,
+    "sha256": "1c16dd517d2c588cd77d003597bf2b9abf1dfbee4dcb866e036a013ec8be970c",
+    "category": "test-audit-input",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/docs/recovery/combined-timing-pmp-r1/expected-pmp-off-native.json": {
+    "bytes": 22318,
+    "sha256": "aa583f0f06ef18d2af8ef7ae77c523563a8f9ed3e08528c43701c1abedd5931e",
+    "category": "test-audit-input",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/fpga/next/shared-lru76-profile.json": {
+    "bytes": 82649,
+    "sha256": "1a6748ca96aadd0bf77a4484a6eab1e981619414b326b0f0c8826a8059d2b8f5",
+    "category": "test-audit-input",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/build.mill": {
+    "bytes": 2565,
+    "sha256": "a19c3366c3da6020edcf0f1c14437c4d7fb29a2842fb2f8dea68c2c8b8b7593b",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/.mill-version": {
+    "bytes": 6,
+    "sha256": "f2fb797db5b32c15ac4c67b2180b593bf46c768ba1d69971fecbef1d9afb1975",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/.mill-jvm-opts": {
+    "bytes": 29,
+    "sha256": "831f88c764ec55beb7ded7feae36621cd94ef5adff2f10e8abc27070f555ce45",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/.gitmodules": {
+    "bytes": 269,
+    "sha256": "9dd425f061ef8676a87c43567fed53675039786c9358247c23d33b45facc9514",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/README.md": {
+    "bytes": 5059,
+    "sha256": "54ceb70317693c0e4eea1eb3cdcc851a1c14fb3a500c2f4400f9851368f9f379",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/licenses/berkeley-hardfloat.LICENSE": {
+    "bytes": 1403,
+    "sha256": "8e0236c9027ba0a243febb71f0e3dce559b50658f8d14fab31a626c9f214fdf3",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/licenses/berkeley-softfloat.LICENSE": {
+    "bytes": 1738,
+    "sha256": "145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7",
+    "category": "build-or-license",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/patches/0001-unsigned-alignment-distance.patch": {
+    "bytes": 858,
+    "sha256": "1ad6d08a11f2fd86de77acba07436fb6037d6987f0f42271dd4cb4a2ebcb7178",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/patches/verify-alignment.py": {
+    "bytes": 693,
+    "sha256": "ab1d94838545a6d08ec7365ca0be399dafd50b1dc49b18faa8b92ecd166e084b",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/CompareRecFN.scala": {
+    "bytes": 3475,
+    "sha256": "9f7d050ff8e605cbc7575b342eff3c2dd5e8a3aa7b87572aaa5fc58174badeec",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/common.scala": {
+    "bytes": 3925,
+    "sha256": "ea83cdfac50db84f372d624ce4e0d45188207164a6a1eae5d42d8174241925cb",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/INToRecFN.scala": {
+    "bytes": 3416,
+    "sha256": "1ea78cf0b78dd9fb8af5643b601801d2b5e263aaf89beab012a6362c50020c5f",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/rawFloatFromFN.scala": {
+    "bytes": 3037,
+    "sha256": "39fb14ae28318821906f68ad63803ca24eecb1115bf24aa4f3df497392357dce",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/RecFNToIN.scala": {
+    "bytes": 6826,
+    "sha256": "c08160e4a8a23a14ec6d791db2590f7506228be9f74a0f03a2a13edfc162a7e4",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/DivSqrtRecFN_small.scala": {
+    "bytes": 20234,
+    "sha256": "f715cae79b0a58496f717731a27939fb4aa6f8eb70dcf1770af84e6121281a15",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/MulAddRecFN.scala": {
+    "bytes": 15352,
+    "sha256": "b16c030f8545d032b1b58a7cc09c73f3a49404c3367630ee3e88de1a2e880ab6",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/classifyRecFN.scala": {
+    "bytes": 2879,
+    "sha256": "0d7c3b2828d0ad87cc95a7cd0b28c6add9645cdb495756fb611381e88c6bd524",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/primitives.scala": {
+    "bytes": 5105,
+    "sha256": "134cfae67052244a836aebbae3f9252b0e9bf4800ab5cbcba4b92eb1c56e7c31",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/fNFromRecFN.scala": {
+    "bytes": 2853,
+    "sha256": "7a114540c32ef9e43152e37d1610dd5bbb68dba6b3bbd1aa5600fa3bc411fa6d",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/recFNFromFN.scala": {
+    "bytes": 2352,
+    "sha256": "90060c571a38718330f8781ecc4f555096ac45a0c75abb3fe5219e06dacdbd2d",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/AddRecFN.scala": {
+    "bytes": 8997,
+    "sha256": "a0dec1dd3476eb42250529817e8d53b4efe327f08849fe130e475bf4963a779a",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/MulRecFN.scala": {
+    "bytes": 5705,
+    "sha256": "a665f8a23a7f490a7c8d5cce8f96cfb69047106c6d3b8275f44826af95cb1a32",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/resizeRawFloat.scala": {
+    "bytes": 3236,
+    "sha256": "6a12a1d9a7c64c10786d99cb81897f4de6adb6004cf1149eb9fbaf3b70a10655",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/rawFloatFromRecFN.scala": {
+    "bytes": 2877,
+    "sha256": "bf7e4b0e453569c91f6a9d8c414feb3a5fed6dc7354ba31cdc8c7c0f1ffd8317",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/rawFloatFromIN.scala": {
+    "bytes": 2884,
+    "sha256": "b404a8a21aaa09a876c5d92b87c0db85e2946a318a39b33ffb6477933cd257d8",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/RecFNToRecFN.scala": {
+    "bytes": 3957,
+    "sha256": "c3f3c4f8551b20f5bb3d8c9c5dc0563f70077910df2ba8e401a131db903e8dca",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  },
+  "historical-repo/third_party/berkeley-hardfloat/src/main/scala/RoundAnyRawFNToRecFN.scala": {
+    "bytes": 13901,
+    "sha256": "31cdb3be147471d52e721f14914031c19b915bd7aaffe5c0e333393a0c7fb67d",
+    "category": "HardFloat-source-prerequisite",
+    "provenance": "immutable-50cb-source-enforcement"
+  }
+}

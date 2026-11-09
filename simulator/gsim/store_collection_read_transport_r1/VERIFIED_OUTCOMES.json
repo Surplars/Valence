@@ -1,0 +1,37 @@
+{
+  "scope": "component transport only; default off; no real ROB-head or cache-progress qualification",
+  "off_graphs": {
+    "store_buffer": {
+      "raw_equal": true,
+      "normalized_equal": true,
+      "baseline": "d8e10d1e9b570da9fbd4d7dc032d862ce1d00c2a6fb6ca3c9bdd9a8273590e88",
+      "candidate": "d8e10d1e9b570da9fbd4d7dc032d862ce1d00c2a6fb6ca3c9bdd9a8273590e88",
+      "normalization": "whole-line comments/blank lines/trailing whitespace only"
+    },
+    "checked_adapter": {
+      "raw_equal": true,
+      "normalized_equal": true,
+      "baseline": "e2869ed6e32255735fa3788a6342c21d58bec59cbd1703c039645e9ecb7ccb04",
+      "candidate": "e2869ed6e32255735fa3788a6342c21d58bec59cbd1703c039645e9ecb7ccb04",
+      "normalization": "whole-line comments/blank lines/trailing whitespace only"
+    }
+  },
+  "seals": {
+    "store-full-line-progress-stagec-r1/QUEUE_FINAL_SEAL.json": {
+      "sha256": "fc28598d820d50dea1c2833bfa1638becb5a2236d8e6a7f48046571cbcaa1c8e",
+      "entries": 1054
+    },
+    "store-full-line-progress-components-r1/STORE_COMPONENT_SEAL.json": {
+      "sha256": "8c7f2705d8066db6dee9e383d0b2631fbb3538db8be60444f142be4931b65b2f",
+      "entries": 151
+    },
+    "store-full-line-progress-translation-r1/FINAL_SEAL.json": {
+      "sha256": "669e0539e2f2fe7c1d623efec65f80c39421dbf58e17211f2982f2077a4f20ee",
+      "entries": 154
+    },
+    "store-full-line-progress-backend-r1/LSU_FINAL_SEAL.json": {
+      "sha256": "1c91d9fdd1e64c9ebc16e2a84265c243d124c670ab9449bfc33875fe3717a1a5",
+      "entries": 1039
+    }
+  }
+}

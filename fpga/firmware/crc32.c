@@ -263,11 +263,24 @@ uint32_t firmware_crc_update(uint32_t crc, const uint8_t *p, unsigned n) {
         p+=4; n-=4;
     }
 #elif FIRMWARE_CRC_MODE == 3
-    /* Pack only bytes within the supplied range; preserve arbitrary alignment. */
-    while(n>=2) {
-        crc^=(uint32_t)p[0] | (uint32_t)p[1]<<8;
-        crc=(crc>>16)^crc32_table[256+(crc&255)]^crc32_table[(crc>>8)&255];
-        p+=2; n-=2;
+#if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+#error mode3 aligned CRC candidate requires a little-endian target
+#endif
+    typedef uint16_t crc_halfword __attribute__((may_alias));
+    if(((uintptr_t)p&1U)==0) {
+        /* Native little-endian pair, only after alignment and span checks. */
+        while(n>=2) {
+            crc^=*(const crc_halfword *)p;
+            crc=(crc>>16)^crc32_table[256+(crc&255)]^crc32_table[(crc>>8)&255];
+            p+=2; n-=2;
+        }
+    } else {
+        /* Preserve arbitrary odd pointers without unaligned loads or overread. */
+        while(n>=2) {
+            crc^=(uint32_t)p[0] | (uint32_t)p[1]<<8;
+            crc=(crc>>16)^crc32_table[256+(crc&255)]^crc32_table[(crc>>8)&255];
+            p+=2; n-=2;
+        }
     }
 #endif
     while(n--) {

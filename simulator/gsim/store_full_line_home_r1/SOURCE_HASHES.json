@@ -1,0 +1,64 @@
+{
+  "files": [
+    {
+      "path": "B1_INTEGRATION_PLAN.md",
+      "bytes": 5987,
+      "sha256": "5f270fe92bdf26c02e3467667451d4c446ff196223f35669af847f28d96a8241"
+    },
+    {
+      "path": "HOME.patch",
+      "bytes": 6806,
+      "sha256": "6cc88be4ead5c256cec5e1d027621f9221a4f7dcb97325ee6f7e9ea7adb671bf"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2526,
+      "sha256": "f44ddbe341d29b3ab4886785ab49ad08ecc7c2c507a4872752619dade00aa84c"
+    },
+    {
+      "path": "REPORT.md",
+      "bytes": 4015,
+      "sha256": "c31917bcb956608edb0ab38a2c969ef31faa6e0c8d1428ebdb6be63d7f7f3f57"
+    },
+    {
+      "path": "REPORT_ON_INTERNAL.md",
+      "bytes": 4107,
+      "sha256": "75fc0f1b7fe09cececfa9346f1b7321427d95ace3cde0781997d20abc659b058"
+    },
+    {
+      "path": "host/arm_cases.py",
+      "bytes": 5170,
+      "sha256": "6dd9dca1b0de3cf48cb747d0de1d8bdab8fa28bd07fedb3612c9e8378f7b6931"
+    },
+    {
+      "path": "host/cases.py",
+      "bytes": 13779,
+      "sha256": "b51b53d2c2acb574153ba640b6caca0da483c95880f136cc3cd34d051b33cc4e"
+    },
+    {
+      "path": "host/driver.cpp",
+      "bytes": 12678,
+      "sha256": "495ea9f3788c05fece4689d52b143b9b575508d7b96f3678689069f024dc35c7"
+    },
+    {
+      "path": "host/make_driver.py",
+      "bytes": 4514,
+      "sha256": "7e13067c62dca651ac6c0ab4cd355d74efa3683b24b9ff6aad9cb9268054a17d"
+    },
+    {
+      "path": "protocol_oracle_r2.py",
+      "bytes": 9692,
+      "sha256": "44ad7e9e9041e8b1375a01d724a5ff8fb80ac2a146be94392c5178f4f5190a80"
+    },
+    {
+      "path": "source/FullLineHomeGsim.scala",
+      "bytes": 6118,
+      "sha256": "e6d89850e72fa629b549eae027b5d86246f91416cd29099eab720580db9b4247"
+    },
+    {
+      "path": "source/FullLineMixedCoherentLineHome.scala",
+      "bytes": 49597,
+      "sha256": "bd0fdef7a0d71cf58422a0fc8bdf6b642e10b7618cecc84ad903a5e27ddadc6c"
+    }
+  ]
+}

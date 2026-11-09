@@ -1,0 +1,46 @@
+{
+  "raw_equal": false,
+  "equivalent_for_these_differences": true,
+  "method": "Exhaustive full-file three-exact-expression difference inventory plus named-signal Boolean absorption proof; no files normalized or rewritten",
+  "files": [
+    {
+      "path": "off.sv",
+      "bytes": 1289772,
+      "sha256": "b887d9623677447eeb129c918d8aa211153d74469408ddf5058b4a468f998894"
+    },
+    {
+      "path": "reference.sv",
+      "bytes": 1289730,
+      "sha256": "02c629b0d61d036b4485e0d03f7f1a5decedbf5ffaab2d84d4f0b0a43694dd12"
+    },
+    {
+      "path": "RAW_DIFFERENCE-0.patch",
+      "bytes": 1179,
+      "sha256": "16d2f14a4f7fa495de96ea89fa5099678c64dae51da913efc3c707e6b0ac5faf"
+    }
+  ],
+  "module": "FullLineMixedCoherentLineHome",
+  "definitions": {
+    "S": "sendRelease",
+    "M": "ackRelease ? releaseAckMask_1 : releaseAckMask_0",
+    "V": "io_clients_0_d_valid_0 = S & M",
+    "F": "_GEN_27 = io_clients_0_d_ready & V"
+  },
+  "proof": "F & S = ready & S & M & S = ready & S & M = F. Therefore both releasePhases enable expressions and dLocked next-state expression are identical functions. All other file bytes are identical after substituting only these three proven terms in memory for comparison. On-disk raw files remain unequal and untouched.",
+  "exact_differences": [
+    [
+      "_GEN_27 & sendRelease & ~ackRelease",
+      "_GEN_27 & ~ackRelease"
+    ],
+    [
+      "_GEN_27 & sendRelease & ackRelease",
+      "_GEN_27 & ackRelease"
+    ],
+    [
+      "grantFire | _GEN_27 & sendRelease",
+      "grantFire | _GEN_27"
+    ]
+  ],
+  "binary_truth_table_cases": 64,
+  "scope": "This establishes equivalence of the complete two lowered OFF files through the exhaustive difference inventory, not ON equivalence or physical timing."
+}
