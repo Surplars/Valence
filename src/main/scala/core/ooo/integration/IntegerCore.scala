@@ -24,7 +24,8 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
         !p.fetchIdentityTranslation && !p.alignedFetchPermissionStage),
         "experimental H fetch requires precise external instruction owners")
     require(resetPc >= 0 && resetPc < (BigInt(1) << 64) && resetPc % (if (p.compressedInstructions) 2 else 4) == 0)
-    require(!bankedIndirectStorage || p.indirectTargetEntries > 0, "banked indirect storage requires an indirect table")
+    private val useBankedIndirectStorage = bankedIndirectStorage || p.bankedIndirectStorage
+    require(!useBankedIndirectStorage || p.indirectTargetEntries > 0, "banked indirect storage requires an indirect table")
     val io = IO(new Bundle {
         val guestExternal = if (experimentalHypervisor) Some(Input(UInt(math.max(1, guestFiles).W))) else None
         val virtualized = if (experimentalHypervisor) Some(Output(Bool())) else None
@@ -247,7 +248,7 @@ class IntegerCore(val p: OooParams = OooParams(), resetPc: BigInt = BigInt("8000
     }
     val predictor = Module(new BranchPredictor(p))
     val indirectPredictor = if (p.indirectTargetEntries > 0)
-        Some(Module(new IndirectTargetPredictor(p, bankedStorage = bankedIndirectStorage))) else None
+        Some(Module(new IndirectTargetPredictor(p, bankedStorage = useBankedIndirectStorage))) else None
     val predictionTraining = Module(new CommitPredictionTraining(p))
     for (lane <- 0 until p.commitWidth) {
         val commit = io.commit(lane)

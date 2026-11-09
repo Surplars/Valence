@@ -123,6 +123,7 @@ case class OooParams(
     instructionCacheSets: Int = 0,
     returnStackEntries: Int = 16,
     indirectTargetEntries: Int = 0,
+    bankedIndirectStorage: Boolean = false,
     recoveryWidth: Int = 1,
     identityDataRequestFlow: Boolean = false,
     precheckedDataRequestFlow: Boolean = false,
@@ -134,6 +135,7 @@ case class OooParams(
     dataStoreNextLinePrefetch: Boolean = false,
     virtualRamLoadPrecheck: Boolean = false,
     bankedIssuePayload: Boolean = false,
+    compactIssueImmediates: Boolean = false,
     bankedFetchHints: Boolean = false,
     independentFetchPayloadCapture: Boolean = false,
     ownerLocalIssueReady: Boolean = false,
@@ -565,6 +567,8 @@ case class OooParams(
     require(!ownerLocalIssueReady || (ownerLocalOperandReady && registeredIssueExecute &&
         !loadCompletionBypass && !mulWordPreviewBypass),
         "owner-local ALU issue readiness needs exact ready mirrors and registered execution promises")
+    require(!compactIssueImmediates || bankedIssuePayload,
+        "compact issue immediates require banked issue payload")
     require(!bankedIssuePayload || (renameWidth == 2 && robEntries >= 4),
         "banked issue payload requires contiguous two-wide allocation")
     require(!bankedFetchHints || registeredFetchPacket,
@@ -657,6 +661,9 @@ case class OooParams(
     )
     require(Set(1, 2, 4, 8).contains(memoryEntries), "memory slots must be 1, 2, 4 or 8")
     require(Set(0, 16, 32, 64).contains(indirectTargetEntries), "indirect target entries must be 0, 16, 32 or 64")
+    require(!bankedIndirectStorage || (indirectTargetEntries == 16 && renameWidth == 2 && commitWidth == 2 &&
+        compressedInstructions && registeredPredictionTraining),
+        "banked indirect storage requires indirect16, two lookup/commit lanes, RVC and registered training")
     require(Set(1, 2, 4, 8).contains(storeBufferEntries), "store buffer must have 1, 2, 4 or 8 entries")
     require(!registeredPmpRegions || (machineSystem && pmpEntries > 0),
         "registered PMP ranges require the architectural machine CSR owner and implemented PMP entries")

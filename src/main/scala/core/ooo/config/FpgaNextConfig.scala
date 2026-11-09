@@ -147,8 +147,16 @@ final case class FpgaNextConfig(
     // None preserves the exact selected topology; this is not a new public default.
     branchPredictorEntriesOverride: Option[Int] = None,
     dmaLineThresholdRewrite: Boolean = false,
-    dmaSingleReadWait: Boolean = false
+    dmaSingleReadWait: Boolean = false,
+    // Explicit combined-source experiment. Public Selected remains unchanged.
+    indirectTargetEntries: Int = 0,
+    bankedIndirectStorage: Boolean = false,
+    compactIssueImmediates: Boolean = false
 ) {
+    require(Set(0, 16, 32, 64).contains(indirectTargetEntries))
+    require(!bankedIndirectStorage || indirectTargetEntries == 16,
+        "banked indirect storage requires the logical sixteen-entry table")
+    require(!compactIssueImmediates || optimized, "compact immediates require the banked issue payload profile")
     require(!registeredMulLoadOperandCapture || (coexistingPhysicalLoadIngress &&
         registeredMemoryOperandCapture && sharedMulDivOperandReads &&
         !contextOwnedInstructionPrefetch && !loadPayloadNomination),
@@ -374,6 +382,9 @@ final case class FpgaNextConfig(
         (if (preparedBareHeadStoreOperands) "-prepared-bare-head-store" else "") +
         (if (bankedRobCompletionData) "-banked-rob-completion-data" else "") +
         (if (coexistingPhysicalLoadIngress) "-coexisting-physical-load-ingress" else "") +
+        (if (indirectTargetEntries != 0) s"-indirect$indirectTargetEntries" else "") +
+        (if (bankedIndirectStorage) "-banked-indirect" else "") +
+        (if (compactIssueImmediates) "-compact-issue-immediates" else "") +
         (if (loadPayloadNomination) "-load-payload-nomination" else "") +
         (if (contextOwnedInstructionPrefetch) "-context-owned-instruction-prefetch" else "") +
         (if (physicalLoadIngressFlow) "-physical-ingress-flow" else "") +
@@ -567,6 +578,9 @@ final case class FpgaNextConfig(
             pendingReadyStoreBypass = pendingReadyStoreBypass, taggedStoreReturns = taggedStoreReturns,
         backendCapacity = backendCapacity)
         base.copy(
+            indirectTargetEntries = indirectTargetEntries,
+            bankedIndirectStorage = bankedIndirectStorage,
+            compactIssueImmediates = compactIssueImmediates,
             branchPredictorEntries = branchPredictorEntriesOverride.getOrElse(base.branchPredictorEntries),
             completionTopology = completionTopology,
             branchResolutionTopology = branchResolutionTopology,
@@ -600,6 +614,8 @@ final case class FpgaNextConfig(
     }
 
     def managedBoard(jtagRamDownload: Boolean = false, preselectRedirectTokenMatches: Boolean = false, proofBankControlDecoupling: Boolean = false, projectedRequestHead: Boolean = false, factorPreparedStorePool: Boolean = false, sharedTwoWordFetchPmp: Boolean = false, disjointEvictionStoreOverlap: Boolean = false, registerNextLineDecision: Boolean = false, registeredMemoryPreparationDescriptor: Boolean = false, backendNaturalAlignedPmp: Boolean = false, earlyLoadPreparationDescriptor: Boolean = false, dataTlbMissCacheEntries: Int = 0, virtualStoreOperandLookahead: Boolean = false, bankedStoreData: Boolean = false): BoardSocTop = {
+        require(indirectTargetEntries == 0 && !bankedIndirectStorage && !compactIssueImmediates,
+            "combined predictor/immediate experiments require the explicit timing top, not the legacy board factory")
         require(completionTopology == "legacy" && branchResolutionTopology == "writeback-coupled" &&
             fetchTransactionSlots == 1 && !registeredDataTranslation && !circularFetchPayload &&
             !completedCanonicalStoreForwarding && !combinedCheckedDataFlow && !preparedHeadStoreOperands &&

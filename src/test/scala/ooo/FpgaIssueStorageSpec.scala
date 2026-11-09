@@ -25,6 +25,25 @@ class FpgaIssueStorageSpec extends AnyFunSuite {
         assert(!fir.contains("smem"), "no hidden synchronous-read stage")
         assert(fir.contains("UInt<64>[8]") && fir.contains("UInt<32>[8]"), fir)
     }
+    test("compact immediate storage is opt-in with a signed32 acceptance assertion and full-width output") {
+        assert(!OooParams().compactIssueImmediates)
+        intercept[IllegalArgumentException] { OooParams(compactIssueImmediates = true) }
+        assert(OooParams(bankedIssuePayload = true, compactIssueImmediates = true).compactIssueImmediates)
+        val fields = Seq(Set("immediate"))
+        val full = ChiselStage.emitCHIRRTL(new BankedIssuePayload(16, fields))
+        val compact = ChiselStage.emitCHIRRTL(new BankedIssuePayload(16, fields, compactImmediateStorage = true))
+        assert("UInt<64>\\[8\\]".r.findAllIn(full).length == 2, full)
+        assert("UInt<32>\\[8\\]".r.findAllIn(compact).length == 2, compact)
+        assert(!compact.contains("UInt<64>[8]"), compact)
+        assert(compact.contains("immediate : UInt<64>"), compact)
+        assert(compact.contains("compact issue immediate must be canonical signed32"), compact)
+        assert(!full.contains("compact issue immediate must be canonical signed32"), full)
+        for (fir <- Seq(full, compact)) {
+            assert("write mport".r.findAllIn(fir).length == 2, fir)
+            assert("read mport".r.findAllIn(fir).length == 2, fir)
+            assert(!fir.contains("smem"), fir)
+        }
+    }
     test("unneeded fields do not create memory banks") {
         val fir = ChiselStage.emitCHIRRTL(new BankedIssuePayload(16, Seq(Set("pc"), Set("immediate"))))
         assert("cmem".r.findAllIn(fir).length == 4, fir)

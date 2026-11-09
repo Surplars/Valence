@@ -34,13 +34,13 @@ object BankedIssuePayloadTestConfig {
     val fields: Seq[Set[String]] = Seq(ImmutableIssuePayload.head, Set("immediate"), Set("immediate"),
         Set("pc"), Set("pc"), ImmutableIssuePayload.execution, ImmutableIssuePayload.execution, Set("pc"))
 }
-class BankedIssuePayloadGsim extends Module {
+class BankedIssuePayloadGsim(compact: Boolean = false) extends Module {
     val io = IO(new Bundle {
         val write = Input(new IssuePayloadWritePorts)
         val address = Input(new IssuePayloadAddressPorts)
         val data = Output(new IssuePayloadDataPorts)
     })
-    val storage = Module(new BankedIssuePayload(16, BankedIssuePayloadTestConfig.fields))
+    val storage = Module(new BankedIssuePayload(16, BankedIssuePayloadTestConfig.fields, compactImmediateStorage = compact))
     for (lane <- 0 until 2) {
         storage.io.write(lane).valid := io.write.at(lane).valid
         storage.io.write(lane).bits.index := io.write.at(lane).bits.index
@@ -53,5 +53,5 @@ class BankedIssuePayloadGsim extends Module {
     }
 }
 object BankedIssuePayloadGsimMain extends App {
-    ChiselStage.emitCHIRRTLFile(new BankedIssuePayloadGsim, Array("--target-dir", args.head))
+    ChiselStage.emitCHIRRTLFile(new BankedIssuePayloadGsim(args.drop(1).contains("compact")), Array("--target-dir", args.head))
 }

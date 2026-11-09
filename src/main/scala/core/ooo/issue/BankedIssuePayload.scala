@@ -50,7 +50,11 @@ object ImmutableIssuePayload {
   * bypass. RAM is not reset: the caller's full-owner/live metadata remains the
   * authorization, and disabled reads return zero without inspecting stale data.
   */
-class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Module {
+class BankedIssuePayload(
+    entries: Int,
+    readFields: Seq[Set[String]],
+    compactImmediateStorage: Boolean = false
+) extends Module {
     require(entries >= 4 && isPow2(entries))
     require(readFields.nonEmpty && readFields.forall(fs => fs.nonEmpty && fs.subsetOf(ImmutableIssuePayload.all)))
     private val indexBits = log2Ceil(entries)
@@ -63,6 +67,15 @@ class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Mod
         val enable = Input(Vec(readFields.size, Bool()))
         val data = Output(Vec(readFields.size, new ImmutableIssuePayload))
     })
+    // Compact storage is an explicit signed-32 contract, not a change to the generic API.
+    if (compactImmediateStorage) {
+        for (write <- io.write) {
+            when(write.valid) {
+                assert(write.bits.data.immediate === Cat(Fill(32, write.bits.data.immediate(31)),
+                    write.bits.data.immediate(31, 0)), "compact issue immediate must be canonical signed32")
+            }
+        }
+    }
     val writes = (0 until 2).map { bank =>
         val select = io.write.map(w => w.valid && w.bits.index(0) === bank.U)
         assert(PopCount(select) <= 1.U, "issue allocation writes must occupy distinct parity banks")
@@ -73,13 +86,15 @@ class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Mod
     for ((field, bits) <- ImmutableIssuePayload.fields) {
         val readers = readFields.indices.filter(readFields(_).contains(field))
         if (readers.nonEmpty) {
+            val compact = compactImmediateStorage && field == "immediate"
+            val storageBits = if (compact) 32 else bits
             val banks = (0 until 2).map { bank =>
-                val memory = Mem(entries / 2, UInt(bits.W)).suggestName(s"${field}Bank$bank")
+                val memory = Mem(entries / 2, UInt(storageBits.W)).suggestName(s"${field}Bank$bank")
                 val (enable, first, index) = writes(bank)
                 when(enable) {
                     memory.write(index, Mux(first,
-                        io.write(0).bits.data.elements(field).asUInt,
-                        io.write(1).bits.data.elements(field).asUInt))
+                        io.write(0).bits.data.elements(field).asUInt(storageBits - 1, 0),
+                        io.write(1).bits.data.elements(field).asUInt(storageBits - 1, 0)))
                 }
                 memory
             }
@@ -87,7 +102,9 @@ class BankedIssuePayload(entries: Int, readFields: Seq[Set[String]]) extends Mod
                 val index = io.address(port)
                 val data0 = banks(0).read(index(indexBits - 1, 1))
                 val data1 = banks(1).read(index(indexBits - 1, 1))
-                io.data(port).elements(field) := Mux(io.enable(port), Mux(index(0), data1, data0), 0.U)
+                val selected = Mux(index(0), data1, data0)
+                val expanded = if (compact) Cat(Fill(32, selected(31)), selected) else selected
+                io.data(port).elements(field) := Mux(io.enable(port), expanded, 0.U)
             }
         }
     }

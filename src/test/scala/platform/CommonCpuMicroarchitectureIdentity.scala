@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.security.MessageDigest
 import scala.jdk.CollectionConverters._
-import soc.core.ooo.FpgaNextConfig
+import soc.core.ooo.{FpgaNextConfig, OooParams}
 import soc.platform._
 
 /** Export/cache identity, not hardware or a timing certificate. Parameter leaves
@@ -79,7 +79,17 @@ object CommonCpuMicroarchitectureIdentity {
             ujson.Obj.from(entries.toSeq.map { case (key, item) => key.toString -> value(item) }.sortBy(_._1))
         case entries: Seq[_] => ujson.Arr.from(entries.map(value))
         case product: Product if product.productArity > 0 =>
-            ujson.Obj.from(product.productElementNames.zip(product.productIterator).map {
+            // Preserve the established identity for unchanged default hardware.
+            // Enabled experimental fields remain explicit and are rejected by old board guards.
+            val defaults: Map[String, Any] = product match {
+                case _: FpgaNextConfig => Map("indirectTargetEntries" -> 0,
+                    "bankedIndirectStorage" -> false, "compactIssueImmediates" -> false)
+                case _: OooParams => Map("bankedIndirectStorage" -> false, "compactIssueImmediates" -> false)
+                case _ => Map.empty
+            }
+            ujson.Obj.from(product.productElementNames.zip(product.productIterator).filterNot {
+                case (key, item) => defaults.get(key).contains(item)
+            }.map {
                 case (key, item) => key -> value(item)
             }.toSeq.sortBy(_._1))
         case product: Product => ujson.Str(product.productPrefix)

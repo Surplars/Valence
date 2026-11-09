@@ -4041,7 +4041,8 @@ class IntegerBackend(val p: OooParams = OooParams(), canonicalHandoff: Boolean =
         }
     }
     if (p.bankedIssuePayload) {
-        val payload = Module(new BankedIssuePayload(p.robEntries, issuePayloadReads.map(_._4).toSeq))
+        val payload = Module(new BankedIssuePayload(p.robEntries, issuePayloadReads.map(_._4).toSeq,
+            compactImmediateStorage = p.compactIssueImmediates))
         for (lane <- 0 until p.renameWidth) {
             payload.io.write(lane).valid := ledger.io.renamed(lane).valid
             payload.io.write(lane).bits.index := ledger.io.renamed(lane).bits.token.index
