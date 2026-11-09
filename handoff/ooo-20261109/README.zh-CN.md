@@ -2,7 +2,7 @@
 
 ## 取代码
 
-交付分支：`integration/ooo-local-handoff-20261109`。
+交付分支：`integration/ooo-local-handoff-20261109`。远端命令仅在交付消息明确确认已推送后使用；若未推送，请使用下方离线分卷，不能把本地完成当成远端已有。
 
 ```sh
 git clone --branch integration/ooo-local-handoff-20261109 https://github.com/Surplars/Valence.git Valence-ooo-local
