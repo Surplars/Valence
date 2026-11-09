@@ -1,0 +1,128 @@
+{
+  "chisel": "7.3.0",
+  "clang": "19",
+  "firtool": "1.135.0",
+  "jars": {
+    "chisel-plugin_2.13.17-7.3.0.jar": {
+      "maven_path": "org/chipsalliance/chisel-plugin_2.13.17/7.3.0/chisel-plugin_2.13.17-7.3.0.jar",
+      "sha256": "87fd270072dcf2db682e623a0c59e429780262e82f9ba3237029711c69c682e2"
+    },
+    "chisel_2.13-7.3.0.jar": {
+      "maven_path": "org/chipsalliance/chisel_2.13/7.3.0/chisel_2.13-7.3.0.jar",
+      "sha256": "44d4685948e5486aa43cdf571d4e0c2e39c20554a8a3bd0907a8581a09280c67"
+    },
+    "commons-lang3-3.17.0.jar": {
+      "maven_path": "org/apache/commons/commons-lang3/3.17.0/commons-lang3-3.17.0.jar",
+      "sha256": "6ee731df5c8e5a2976a1ca023b6bb320ea8d3539fbe64c8a1d5cb765127c33b4"
+    },
+    "commons-text-1.13.1.jar": {
+      "maven_path": "org/apache/commons/commons-text/1.13.1/commons-text-1.13.1.jar",
+      "sha256": "76434bd2dd778ab140d84b3c6ffa40c40fe6219909f5ed1d8b8977c5ae8e50c8"
+    },
+    "data-class_2.13-0.2.7.jar": {
+      "maven_path": "io/github/alexarchambault/data-class_2.13/0.2.7/data-class_2.13-0.2.7.jar",
+      "sha256": "9912c12379c8172ce60892a6720d4f728a0c9304606de5a83ae561b7c627d338"
+    },
+    "firtool-resolver_2.13-2.0.1.jar": {
+      "maven_path": "org/chipsalliance/firtool-resolver_2.13/2.0.1/firtool-resolver_2.13-2.0.1.jar",
+      "sha256": "c33ffcba70067f3b23fbd33d6bd7b34a182c37cb2bfbffc15e77fe4bf13678c8"
+    },
+    "geny_2.13-1.1.1.jar": {
+      "maven_path": "com/lihaoyi/geny_2.13/1.1.1/geny_2.13-1.1.1.jar",
+      "sha256": "20af231c222fc71c29e06b3cd8d9190a16b412da83cc49fb0b778cf2dc6f94d2"
+    },
+    "java-diff-utils-4.16.jar": {
+      "maven_path": "io/github/java-diff-utils/java-diff-utils/4.16/java-diff-utils-4.16.jar",
+      "sha256": "620403030d676a4a27f780a3acec7438dee1b1651a1c804fa6bb11bb07399a6f"
+    },
+    "jline-3.29.0-jdk8.jar": {
+      "maven_path": "org/jline/jline/3.29.0/jline-3.29.0-jdk8.jar",
+      "sha256": "ed2680487642df95379f220c09c0f77e25095713387e2bc00c2d6581bb79c804"
+    },
+    "json4s-ast_2.13-4.0.7.jar": {
+      "maven_path": "org/json4s/json4s-ast_2.13/4.0.7/json4s-ast_2.13-4.0.7.jar",
+      "sha256": "3135eceb95b679ea228e3543267d12bea5f4bdb68e3e8fc55402824d85885e7e"
+    },
+    "json4s-core_2.13-4.0.7.jar": {
+      "maven_path": "org/json4s/json4s-core_2.13/4.0.7/json4s-core_2.13-4.0.7.jar",
+      "sha256": "e831e4a676964d3f38a408b464b3ba6d21b76730c01f13d2d0b9995945fa06ce"
+    },
+    "json4s-native-core_2.13-4.0.7.jar": {
+      "maven_path": "org/json4s/json4s-native-core_2.13/4.0.7/json4s-native-core_2.13-4.0.7.jar",
+      "sha256": "038ce5b91ba8d6198eb11368f90bf7c8f0e05d8fb6a914d1ccf25aa88a8ff6da"
+    },
+    "json4s-native_2.13-4.0.7.jar": {
+      "maven_path": "org/json4s/json4s-native_2.13/4.0.7/json4s-native_2.13-4.0.7.jar",
+      "sha256": "728c6970ff1f6101ca2d47a32c0f7d55277fab92485eef8a8be3e289a4e445ea"
+    },
+    "json4s-scalap_2.13-4.0.7.jar": {
+      "maven_path": "org/json4s/json4s-scalap_2.13/4.0.7/json4s-scalap_2.13-4.0.7.jar",
+      "sha256": "69bdf853f04379970939022247495f30f60a3ef7292d6af77ad7bec4cb83ff4b"
+    },
+    "os-lib_2.13-0.10.7.jar": {
+      "maven_path": "com/lihaoyi/os-lib_2.13/0.10.7/os-lib_2.13-0.10.7.jar",
+      "sha256": "e23e9a781690a1f4be2ee0b5327b4b282da169685575f46236b87f404d145eca"
+    },
+    "paranamer-2.8.jar": {
+      "maven_path": "com/thoughtworks/paranamer/paranamer/2.8/paranamer-2.8.jar",
+      "sha256": "688cb118a6021d819138e855208c956031688be4b47a24bb615becc63acedf07"
+    },
+    "scala-collection-compat_2.13-2.11.0.jar": {
+      "maven_path": "org/scala-lang/modules/scala-collection-compat_2.13/2.11.0/scala-collection-compat_2.13-2.11.0.jar",
+      "sha256": "0c1108883b7b97851750e8932f9584346ccb23f1260c197f97295ac2e6c56cec"
+    },
+    "scala-compiler-2.13.17.jar": {
+      "maven_path": "org/scala-lang/scala-compiler/2.13.17/scala-compiler-2.13.17.jar",
+      "sha256": "073ab364dc902519719bd6b9463562128abc5881d2a2e4b7a5e2d04cdd7bc025"
+    },
+    "scala-library-2.13.17.jar": {
+      "maven_path": "org/scala-lang/scala-library/2.13.17/scala-library-2.13.17.jar",
+      "sha256": "b7822c4225243215f185925724a6edff92cf18777a136cc738276c4446fac76c"
+    },
+    "scala-reflect-2.13.17.jar": {
+      "maven_path": "org/scala-lang/scala-reflect/2.13.17/scala-reflect-2.13.17.jar",
+      "sha256": "734533897bcfabe7a6e7fa09dbee165b257b0396e14e8a57c75111db8e04bb98"
+    },
+    "scala-xml_2.13-2.2.0.jar": {
+      "maven_path": "org/scala-lang/modules/scala-xml_2.13/2.2.0/scala-xml_2.13-2.2.0.jar",
+      "sha256": "0d9d63091a73cf837cd5412671a30abecad460dc254aeb43a2b18f4910af6a09"
+    },
+    "scopt_2.13-4.1.0.jar": {
+      "maven_path": "com/github/scopt/scopt_2.13/4.1.0/scopt_2.13-4.1.0.jar",
+      "sha256": "2e5037bda974630b046794274e344273919abf4727acfcd86352617dce68f82b"
+    },
+    "ujson_2.13-3.3.1.jar": {
+      "maven_path": "com/lihaoyi/ujson_2.13/3.3.1/ujson_2.13-3.3.1.jar",
+      "sha256": "c61d66d7bd57de12b110b74f0ea2711c3453437634ab53d68f8c445d86466607"
+    },
+    "upack_2.13-3.3.1.jar": {
+      "maven_path": "com/lihaoyi/upack_2.13/3.3.1/upack_2.13-3.3.1.jar",
+      "sha256": "8759989cd50d96946107152c2714e0d5be08f66bec5a1e00ec56cedb0e2089de"
+    },
+    "upickle-core_2.13-3.3.1.jar": {
+      "maven_path": "com/lihaoyi/upickle-core_2.13/3.3.1/upickle-core_2.13-3.3.1.jar",
+      "sha256": "1235134fd8ba8f6b5a9f804ae71063e49f66ddc2e223d7111f624fbe800a5fc4"
+    },
+    "upickle-implicits_2.13-3.3.1.jar": {
+      "maven_path": "com/lihaoyi/upickle-implicits_2.13/3.3.1/upickle-implicits_2.13-3.3.1.jar",
+      "sha256": "635d4c17a40b09c551ccdb87d1817c843cab462fd5dc01f1fbf70184d6069567"
+    },
+    "upickle_2.13-3.3.1.jar": {
+      "maven_path": "com/lihaoyi/upickle_2.13/3.3.1/upickle_2.13-3.3.1.jar",
+      "sha256": "fb57ee6c781b0f59d5aef3ac855b2b3a7afafdd392246b34959fc7aa1e9f15bd"
+    }
+  },
+  "java": "OpenJDK 21.0.13; Linux x86_64 original environment",
+  "limitation": "Executable hashes identify original tooling; they do not provide its source, runtime libraries, installation, or a portable full-toolchain closure.",
+  "scala": "2.13.17",
+  "tool_executable_sha256": {
+    "abc": "c078b63884b8b615e56a9defe506478df10be8e02b1abd870d7d10678ce83753",
+    "clang": "0a3c55936ac43954fbe4914e6e73b577ca9e35e75d89ef13d3e28c187f41ca1a",
+    "firtool": "c2e1ac4d88be9579313c8a33ea3c8643db7d1840c78a4593dc05395171e25051",
+    "gsim": "c99fc21d24bbf38bc68d1045705ad3050d2b6350e1b851f10ba41d44bc2d2614",
+    "sv2v": "b80a8ac6212aa72a196d9d6129cda35f16dbfa799ec61848c46321f845b6b635",
+    "yosys": "0e2b5c8f3ba616fa9ac5b05830e86181577ebf60d99401c10993885ff656e3ab"
+  },
+  "tools_bundled": false,
+  "yosys": "0.52 fee39a3284c90249e1d9684cf6944ffbbcbb8f90"
+}
